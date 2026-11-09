@@ -1,0 +1,18 @@
+{
+  "kind": "sprite",
+  "id": "people_yoroi_pochette",
+  "height": 1065,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 408,
+      "h": 1066,
+      "ax": 203.5,
+      "ay": 1066,
+      "boxes": [
+        [2, 1, 404, 1065]
+      ]
+    }
+  },
+  "from": "image/sprite/yoroi_pochette"
+}

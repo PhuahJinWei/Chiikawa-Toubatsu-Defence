@@ -1,0 +1,18 @@
+{
+  "kind": "sprite",
+  "id": "people_yoroi_ramen",
+  "height": 1064,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 432,
+      "h": 1068,
+      "ax": 194,
+      "ay": 1066,
+      "boxes": [
+        [2, 2, 428, 1064]
+      ]
+    }
+  },
+  "from": "image/sprite/yoroi_ramen"
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+# Temporary reference images from early brainstorming. Not shipped, not committed (see GDD §20).
+image/
+# Regenerate with `npm run art:kit`.
+art-kit/

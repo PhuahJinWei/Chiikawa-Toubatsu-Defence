@@ -1,0 +1,102 @@
+{
+  "slotsBase": 5,
+  "ramenWeeds": 25,
+  "rewards": {
+    "rescueLeft": 25,
+    "endlessPerWave": 10
+  },
+  "sellers": [
+    {
+      "id": "pochette",
+      "npc": "yoroi_pochette",
+      "items": [
+        {
+          "id": "slot1",
+          "pic": "slot",
+          "upgrade": "slots",
+          "tier": 1,
+          "max": 1,
+          "prices": [
+            750
+          ]
+        },
+        {
+          "id": "slot2",
+          "pic": "slot",
+          "upgrade": "slots",
+          "tier": 2,
+          "max": 1,
+          "prices": [
+            1500
+          ]
+        },
+        {
+          "id": "slot3",
+          "pic": "slot",
+          "upgrade": "slots",
+          "tier": 3,
+          "max": 1,
+          "prices": [
+            3000
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ramen",
+      "npc": "yoroi_ramen",
+      "items": [
+        {
+          "id": "ramen1",
+          "pic": "ramen",
+          "upgrade": "ramen",
+          "tier": 1,
+          "max": 1,
+          "prices": [
+            600
+          ]
+        },
+        {
+          "id": "ramen2",
+          "pic": "ramen",
+          "upgrade": "ramen",
+          "tier": 2,
+          "max": 1,
+          "prices": [
+            1200
+          ]
+        },
+        {
+          "id": "buta",
+          "max": 9,
+          "prices": [
+            150
+          ],
+          "consumable": true
+        }
+      ]
+    },
+    {
+      "id": "shisa",
+      "npc": "shisa",
+      "items": [
+        {
+          "id": "shisa",
+          "card": "shisa",
+          "max": 1,
+          "prices": [
+            1000
+          ]
+        },
+        {
+          "id": "hoshi",
+          "card": "hoshi",
+          "max": 1,
+          "prices": [
+            2500
+          ]
+        }
+      ]
+    }
+  ]
+}

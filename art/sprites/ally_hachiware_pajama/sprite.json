@@ -1,0 +1,32 @@
+{
+  "kind": "sprite",
+  "id": "ally_hachiware_pajama",
+  "height": 234,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 238,
+      "h": 238,
+      "ax": 94,
+      "ay": 236,
+      "boxes": [
+        [2, 2, 234, 234]
+      ]
+    },
+    "attack": {
+      "frames": 5,
+      "w": 323,
+      "h": 243,
+      "ax": 101,
+      "ay": 240,
+      "boxes": [
+        [2, 2, 233, 238],
+        [14, 14, 216, 227],
+        [21, 9, 300, 232],
+        [19, 12, 288, 229],
+        [2, 9, 234, 232]
+      ]
+    }
+  },
+  "from": "image/sprite/hachiware - pajamas"
+}

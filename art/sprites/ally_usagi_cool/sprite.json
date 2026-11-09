@@ -1,0 +1,18 @@
+{
+  "kind": "sprite",
+  "id": "ally_usagi_cool",
+  "height": 234,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 154,
+      "h": 238,
+      "ax": 77,
+      "ay": 236,
+      "boxes": [
+        [2, 2, 150, 234]
+      ]
+    }
+  },
+  "from": "image/sprite/usagi_cool"
+}

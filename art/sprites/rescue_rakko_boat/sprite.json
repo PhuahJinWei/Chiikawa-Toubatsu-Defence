@@ -1,0 +1,17 @@
+{
+  "kind": "sprite",
+  "id": "rescue_rakko_boat",
+  "height": 815,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 1411,
+      "h": 816,
+      "ax": 709,
+      "ay": 815,
+      "boxes": [
+        [0, 0, 1411, 816]
+      ]
+    }
+  }
+}

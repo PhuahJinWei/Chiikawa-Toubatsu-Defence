@@ -1,0 +1,232 @@
+[
+  {
+    "id": "chiikawa",
+    "scope": 1,
+    "cost": 50,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 0,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "none" },
+    "produce": { "amount": 25, "intervalMs": 20000, "firstMs": 6000, "pullRadius": 1 }
+  },
+  {
+    "id": "chiikawa_island",
+    "scope": 2,
+    "cost": 225,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 5000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "projectile", "damage": 120, "intervalMs": 3000, "fx": "fx_flame" }
+  },
+  {
+    "id": "hachiware",
+    "scope": 1,
+    "cost": 100,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 0,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 1300, "rangeTiles": 3, "fx": "fx_jab" }
+  },
+  {
+    "id": "hachiware_pajama",
+    "scope": 2,
+    "cost": 150,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 5000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 2600, "rangeTiles": 3, "fx": "fx_jab", "pushTiles": 0.5 }
+  },
+  {
+    "id": "yoroi",
+    "scope": 1,
+    "cost": 50,
+    "cooldownMs": 20000,
+    "initialCooldownMs": 8000,
+    "hp": 4000,
+    "size": "M",
+    "wall": true,
+    "attack": { "kind": "none" }
+  },
+  {
+    "id": "yoroi_erai",
+    "scope": 2,
+    "cost": 125,
+    "cooldownMs": 30000,
+    "initialCooldownMs": 12000,
+    "hp": 8000,
+    "size": "M",
+    "wall": true,
+    "attack": { "kind": "none" }
+  },
+  {
+    "id": "usagi",
+    "scope": 1,
+    "cost": 100,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 0,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "projectile", "damage": 20, "intervalMs": 1400, "fx": "fx_blast" },
+    "catchphrase": "phrase.usagi",
+    "catchphraseChance": 0.06
+  },
+  {
+    "id": "usagi_cool",
+    "scope": 2,
+    "cost": 300,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 5000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "missiles", "damage": 60, "intervalMs": 5000, "fx": "fx_missile", "blastTiles": 0.75 }
+  },
+  {
+    "id": "momonga",
+    "scope": 1,
+    "cost": 325,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 5000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "spread3", "damage": 20, "intervalMs": 1400, "fx": "fx_acorn", "vsFlierMultiplier": 2 }
+  },
+  {
+    "id": "kurimanju",
+    "scope": 1,
+    "cost": 300,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 5000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "lob", "damage": 80, "intervalMs": 2900, "fx": "fx_can", "splashTiles": 1, "releaseMs": 400 },
+    "catchphrase": "phrase.kurimanju",
+    "catchphraseChance": 0.12
+  },
+  {
+    "id": "shisa",
+    "scope": 1,
+    "cost": 175,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 3000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "projectile", "damage": 20, "intervalMs": 1400, "fx": "fx_goya", "slowMs": 5000 }
+  },
+  {
+    "id": "ode",
+    "scope": 1,
+    "cost": 125,
+    "cooldownMs": 50000,
+    "initialCooldownMs": 20000,
+    "hp": 0,
+    "size": "L",
+    "attack": { "kind": "none" },
+    "oneUse": { "kind": "charge" }
+  },
+  {
+    "id": "pajama_parties",
+    "scope": 2,
+    "cost": 175,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 5000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "none" },
+    "support": { "kind": "aura_attackspeed", "mul": 1.5 },
+    "members": ["green", "pink", "purple", "white"]
+  },
+  {
+    "id": "rakko",
+    "scope": 2,
+    "cost": 300,
+    "cooldownMs": 20000,
+    "initialCooldownMs": 12000,
+    "hp": 2000,
+    "size": "S",
+    "rescuer": true,
+    "attack": { "kind": "hitscan", "damage": 70, "intervalMs": 1000, "rangeTiles": 1, "fx": "fx_jab", "ignoresArmor": true, "sweepLanes": 1 }
+  },
+  {
+    "id": "furuhonya",
+    "scope": 2,
+    "cost": 200,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 3000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "projectile", "damage": 20, "intervalMs": 1400, "fx": "fx_book", "volley": 2 }
+  },
+  {
+    "id": "futaba",
+    "scope": 2,
+    "cost": 100,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 3000,
+    "hp": 300,
+    "size": "S",
+    "aquatic": true,
+    "attack": { "kind": "projectile", "damage": 20, "intervalMs": 1400, "fx": "fx_shell", "passThrough": true },
+    "bond": { "with": "hitoha", "attackMul": 1.5 }
+  },
+  {
+    "id": "hitoha",
+    "scope": 2,
+    "cost": 125,
+    "cooldownMs": 7500,
+    "initialCooldownMs": 3000,
+    "hp": 300,
+    "size": "S",
+    "aquatic": true,
+    "attack": { "kind": "projectile", "damage": 50, "intervalMs": 1600, "fx": "fx_conch" },
+    "bond": { "with": "futaba", "attackMul": 1.5 }
+  },
+  {
+    "id": "shimajiro",
+    "scope": 2,
+    "cost": 50,
+    "cooldownMs": 20000,
+    "initialCooldownMs": 8000,
+    "hp": 4000,
+    "size": "L",
+    "aquatic": true,
+    "wall": true,
+    "attack": { "kind": "none" }
+  },
+  {
+    "id": "taiyaki",
+    "scope": 2,
+    "cost": 25,
+    "cooldownMs": 30000,
+    "initialCooldownMs": 10000,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "none" },
+    "mine": { "readyMs": 12000, "damage": 1800 }
+  },
+  {
+    "id": "muchauman",
+    "scope": 2,
+    "cost": 75,
+    "cooldownMs": 50000,
+    "initialCooldownMs": 20000,
+    "hp": 0,
+    "size": "M",
+    "attack": { "kind": "none" },
+    "oneUse": { "kind": "freeze", "freezeMs": 5000 }
+  },
+  {
+    "id": "hoshi",
+    "scope": 2,
+    "cost": 0,
+    "cooldownMs": 0,
+    "initialCooldownMs": 0,
+    "hp": 300,
+    "size": "S",
+    "attack": { "kind": "none" },
+    "wish": { "transformMs": 1200 }
+  }
+]

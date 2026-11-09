@@ -1,0 +1,251 @@
+[
+  {
+    "id": "3-1",
+    "world": 3,
+    "index": 1,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 28, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 53, "spawns": [
+        {"enemy": "fugu", "count": 2}
+      ] },
+      { "at": 76, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 99, "spawns": [
+        {"enemy": "dekai_tori"},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 122, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 150, "spawns": [
+        {"enemy": "dekai_tori"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 175, "spawns": [
+        {"enemy": "chushidesu", "count": 2},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 207, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "majyo"},
+        {"enemy": "mushi_sixlegs"},
+        {"enemy": "dekai_tori"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "ode"}
+  },
+  {
+    "id": "3-2",
+    "world": 3,
+    "index": 2,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 28, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 53, "spawns": [
+        {"enemy": "goblin"},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 76, "spawns": [
+        {"enemy": "goblin", "count": 2},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 101, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "mushi_sixlegs"}
+      ] },
+      { "at": 126, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "chushidesu"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 154, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "majyo"},
+        {"enemy": "goblin"},
+        {"enemy": "mushi_sixlegs"}
+      ] },
+      { "at": 179, "spawns": [
+        {"enemy": "kuroi_nagareboshi"},
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 212, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "kimera", "count": 2},
+        {"enemy": "mushi_sixlegs"},
+        {"enemy": "chushidesu"},
+        {"enemy": "fugu"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50}
+  },
+  {
+    "id": "3-3",
+    "world": 3,
+    "index": 3,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 28, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 53, "spawns": [
+        {"enemy": "fugu"},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 76, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 99, "spawns": [
+        {"enemy": "dekai_tori"},
+        {"enemy": "mushi_sixlegs"}
+      ] },
+      { "at": 122, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 150, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 175, "spawns": [
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "kuroi_nagareboshi"}
+      ] },
+      { "at": 209, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "fugu", "count": 3},
+        {"enemy": "kimera"},
+        {"enemy": "majyo", "count": 2},
+        {"enemy": "mushi_sixlegs", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "pajama_parties"}
+  },
+  {
+    "id": "3-4",
+    "world": 3,
+    "index": 4,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 28, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 53, "spawns": [
+        {"enemy": "goblin"},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 76, "spawns": [
+        {"enemy": "fugu"},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 101, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 126, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "majyo"},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 154, "boss": true, "spawns": [
+        {"enemy": "zou", "boss": true, "hpMul": 0.8},
+        {"enemy": "goblin", "count": 3}
+      ] },
+      { "at": 184, "spawns": [
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 218, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 8},
+        {"enemy": "kimera"},
+        {"enemy": "majyo", "count": 2},
+        {"enemy": "fugu", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50}
+  },
+  {
+    "id": "3-5",
+    "world": 3,
+    "index": 5,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 28, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 53, "spawns": [
+        {"enemy": "fugu"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 78, "spawns": [
+        {"enemy": "goblin"},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 103, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 129, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "kuroi_nagareboshi"}
+      ] },
+      { "at": 156, "spawns": [
+        {"enemy": "dekai_tori"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 182, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 209, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "zou"},
+        {"enemy": "fugu", "count": 2}
+      ] },
+      { "at": 251, "final": true, "boss": true, "spawns": [
+        {"enemy": "chiikabu", "boss": true},
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "kimera", "count": 2},
+        {"enemy": "majyo", "count": 2},
+        {"enemy": "fugu", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 800, "replay": 50, "unlockCard": "rakko"}
+  }
+]

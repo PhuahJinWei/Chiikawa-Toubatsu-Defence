@@ -1,0 +1,40 @@
+{
+  "name": "chiikawa-tobatsu-defense",
+  "private": true,
+  "version": "0.10.0",
+  "description": "Non-commercial Chiikawa fan game: a Plants-vs-Zombies-style lane defense for mobile browsers.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "balance": "tsx tools/balance.ts",
+    "art:kit": "tsx tools/art-kit.ts",
+    "icons": "tsx tools/gen-icons.ts",
+    "checklist": "tsx tools/checklist.ts",
+    "levels": "python tools/levelgen.py .",
+    "art:import": "tsx tools/import-art.ts",
+    "art:quests": "tsx tools/import-quests.ts",
+    "art:picture": "tsx tools/import-picture.ts",
+    "art:sprites": "tsx tools/import-sprites.ts"
+  },
+  "dependencies": {
+    "@fontsource/yusei-magic": "5.3.0",
+    "@fontsource/zen-maru-gothic": "5.3.1",
+    "@preact/signals": "2.11.4",
+    "fflate": "0.8.3",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "0.1.100",
+    "@types/node": "22.20.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vite-plugin-pwa": "1.3.0",
+    "vitest": "4.1.12",
+    "workbox-window": "7.4.1"
+  }
+}

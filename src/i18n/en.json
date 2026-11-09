@@ -1,0 +1,716 @@
+{
+  "app": {
+    "title": "Chiikawa Tobatsu Defense",
+    "line1": "Chiikawa",
+    "line2": "Tobatsu Defense",
+    "dev": "Dev mode: a separate save with everything unlocked",
+    "disclaimer": "Chiikawa is the work of Nagano. This is an unofficial, non-commercial fan game with no connection to the creator, the publisher or any rights holders. All art and sound are placeholders."
+  },
+  "common": {
+    "back": "Back",
+    "close": "Close",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No",
+    "new": "NEW",
+    "locked": "Locked",
+    "loading": "Getting ready…",
+    "copy": "Copy",
+    "copied": "Copied",
+    "apply": "Load",
+    "rotate": "Please turn your phone sideways",
+    "rotateSub": "This game is played in landscape"
+  },
+  "res": {
+    "weeds": "Weeds",
+    "money": "Money"
+  },
+  "lobby": {
+    "menu": "Menu",
+    "play": "Play",
+    "gallery": "Gallery",
+    "shop": "Shop",
+    "settings": "Settings"
+  },
+  "quests": {
+    "title": "Quests",
+    "protect": "Protect this place",
+    "choose": "Choose a level",
+    "challenge": "Take the challenge",
+    "soon": "Coming soon",
+    "cleared": "Cleared!",
+    "prev": "Previous quest",
+    "next": "Next quest",
+    "pin": "Show {place}",
+    "open": "Quest: {place}",
+    "levels": "Choose a level",
+    "stars": "★ {n}/{m}"
+  },
+  "world": {
+    "1": {
+      "name": "Meadow",
+      "place": "Hachiware's Cave"
+    },
+    "2": {
+      "name": "Forest",
+      "place": "Forest Exit"
+    },
+    "3": {
+      "name": "Town",
+      "place": "Ramen Shop 郎"
+    },
+    "4": {
+      "name": "Night",
+      "place": "Chiikawa's Home"
+    },
+    "5": {
+      "name": "Island",
+      "place": "Beach Cave"
+    },
+    "6": {
+      "name": "The Big Hunt",
+      "place": "Landing Spot"
+    }
+  },
+  "map": {
+    "boss": "Boss",
+    "lockedWorld": "Beat the {world} boss to unlock",
+    "install": "Add the game to your home screen to play offline and keep your save safer.",
+    "installBtn": "Add to Home Screen",
+    "installIos": "In Safari: Share → “Add to Home Screen”",
+    "later": "Later",
+    "endlessTitle": "討伐 Ranking",
+    "endlessSub": "How long can you hold?",
+    "unlockAfter": "Unlocks after World {n}"
+  },
+  "job": {
+    "from": "Labour 鎧さん",
+    "lines": {
+      "1-1": "There's a bug in the meadow. Gather some weeds first, then ask Usagi for help.",
+      "1-2": "Three lanes today. With Chiikawa around you'll gather plenty of weeds.",
+      "1-3": "A fast attacker that pounces from a tile away is coming. Put a 鎧さん in front to take the hit.",
+      "1-4": "The whole meadow this time. Have Hachiware help beat the bug that jumps over friends before it gets close. If things go wrong, Rakko's car helps once per lane.",
+      "1-5": "The bugs' boss is coming: huge, and it hits hard. Kurimanju's cans fly right over walls.",
+      "2-1": "A job in the forest. Nobody can stand on a stump, and shots stop when they hit one. Pick your team for what's coming.",
+      "2-2": "Fugu spit from three tiles away. Furuhonya throws books two at a time, and can beat them before they get that close.",
+      "2-3": "A very fast witch is coming. Enemies inside bushes can't be aimed at. Put a Taiyaki down early: it bursts as she runs up.",
+      "2-4": "Watch out for the black star. It heals the enemies around it. Kurimanju's cans splash over everyone nearby.",
+      "2-5": "Beware the song. It stops up to three friends in its lane. Momonga in the lane beside it keeps throwing through the song.",
+      "3-1": "A job in town. Giant Birds are flying in. They go right over walls, so it's Momonga's turn: acorns do double damage to them.",
+      "3-2": "Chimeras are coming. At 30% HP they draw their claws and get twice as fast. Big Ode charges down the lane and knocks them flat.",
+      "3-3": "Enemies are coming from all over town. To slow them down, try Shisa's ゴーヤ. You'll find her at the shop.",
+      "3-4": "A Zou is coming. One stomp is all it takes. Let the Pajama Parties' song speed up the lane, and land plenty of hits before it arrives.",
+      "3-5": "A little beetle is approaching… Something feels off.",
+      "4-1": "A night job. No weeds sprout at night, so spend your first weeds on Chiikawa.",
+      "4-2": "A hard, horned bug is coming. Weak hits barely scratch it, but Rakko's blows go straight through.",
+      "4-3": "Yamanba is coming. Her spell stops up to five friends. Muchau-Man's pose freezes every enemy on the field, spell and all.",
+      "4-4": "A Zou, horned bugs and black stars, and two big waves on top. At night every weed comes from Chiikawa, so guard Chiikawa well.",
+      "4-5": "Someone saw a big shape near Chiikawa's home, as wide as the middle three lanes. Let Chief 鎧さん take the blows.",
+      "5-1": "The bottom lane is sea. Have Momonga throw at the mermaids from the lane above it.",
+      "5-2": "Futaba from the island is lending a hand. Only the islanders can stand on the water.",
+      "5-3": "Futaba and Hitoha throw faster side by side. A fast witch is coming along the beach, so mind the land too.",
+      "5-4": "Shimajiro, a strong swimmer, holds the mermaids back on the water. The islanders say they can hear singing from out at sea…",
+      "5-5": "The Siren is coming in from the sea. Its song calls up followers, so take care.",
+      "6-1": "This is the big hunt. Rakko can't come along, so every lane has to hold on its own.",
+      "6-2": "Big ones are coming out of the tall grass. Giant Birds are flying in, too.",
+      "6-3": "Zou is coming out of the grass. Hit it plenty before it gets close.",
+      "6-4": "The Mimic is coming. Its song stops up to three friends anywhere in its lane; Momonga in the lane beside it can still help.",
+      "6-5": "The grass is rustling. Something yellow and very big is coming, big enough to fill the middle three lanes…"
+    }
+  },
+  "prep": {
+    "title": "Your team",
+    "count": "{n}/{m}",
+    "choose": "Choose up to {n}",
+    "go": "Let's go!",
+    "ramen": "Use a pork ramen ticket",
+    "ramenLeft": "Every friend ready at once ({n} left)",
+    "forced": "This job's team is already set",
+    "waterOnly": "Water jobs only",
+    "notOnHunt": "Not on this hunt"
+  },
+  "wish": {
+    "title": "Make a wish",
+    "line": "Pick the friend the star turns into.",
+    "as": "Star → {name}"
+  },
+  "battle": {
+    "paused": "Paused",
+    "resume": "Resume",
+    "restart": "Restart",
+    "quit": "Back to quests",
+    "speed": "Speed",
+    "shovel": "Send home",
+    "wave": "Wave {n}",
+    "level": "{id} {name}",
+    "sound": "Sound",
+    "cardInfo": "Long-press for details",
+    "cost": "{n} weeds",
+    "notEnough": "Not enough weeds",
+    "cooldown": "Recharging",
+    "occupied": "That tile is taken",
+    "terrain": "Nothing can stand there",
+    "water": "Only the islanders (Hitoha, Futaba and Shimajiro) can go on the water",
+    "land": "This one goes only on the water",
+    "inactive": "That lane is closed",
+    "confirmQuit": "Leave this job and go back to the quests?",
+    "confirmRestart": "Start this job over?"
+  },
+  "banner": {
+    "ready": "Ready…",
+    "start": "討伐 start!",
+    "big": "A big wave is coming!",
+    "final": "Final wave!",
+    "boss": "{name} appears!",
+    "mystery": "{name}…?",
+    "transform": "Its true form!",
+    "win": "Job done!",
+    "lose": "Job failed…",
+    "wave": "Wave {n}"
+  },
+  "result": {
+    "win": "Job Report",
+    "lose": "Job Failed",
+    "loseLine": "Everyone toppled over…",
+    "pay": "Pay",
+    "firstClear": "First clear",
+    "replay": "Clear",
+    "rescueBonus": "Rakko's cars left ×{n}",
+    "endlessWaves": "Waves held ×{n}",
+    "total": "Total",
+    "newCard": "New friend!",
+    "unlocks": "Unlocked!",
+    "unlockSpeed": "2× speed",
+    "book": "Added to the book",
+    "next": "Next",
+    "retry": "Try again",
+    "map": "Quests",
+    "best": "New best!",
+    "waveReached": "Reached wave {n}",
+    "hintTitle": "Hint",
+    "hints": {
+      "economy": "Placing extra Chiikawa early makes everything easier later.",
+      "wall": "Put a 鎧さん in front of your attackers to hold enemies back.",
+      "armor": "Against armour, Kurimanju's cans and Rakko's sword, which cuts through it, work best.",
+      "fast": "The witch is fast. Place walls early.",
+      "song": "When the mimic sings, up to three friends in its lane stop. モモンガ in the lane beside it keeps throwing through the song.",
+      "zou": "Land as many hits as you can before a Zou arrives.",
+      "night": "Nothing sprouts at night. Spend your first weeds on extra Chiikawa.",
+      "water": "Put Futaba and Hitoha on the water: side by side, they throw faster. Momonga in the lane above it reaches the water lane too.",
+      "waterWall": "On the water, put Shimajiro in front, with Hitoha and Futaba side by side behind him.",
+      "waterBank": "Have Momonga throw at the mermaids from the lane above the water.",
+      "noRescue": "Rakko's car doesn't come on this hunt. Give every lane an attacker and a wall early.",
+      "shop": "A bigger pochette from the Pochette Shop lets you bring more friends."
+    }
+  },
+  "card": {
+    "chiikawa": {
+      "name": "Chiikawa",
+      "ability": "Finds 草 every so often, and pulls the weeds that sprout right next to it."
+    },
+    "chiikawa_island": {
+      "name": "Chiikawa (Mermaid Island)",
+      "short": "Island Chiikawa",
+      "ability": "Sends one flame flying from the torch, a heavy hit on the nearest enemy. Nothing catches fire."
+    },
+    "hachiware": {
+      "name": "Hachiware",
+      "ability": "Pokes anything up to 3 tiles ahead with the さすまた."
+    },
+    "hachiware_pajama": {
+      "name": "Hachiware (Pajamas)",
+      "short": "PJ Hachiware",
+      "ability": "Pokes anything up to 3 tiles ahead with a deck brush, pushing it back half a tile (not a boss). Pokes slowly, though."
+    },
+    "yoroi": {
+      "name": "Yoroi-san",
+      "ability": "A wall. Holds enemies right where they are."
+    },
+    "yoroi_erai": {
+      "name": "Chief 鎧さん",
+      "ability": "A wall as big as the ordinary Yoroi-san, and far tougher."
+    },
+    "usagi": {
+      "name": "Usagi",
+      "ability": "Swings the 討伐棒 down and sends a blast flying. It hits the nearest enemy."
+    },
+    "usagi_cool": {
+      "name": "Usagi (Cooler)",
+      "short": "Cool Usagi",
+      "ability": "Strikes a pose in sunglasses and never moves, while missiles fall from the sky on every lane with an enemy, hitting everyone round where they land. With no enemies about, none fall."
+    },
+    "momonga": {
+      "name": "Momonga",
+      "ability": "Throws acorns into its own lane and the lanes on both sides."
+    },
+    "kurimanju": {
+      "name": "Kurimanju",
+      "ability": "Lobs a can in a high arc, right over walls. It splashes where it lands, hitting every enemy in the 3×3 tiles around it."
+    },
+    "shisa": {
+      "name": "Shisa",
+      "ability": "Throws ゴーヤ that slow enemies down."
+    },
+    "ode": {
+      "name": "Ode",
+      "ability": "One use. Put him in a lane and Ode comes running in from the end of it, knocking down every enemy he runs into! (A boss takes a big hit.)"
+    },
+    "pajama_parties": {
+      "name": "Pajama Parties",
+      "short": "Pajama Parties",
+      "ability": "One of the four comes each time, at random. While singing, friends in the lane attack 1.5× as fast. Doesn't attack."
+    },
+    "rakko": {
+      "name": "Rakko",
+      "ability": "The dependable 先生 who fights up front. Sweeps his sword through his own lane and the lanes above and below, cutting one enemy in each that is right in front or a tile ahead, hard enough to get through armour. He can take a beating, and doesn't come on a hunt his car doesn't come on."
+    },
+    "furuhonya": {
+      "name": "Furuhonya",
+      "ability": "Throws books two at a time. Each one hits the nearest enemy."
+    },
+    "futaba": {
+      "name": "Futaba",
+      "ability": "Water only. Skims seashells from its little boat, right through every enemy in the lane (a light hit on each). With Hitoha right beside, throws 1.5× as fast."
+    },
+    "hitoha": {
+      "name": "Hitoha",
+      "ability": "Water only. Throws a big spiral shell from its little boat, landing a heavy hit on the nearest enemy. With Futaba right beside, throws 1.5× as fast."
+    },
+    "shimajiro": {
+      "name": "Shimajiro",
+      "ability": "A wall for the water. A strong swimmer, he wades in without a boat and holds enemies back. Doesn't attack."
+    },
+    "taiyaki": {
+      "name": "Taiyaki",
+      "ability": "A trap. Put down, it starts cooking; once it's done, it's ready. The first enemy to reach it sets it off: piping-hot red-bean paste bursts out, a huge hit on everyone close by! Keep it from getting nibbled while it cooks."
+    },
+    "muchauman": {
+      "name": "Muchau-Man",
+      "ability": "One use. He appears on any tile and strikes his pose! Every enemy on the field freezes for 5 seconds. Then he's off home."
+    },
+    "hoshi": {
+      "name": "Star",
+      "ability": "A wishing star. Put it on a tile like any friend: it appears as a star, grants its wish and turns into the friend you picked before setting off, with their cost and recharge too (so that friend can come twice!)."
+    }
+  },
+  "enemy": {
+    "mushi_twolegs": {
+      "name": "Bug (two-legged)",
+      "short": "2-Leg Bug",
+      "ability": "Nothing special. The enemy you'll meet most."
+    },
+    "goblin": {
+      "name": "Goblin",
+      "ability": "Picks up weeds growing where it walks or stands and takes them (never the ones Chiikawa finds). Beat it and they drop where it falls."
+    },
+    "mushi_sixlegs": {
+      "name": "Bug (six-legged)",
+      "short": "6-Leg Bug",
+      "ability": "Never attacks: it jumps over every friend in its way. A little tougher."
+    },
+    "chushidesu": {
+      "name": "Chūshi-desu",
+      "ability": "Stops for a moment a tile away, then pounces (that swipe hurts twice as much). Attacks twice as fast, too."
+    },
+    "fugu": {
+      "name": "Fugu",
+      "ability": "Spits from three tiles away. Walls still stop it."
+    },
+    "majyo": {
+      "name": "Witch",
+      "ability": "Runs really fast."
+    },
+    "kimera": {
+      "name": "Chimera",
+      "ability": "Lots of HP and a strong attack. She starts with her claws hidden; once she's down to 30% of her HP she stops for a second to draw them out, then moves and claws twice as fast from then on (even if she's healed)."
+    },
+    "mushi_horned": {
+      "name": "Bug (horned)",
+      "short": "Horned Bug",
+      "ability": "Hard-shelled! Every hit on it does 10 less damage."
+    },
+    "mushi_pink": {
+      "name": "Bug (pink)",
+      "short": "Pink Bug",
+      "ability": "Boss. The boss of the bugs. No special move, but it is huge, with far more HP and far heavier blows than any other bug."
+    },
+    "kuroi_nagareboshi": {
+      "name": "Black Star",
+      "ability": "Stops now and then to heal the enemies in the 3×3 tiles around it a little. Doesn't attack."
+    },
+    "guchokipanogitaigata": {
+      "name": "Rock-Paper-Scissors Mimic",
+      "short": "RPS Mimic",
+      "ability": "Boss. Every 9 seconds it sings as it goes, and up to three friends in its lane, picked at random, are frozen for 3 seconds (no attacks, no 草). Its blows hurt twice as much on a frozen friend."
+    },
+    "zou": {
+      "name": "Zou",
+      "ability": "Boss-class. One stomp and a friend is down."
+    },
+    "chiikabu": {
+      "name": "Chiikabu",
+      "ability": "Boss. Can't be hit while it's small, and shows its true form up close."
+    },
+    "ningyo": {
+      "name": "Mermaid",
+      "ability": "Comes in threes, one after another. In a job with water, they swim down the water lane. They also come when the Siren calls."
+    },
+    "mermaid_twolegs": {
+      "name": "Mermaid (two-legged)",
+      "short": "2-Leg Mermaid",
+      "ability": "Called up by the Siren, it climbs out of the ground. About as tough as the two-legged bug, and walks faster while the Siren is about."
+    },
+    "yamanba": {
+      "name": "Yamanba",
+      "ability": "Slow, but tough and hits hard. Every 8 seconds she stops for 2 to chant a spell that freezes up to five friends anywhere on the field, picked at random, for 4 seconds (only friends who attack, make 草 or help; never the 鎧さん walls)."
+    },
+    "dekai_tori": {
+      "name": "Giant Bird",
+      "ability": "Flies. Sails over walls to the friend furthest back, hovers, grabs it and carries it off. Never bites. Momonga's acorns hit it twice as hard."
+    },
+    "seiren": {
+      "name": "Siren",
+      "ability": "Boss: the summoner. Now and then it stops to sing, calling up 4 to 6 followers one after another around where it is, in random lanes: mermaids on the water lane, two-legged mermaids on land. While it is about, all mermaids move twice as fast. It knocks friends with its forelegs once it reaches them. In a job with water, it comes down the water lane."
+    },
+    "anoko": {
+      "name": "Anoko",
+      "ability": "Boss. A huge one that comes down the middle three lanes at once: friends in all three can hit it, but one swing hits all three lanes."
+    },
+    "dekatsuyo": {
+      "name": "Dekatsuyo",
+      "ability": "Boss. The biggest and strongest of all! Comes down the middle three lanes at once: friends in all three can hit it, but one swing hits all three lanes."
+    }
+  },
+  "npc": {
+    "rakko": {
+      "name": "Rakko"
+    },
+    "yoroi_rodo": {
+      "name": "Labour 鎧さん",
+      "short": "Labour 鎧さん"
+    },
+    "yoroi_pochette": {
+      "name": "Pochette 鎧さん",
+      "short": "Pochette 鎧さん"
+    },
+    "yoroi_ramen": {
+      "name": "Ramen 鎧さん",
+      "short": "Ramen 鎧さん"
+    },
+    "furuhonya": {
+      "name": "Furuhonya"
+    }
+  },
+  "lore": {
+    "chiikawa_island": "Chiikawa in island dress, with a flower crown and a grass skirt. When friends were captured on the island, Chiikawa kept searching alone, crying all the way. Once the Siren was driven off, everyone shared a campfire with the islanders.",
+    "hachiware_pajama": "Hachiware in the pajamas Pochette 鎧さん made. When a big bird carried off members of the Pajama Parties, Hachiware ended up standing in for them on stage, and took on the bird with a deck brush Usagi brought.",
+    "usagi_cool": "Usagi in sunglasses. This look is this game's own, but on the island Usagi really did burst into a sudden rap and got the mermaids grooving.",
+    "yoroi_erai": "A 鎧さん in gold armour, like a boss to the others. When Pochette 鎧さん was singing and dancing his way home from sukiyaki, this one told him off: 「オイ、仲良くしすぎだ」 (“Hey, you're getting too friendly”).",
+    "muchauman": "The hero of the hugely popular むちゃうまヨーグルト (Muchauma Yogurt). Chiikawa is a big fan, and at a Muchauma Yogurt event tried hard to get a photo together.",
+    "chiikawa": "The “small and cute something” itself. Gets by weeding and doing 討伐 jobs. A little timid, and the words don't always come out. Passed Grade 5 of the Weeding Exam on its third try!",
+    "hachiware": "Blue-and-white “hachiware” markings. Cheerful, always looking on the bright side, and lives in a cave. Carries a さすまた that matches Chiikawa's, and passed Grade 5 of the Weeding Exam first.",
+    "yoroi": "Grown-ups in full armour who hand out jobs and run the shops. What's inside the armour? Still a mystery.",
+    "usagi": "Free as the wind, and known for funny cries like “Ura!”. Can turn its hand to any job. Its 討伐棒 blasts from both ends, and it passed Grade 2 of the Weeding Exam without anyone noticing.",
+    "momonga": "Wilful, and acts cute to get what it wants. The first time we met it, it cheered 「ついにやったゾ」… and was then chased by でかつよ.",
+    "kurimanju": "A gourmet who loves a drink and a good snack, like a caring big brother. Some mornings it's flattened by a hangover. You'll know it by that happy “Haa…”.",
+    "shisa": "A hard worker with an Okinawan air, working at the ramen shop 郎. Passed the tough “Super Arbeiter” exam to get the job, and looks up to the shop's 鎧さん as its master.",
+    "ode": "A big fellow from the forest. Chiikawa and friends were sharing the mushrooms he recommended when goblins caught them, and they all ended up locked away together.",
+    "rakko": "The top-ranked 討伐 hunter, whom Chiikawa and Hachiware call “先生”. Once beat the horned bug Chiikawa couldn't handle alone. And, unusually, Rakko has a car.",
+    "mushi_twolegs": "A two-legged bug you run into all the time on 討伐 jobs.",
+    "goblin": "The goblins who live in the forest. They caught Chiikawa and friends munching mushrooms and locked them up.",
+    "mushi_sixlegs": "A six-legged bug from a flashback. All those extra legs make it tougher than the usual bugs, apparently.",
+    "chushidesu": "A chimera that says 「中止で〜す」. It lunged at Hachiware with its claws, got them stuck in a tree, and that was the end of it.",
+    "fugu": "A pufferfish-like creature that shows up as a 討伐 target in Chiikawa Pocket.",
+    "majyo": "A mysterious witch. Life for the Chiikawa folk includes the odd attack by “chimeras and witches”, so they say.",
+    "kimera": "Sharp-clawed creatures hunted on 討伐 jobs. Some say they may once have been Chiikawa folk…",
+    "mushi_horned": "A big horned bug. Chiikawa couldn't beat it alone, then Rakko turned up and took it down.",
+    "mushi_pink": "The boss of the bugs in this game: a pink bug like the two-legged one, only far bigger.",
+    "kuroi_nagareboshi": "A black star that appeared in the sky one day and brought some unsettling changes to everyday life.",
+    "guchokipanogitaigata": "A mimic that gathers Chiikawa folk with a song, then pounces once they relax. So strong it's said top rankers were the ones to take it down.",
+    "zou": "From the 「悪夢」 (Nightmare) arc. Lose a staring contest with it and you're stuck in a nightmare that won't end. Chiikawa and Usagi beat it together.",
+    "chiikabu": "A beetle that followed Chiikawa around like a little kid. Everyone thought it was 友好型 (friendly type)… until it turned out to be 擬態型 (mimic type).",
+    "yoroi_rodo": "The 鎧さん who hands out weeding and 討伐 jobs. The very first 鎧さん in the story, and often pestered by Momonga.",
+    "yoroi_pochette": "A handy 鎧さん who made Chiikawa's pochette and the pajamas everyone went crazy for. When a big snake swallowed Chiikawa and friends, it put on the knuckle duster they'd given it and went in alone to get them out.",
+    "yoroi_ramen": "Owner of the ramen shop 郎, and Shisa's master too.",
+    "futaba": "An islander from the island Chiikawa and friends visit. Always with Hitoha: the two share a “too-strong bond”, and they help Chiikawa and friends out in all sorts of ways.",
+    "hitoha": "An islander from the island Chiikawa and friends visit. Always with Futaba: the two share a “too-strong bond”, and they help Chiikawa and friends out in all sorts of ways. A little timid but full of curiosity, they say.",
+    "shimajiro": "Owner of 「島二郎」, the diner deep in the island's forest: a big moustached man in an apron. He dives into the sea himself for the shellfish in his famous 貝汁. When Chiikawa ended up all alone in the forest, he took care of the little one and served up カツカレー and 貝汁.",
+    "furuhonya": "Runs the used-book shop. It wears the crab headband Momonga gave it, so fans call it “Kani-chan”. It first showed up as an uncoloured background character.",
+    "pajama_parties": "Four friends in the pajamas they bought from the Pochette 鎧さん (green, pink, purple and white), who formed a group because they longed to sing and dance. Their 「♪ウ　ウ・ワ・ワ　ウワ」 is a hit with Chiikawa and friends too. When members got carried off just before the 「むちゃフェス」, Chiikawa and friends took the stage for them.",
+    "hoshi": "Shooting stars stuck to the wall of the “Three-Star Restaurant”. Freed by Chiikawa and Hachiware, they left a giant omurice as thanks and went home to the sky. Another time, when Shisa untangled one from some vines, they granted Shisa a wish.",
+    "taiyaki": "A taiyaki Chiikawa and Hachiware found floating in mid-air. In Chiikawa Pocket it's a helper that lends a hand on 討伐 jobs.",
+    "ningyo": "Mermaids who stay by the Siren's side. There were really three of them, it seems. When Chiikawa and friends wandered into the island's cave, the mermaids and the Siren caught them.",
+    "mermaid_twolegs": "This game's two-legged mermaid: it walks, and climbs out of the ground when the Siren calls.",
+    "yamanba": "An old woman who rescued Chiikawa and friends from traps in the Marron Glacé Forest and treated them to first aid and dinner. After breakfast she started chanting some kind of spell… but she'd eaten a mushroom Usagi picked, and keeled over. Chiikawa and Hachiware thought she'd just dozed off, so they tucked her in.",
+    "seiren": "A great big creature, always with its mermaids. After it lost one of its mermaids, it started carrying off the islanders one by one. When super-spicy curry took its voice away, it cried 「わかったッ」 and left the island.",
+    "anoko": "A white, fluffy creature far bigger than Chiikawa and friends, met on the 「おっきい討伐」 (the big hunt). It sent Hachiware flying with its tail, and pointed out a frog for Chiikawa to see. In the end, Usagi faced it alone and drove it off.",
+    "dekatsuyo": "A mysterious creature bigger than Chiikawa and friends: a big face, a shaggy yellow body and four black legs. Once seen chasing Momonga, yelling 「返せッ」 (“Give it back!”). In Chiikawa Pocket it's a helper on 討伐 jobs.",
+    "dekai_tori": "The big bird that carried off members of the Pajama Parties. It showed up in the middle of their show, and Chiikawa, Hachiware and Usagi took it on with deck brushes. Together, the three of them just about managed it!"
+  },
+  "sandbox": {
+    "title": "Testing ground",
+    "enter": "Testing ground",
+    "open": "Open the testing ground panel",
+    "close": "Close the testing ground panel",
+    "field": "Field",
+    "cars": "Rakko's cars",
+    "terrain": "Edit terrain",
+    "terrainHint": "Tap a tile: none → stump → bush → none",
+    "rules": "Rules",
+    "free": "Free cards, no recharge",
+    "safeFriends": "Friends can't be hurt",
+    "safeEnemies": "Enemies can't be hurt",
+    "freeze": "Freeze enemies",
+    "weeds": "+1000 草",
+    "wish": "Star turns into",
+    "enemies": "Send enemies",
+    "enemy": "Enemy",
+    "lane": "Lane",
+    "laneRandom": "Random",
+    "laneAll": "All lanes",
+    "laneN": "Lane {n}",
+    "count": "How many",
+    "where": "Comes in",
+    "road": "From the road",
+    "colN": "At column {n}",
+    "send": "Send",
+    "level": "Job",
+    "wave": "Wave",
+    "waveN": "Wave {n}",
+    "sendWave": "Send this wave",
+    "time": "Time",
+    "hold": "Hold",
+    "run": "Run",
+    "stepFrame": "1 frame",
+    "stepHalf": "0.5 s",
+    "clean": "Clean up",
+    "defeatEnemies": "Defeat enemies",
+    "defeatFriends": "Defeat friends",
+    "healAll": "Heal all",
+    "carsBack": "Cars back",
+    "look": "Inspect",
+    "inspect": "Tap to inspect",
+    "inspectHint": "Tap a friend or an enemy",
+    "guides": "Art guide",
+    "hp": "HP",
+    "down": "down",
+    "held": "held",
+    "hidden": "in a bush",
+    "at": "lane {lane}, column {col}",
+    "leave": "Back to the lobby",
+    "confirmLeave": "Leave the testing ground and go back to the lobby?",
+    "confirmRestart": "Start again on an empty field?"
+  },
+  "gallery": {
+    "title": "The Book of 討伐 and Work",
+    "tabs": {
+      "allies": "Friends",
+      "enemies": "Foes",
+      "people": "People"
+    },
+    "unknown": "???",
+    "unseen": "Not met yet",
+    "seenOnly": "Defeat one to learn more",
+    "metOnly": "Learn more once they join you",
+    "ability": "In this game",
+    "lore": "Story",
+    "confidence": {
+      "high": "Checked against the story or official sources",
+      "medium": "Checked against secondary sources",
+      "original": "Made for this game"
+    },
+    "badge": {
+      "gitai": "Mimic type",
+      "yuko": "Friendly type"
+    },
+    "count": "{n}/{m}",
+    "motion": {
+      "idle": "Standing by",
+      "walk": "Walking",
+      "float": "Floating",
+      "attack": "Attacking",
+      "cast": "Granting a wish",
+      "jump": "Jumping",
+      "steal": "Picking up weeds",
+      "pull": "Pulling weeds",
+      "cook": "Cooking",
+      "weed_search": "Searching for 草",
+      "weed_found": "Found some!",
+      "pose": "Striking a pose",
+      "song": "Singing",
+      "spawn": "Coming up",
+      "heal": "Healing",
+      "damaged1": "Dented",
+      "damaged2": "Cracked",
+      "damaged3": "Battered"
+    },
+    "nextMotion": "See another move",
+    "more": "More below"
+  },
+  "stat": {
+    "cost": "Cost",
+    "hp": "HP",
+    "damage": "Damage",
+    "interval": "Every",
+    "range": "Range",
+    "speed": "Speed",
+    "size": "Size",
+    "cooldown": "Recharge",
+    "rangeTiles": "{n} tiles",
+    "rangeLane": "Whole lane",
+    "rangeTouch": "Up close",
+    "seconds": "{n}s",
+    "none": "None",
+    "boost": "Attack speed",
+    "sameAsWish": "Same as the wish",
+    "wishTime": "Turns in",
+    "targets": "Hits",
+    "targetsAll": "Everyone in the lane",
+    "targetsSweep": "One in each of {n} lanes",
+    "targetsBlast": "All round where it lands",
+    "rangeField": "Whole field",
+    "rangeAllLanes": "Every lane",
+    "damageTimes": "{n} × {k}",
+    "ready": "Cooks in",
+    "push": "Pushes back",
+    "effect": "Does",
+    "effectCharge": "Knocks down all he hits",
+    "effectFreeze": "Freezes every enemy {s}s"
+  },
+  "speedTier": {
+    "slow": "Slow",
+    "normal": "Normal",
+    "fast": "Fast"
+  },
+  "size": {
+    "S": "Small",
+    "M": "Medium",
+    "L": "Large",
+    "XL": "Huge"
+  },
+  "shop": {
+    "title": "Shop",
+    "buy": "Buy",
+    "owned": "Owned: {n}",
+    "ownedFull": "Owned: {n} (as many as you can carry)",
+    "after": "Buy the one above first",
+    "max": "Max",
+    "notEnough": "Not enough money",
+    "bought": "Bought!",
+    "confirm": "Buy {item} for {price} money?",
+    "confirmFriend": "Have {item} join you for {price} money?",
+    "joined": "{name} joined your team!",
+    "joinedStamp": "Joined",
+    "sellers": {
+      "pochette": {
+        "name": "Pochette Shop",
+        "line": "A bigger pochette lets you bring more friends."
+      },
+      "ramen": {
+        "name": "Ramen Shop 郎",
+        "line": "Have some ramen and head off to work full of energy."
+      },
+      "shisa": {
+        "name": "Friend Shop",
+        "line": "Looking for friends to hunt with? You've come to the right place!"
+      }
+    },
+    "items": {
+      "slot": {
+        "name": "Bigger pochette",
+        "desc": "Bring up to {n} friends"
+      },
+      "ramen": {
+        "name": "Ramen ticket",
+        "desc": "Start every job from now on with +{n} weeds"
+      },
+      "buta": {
+        "name": "Pork ramen ticket",
+        "desc": "Next job: every friend is ready from the start (one use)"
+      }
+    },
+    "flavor": "The shop's stock is this game's own invention."
+  },
+  "endless": {
+    "title": "討伐 Ranking",
+    "ranking": "Ranking",
+    "rakko": "Rakko",
+    "rakkoScore": "Off the charts",
+    "waves": "{n} waves",
+    "best": "Best"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "bgm": "Music",
+    "sfx": "Sound effects",
+    "gameplay": "Comfort",
+    "autoCollect": "Collect weeds automatically",
+    "reducedMotion": "Reduce motion",
+    "art": "Art production",
+    "guides": "Show art guides",
+    "guidesDesc": "In battle, shows each sprite's box, baseline and file name.",
+    "artkit": "Art kit",
+    "artkitDesc": "Every image the game needs, with sizes and frames. Export the placeholders as a ZIP.",
+    "save": "Save data",
+    "export": "Export save",
+    "exportDesc": "Keep this code to continue on another device or browser.",
+    "import": "Import save",
+    "importPlaceholder": "Paste a save code",
+    "importOk": "Loaded!",
+    "importBad": "That code isn't valid",
+    "reset": "Delete save",
+    "resetDesc": "Erases all progress. Type DELETE to confirm.",
+    "resetWord": "DELETE",
+    "resetDone": "Deleted",
+    "about": "About this game",
+    "install": "Install as an app",
+    "version": "Version {v}",
+    "credits": "All placeholder art and sound are generated by code."
+  },
+  "artkit": {
+    "title": "Art Kit",
+    "intro": "Every picture the game uses. Paint each menu scene as one picture, split it into its pieces and bring it in with npm run art:import together with a composited preview. A battle world is one flat picture, brought in with the same command. Characters are frames, brought in with npm run art:sprites. Stickers, faces and logos just replace the file of the same name in the art folder.",
+    "download": "Export placeholders as ZIP",
+    "downloading": "Exporting…",
+    "real": "Real art",
+    "placeholder": "Placeholder",
+    "size": "Size",
+    "onField": "{w}×{h} on the field",
+    "pieces": "{n} pieces",
+    "slots": "{n} places the game fills",
+    "safe": "Visible on every screen",
+    "cut": "Runs off at",
+    "frames": "idle loop of {n} frames, {ms} ms each",
+    "facing": "Facing",
+    "optional": "optional",
+    "groups": {
+      "scene": "Scenes",
+      "character": "Characters (frame animations)",
+      "sticker": "Stickers (shots, effects, weeds, terrain)",
+      "portrait": "Faces",
+      "icon": "Button icons",
+      "button": "Button pictures",
+      "goods": "Shop goods",
+      "props": "Props (the hand stamp)",
+      "card": "Quest board pictures",
+      "book": "Gallery book",
+      "ui": "Logos",
+      "sound": "Sound"
+    },
+    "rules": "No white border, shadow or glow (the game adds them). Flat and straight on. Battle characters are side views: friends and Rakko's car face right, enemies face left."
+  },
+  "phrase": {
+    "usagi": "Ura!",
+    "kurimanju": "Haaa…"
+  },
+  "scene": {
+    "explode": "Pull the layers apart",
+    "assemble": "Put them back"
+  },
+  "notice": {
+    "title": "The job",
+    "enemies": "Who's coming"
+  }
+}

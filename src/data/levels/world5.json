@@ -1,0 +1,249 @@
+[
+  {
+    "id": "5-1",
+    "world": 5,
+    "index": 1,
+    "lanes": [2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "fugu"}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "ningyo"},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 5},
+        {"enemy": "fugu", "count": 2}
+      ] },
+      { "at": 170, "spawns": [
+        {"enemy": "fugu"},
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 200, "spawns": [
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 232, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 6},
+        {"enemy": "fugu", "count": 3},
+        {"enemy": "ningyo"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "futaba"}
+  },
+  {
+    "id": "5-2",
+    "world": 5,
+    "index": 2,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 82, "spawns": [
+        {"enemy": "fugu"},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 110, "spawns": [
+        {"enemy": "ningyo"},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 138, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 6},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 168, "spawns": [
+        {"enemy": "mushi_sixlegs"},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 195, "spawns": [
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 228, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 7},
+        {"enemy": "mushi_sixlegs"},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "hitoha"}
+  },
+  {
+    "id": "5-3",
+    "world": 5,
+    "index": 3,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "majyo"}
+      ] },
+      { "at": 82, "spawns": [
+        {"enemy": "ningyo"},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 110, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 138, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 6},
+        {"enemy": "majyo", "count": 2},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 168, "spawns": [
+        {"enemy": "ningyo"},
+        {"enemy": "mushi_sixlegs"}
+      ] },
+      { "at": 195, "spawns": [
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 230, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 7},
+        {"enemy": "majyo", "count": 3},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "shimajiro"}
+  },
+  {
+    "id": "5-4",
+    "world": 5,
+    "index": 4,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "ningyo"},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 3}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 8},
+        {"enemy": "fugu"},
+        {"enemy": "ningyo", "count": 2},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 170, "spawns": [
+        {"enemy": "mushi_horned"},
+        {"enemy": "mushi_twolegs"},
+        {"enemy": "mushi_sixlegs"}
+      ] },
+      { "at": 198, "spawns": [
+        {"enemy": "ningyo", "count": 2},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 225, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 6},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 262, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 7},
+        {"enemy": "kimera"},
+        {"enemy": "mushi_horned"},
+        {"enemy": "majyo"},
+        {"enemy": "ningyo", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50}
+  },
+  {
+    "id": "5-5",
+    "world": 5,
+    "index": 5,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "ningyo"},
+        {"enemy": "fugu"}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 8},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo", "count": 2}
+      ] },
+      { "at": 170, "spawns": [
+        {"enemy": "mushi_horned"},
+        {"enemy": "ningyo"}
+      ] },
+      { "at": 198, "spawns": [
+        {"enemy": "majyo", "count": 2},
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 228, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 7},
+        {"enemy": "kimera"},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo", "count": 2},
+        {"enemy": "mushi_sixlegs", "count": 2}
+      ] },
+      { "at": 272, "final": true, "boss": true, "spawns": [
+        {"enemy": "seiren", "boss": true},
+        {"enemy": "mushi_twolegs", "count": 7},
+        {"enemy": "kimera", "count": 2},
+        {"enemy": "fugu", "count": 2},
+        {"enemy": "ningyo", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 800, "replay": 50, "unlockCard": "chiikawa_island"}
+  }
+]

@@ -1,0 +1,220 @@
+[
+  {
+    "id": "mushi_twolegs",
+    "scope": 1,
+    "size": "S",
+    "speed": "normal",
+    "hp": 200,
+    "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
+    "abilities": [],
+    "weight": 1
+  },
+  {
+    "id": "goblin",
+    "scope": 1,
+    "size": "S",
+    "speed": "normal",
+    "hp": 270,
+    "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
+    "abilities": [{ "kind": "steal", "ms": 500 }],
+    "weight": 1.3
+  },
+  {
+    "id": "mushi_sixlegs",
+    "scope": 1,
+    "size": "M",
+    "speed": "normal",
+    "hp": 560,
+    "attack": { "kind": "none" },
+    "abilities": [{ "kind": "jump", "readyMs": 800, "airMs": 1000, "landMs": 500 }],
+    "weight": 2.4
+  },
+  {
+    "id": "chushidesu",
+    "scope": 1,
+    "size": "M",
+    "speed": "normal",
+    "hp": 350,
+    "attack": { "kind": "melee", "damage": 100, "intervalMs": 500 },
+    "abilities": [{ "kind": "lunge", "tiles": 1, "damageMul": 2, "readyMs": 600 }],
+    "weight": 2.4
+  },
+  {
+    "id": "fugu",
+    "scope": 1,
+    "size": "S",
+    "speed": "normal",
+    "hp": 220,
+    "attack": { "kind": "ranged", "damage": 60, "intervalMs": 1500, "rangeTiles": 3, "fx": "fx_spit" },
+    "abilities": [],
+    "weight": 2
+  },
+  {
+    "id": "majyo",
+    "scope": 1,
+    "size": "L",
+    "speed": "fast",
+    "hp": 300,
+    "attack": { "kind": "melee", "damage": 150, "intervalMs": 1000 },
+    "abilities": [],
+    "weight": 3
+  },
+  {
+    "id": "kimera",
+    "scope": 1,
+    "size": "S",
+    "speed": "normal",
+    "hp": 1100,
+    "attack": { "kind": "melee", "damage": 150, "intervalMs": 1000 },
+    "abilities": [{ "kind": "claws", "atHp": 0.3, "ms": 1000, "attackSpeedMul": 2, "moveSpeedMul": 2 }],
+    "weight": 5
+  },
+  {
+    "id": "mushi_horned",
+    "scope": 1,
+    "size": "L",
+    "speed": "slow",
+    "hp": 1200,
+    "attack": { "kind": "melee", "damage": 300, "intervalMs": 1000 },
+    "abilities": [{ "kind": "armor", "flat": 10 }],
+    "weight": 6
+  },
+  {
+    "id": "mushi_pink",
+    "scope": 2,
+    "size": "XL",
+    "speed": "normal",
+    "hp": 3000,
+    "boss": true,
+    "attack": { "kind": "melee", "damage": 300, "intervalMs": 1000 },
+    "abilities": [],
+    "weight": 12
+  },
+  {
+    "id": "kuroi_nagareboshi",
+    "scope": 1,
+    "size": "S",
+    "speed": "normal",
+    "hp": 150,
+    "attack": { "kind": "none" },
+    "abilities": [{ "kind": "heal_aura", "amount": 30, "cooldownMs": 3500, "radiusTiles": 1, "pauseMs": 1000 }],
+    "weight": 2.5
+  },
+  {
+    "id": "guchokipanogitaigata",
+    "scope": 1,
+    "size": "L",
+    "speed": "normal",
+    "hp": 2000,
+    "boss": true,
+    "attack": { "kind": "melee", "damage": 200, "intervalMs": 1000 },
+    "abilities": [
+      { "kind": "song", "cooldownMs": 6000, "durationMs": 3000, "firstMs": 3000, "relaxedDamageMul": 2, "targets": 3 }
+    ],
+    "weight": 12
+  },
+  {
+    "id": "zou",
+    "scope": 1,
+    "size": "XL",
+    "speed": "slow",
+    "hp": 3000,
+    "boss": true,
+    "attack": { "kind": "stomp", "intervalMs": 2500 },
+    "abilities": [],
+    "weight": 14
+  },
+  {
+    "id": "chiikabu",
+    "scope": 1,
+    "size": "S",
+    "trueSize": "XL",
+    "speed": "normal",
+    "hp": 2500,
+    "boss": true,
+    "attack": { "kind": "melee", "damage": 300, "intervalMs": 1000 },
+    "abilities": [{ "kind": "disguise", "transformMs": 1500 }],
+    "weight": 12
+  },
+  {
+    "id": "ningyo",
+    "aquatic": true,
+    "scope": 2,
+    "size": "S",
+    "speed": "normal",
+    "hp": 250,
+    "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
+    "abilities": [],
+    "pack": 3,
+    "weight": 2.5
+  },
+  {
+    "id": "mermaid_twolegs",
+    "scope": 2,
+    "size": "S",
+    "speed": "normal",
+    "hp": 200,
+    "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
+    "abilities": [],
+    "weight": 1
+  },
+  {
+    "id": "yamanba",
+    "scope": 2,
+    "size": "L",
+    "speed": "slow",
+    "hp": 1000,
+    "attack": { "kind": "melee", "damage": 150, "intervalMs": 1000 },
+    "abilities": [{ "kind": "spell", "cooldownMs": 4000, "castMs": 2000, "freezeMs": 4000, "targets": 5, "firstMs": 3000 }],
+    "weight": 5
+  },
+  {
+    "id": "dekai_tori",
+    "scope": 2,
+    "size": "M",
+    "speed": "normal",
+    "hp": 1200,
+    "attack": { "kind": "none" },
+    "abilities": [{ "kind": "flier", "hoverMs": 2500 }],
+    "weight": 5
+  },
+  {
+    "id": "seiren",
+    "aquatic": true,
+    "scope": 2,
+    "size": "XL",
+    "speed": "normal",
+    "hp": 3500,
+    "boss": true,
+    "attack": { "kind": "melee", "damage": 250, "intervalMs": 1000 },
+    "abilities": [
+      { "kind": "summon", "cooldownMs": 8000, "castMs": 2000, "firstMs": 3000, "min": 4, "max": 6, "water": "ningyo", "land": "mermaid_twolegs" },
+      { "kind": "rally", "who": ["ningyo", "mermaid_twolegs"], "speedMul": 2 }
+    ],
+    "weight": 14
+  },
+  {
+    "id": "anoko",
+    "scope": 2,
+    "size": "XL",
+    "giant": true,
+    "speed": "normal",
+    "hp": 9000,
+    "boss": true,
+    "attack": { "kind": "melee", "damage": 400, "intervalMs": 2220, "swingMs": 1600, "hitAt": 0.55 },
+    "abilities": [],
+    "weight": 18
+  },
+  {
+    "id": "dekatsuyo",
+    "scope": 2,
+    "size": "XL",
+    "giant": true,
+    "speed": "slow",
+    "hp": 12000,
+    "boss": true,
+    "attack": { "kind": "melee", "damage": 600, "intervalMs": 2220, "swingMs": 1600, "hitAt": 0.55 },
+    "abilities": [],
+    "weight": 24
+  }
+]

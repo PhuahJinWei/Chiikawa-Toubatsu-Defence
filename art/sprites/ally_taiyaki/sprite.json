@@ -1,0 +1,30 @@
+{
+  "kind": "sprite",
+  "id": "ally_taiyaki",
+  "height": 135,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 208,
+      "h": 139,
+      "ax": 103,
+      "ay": 137,
+      "boxes": [
+        [2, 2, 204, 135]
+      ]
+    },
+    "cook": {
+      "frames": 3,
+      "w": 208,
+      "h": 151,
+      "ax": 103,
+      "ay": 149,
+      "boxes": [
+        [2, 14, 204, 135],
+        [2, 14, 204, 135],
+        [2, 2, 204, 147]
+      ]
+    }
+  },
+  "from": "image/sprite/taiyaki"
+}

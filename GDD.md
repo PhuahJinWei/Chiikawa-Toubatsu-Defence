@@ -1,0 +1,1132 @@
+# ちいかわ討伐ディフェンス — Game Design Document
+
+Working title: **ちいかわ討伐ディフェンス** (Chiikawa Tobatsu Defense). Rename freely.
+Version 0.6 — 2026-11-04. Status: **built through M6 with placeholder art and sound** (see §21). The numbers below are the shipped defaults after bot balancing; the data files in `src/data/` are authoritative, and every number marked `[TUNE]` is still open to tuning in play.
+
+Companion files: [ASSET_CHECKLIST.md](ASSET_CHECKLIST.md) lists every image, animation and sound (generated from `src/art/spec.ts`), and [README.md](README.md) explains how to run, edit, replace art and deploy.
+
+---
+
+## 0. How to read this document
+
+- **Decided** items come from our conversation and are stated plainly. **Proposed** items are marked `[PROPOSAL]` and can be changed without touching anything else.
+- Lore lines carry a **confidence** tag: `High` = seen in the manga/anime/Chiikawa Pocket material we checked, `Medium` = reported by secondary sources only, `Low` = our own game abstraction with a loose anchor.
+- Scope tags: `v1` ships in the first playable release, `v2` is planned content that adds no new systems.
+- Japanese names come first because the game is Japanese-first; English follows.
+
+---
+
+## 1. Vision
+
+A Plants vs. Zombies style lane defense game set in Nagano's ちいかわ world, played on a phone in a browser. You take 討伐 (subjugation) jobs from the 鎧さん, hold the lanes with Chiikawa and friends, pull 草 (weeds) to afford more friends, and get paid when the job is done.
+
+### 1.1 Pillars
+
+1. **PvZ clarity.** One new thing per level. One ability per character, one line each. Tap a card, tap a tile.
+2. **Canon-true characters.** Who someone is, what they did and what they say come from the story. Attack methods are allowed to be playful game abstractions (decided), but each one is anchored to something the character actually owns or does where possible.
+3. **Phone-first web.** Portrait, one-handed, no install required, works offline once loaded, saves locally.
+4. **Gentle tone.** Nobody runs away and nobody dies on screen. Defeated enemies collapse and fade; defeated allies just fade away (decided).
+
+### 1.2 Targets
+
+| Item | Target |
+|---|---|
+| Platforms | iOS Safari 16+, Android Chrome, desktop browsers as a bonus |
+| Hosting | GitHub Pages, static files only, no backend |
+| Languages | Japanese primary, English secondary |
+| Session length | One level in 2 to 4 minutes |
+| Campaign | 6 worlds × 5 levels (30 in all; it was 10 a world until 2026-11-09) plus endless mode |
+| Monetization | None. Non-commercial fan work. |
+
+---
+
+## 2. Canon policy
+
+### 2.1 Source hierarchy
+
+1. The manga by ナガノ (X posts, Kodansha volumes). Source of truth.
+2. The anime (Fuji TV). Adapts the manga, lags it.
+3. **Chiikawa Pocket (ちいかわぽけっと)**, the official mobile game. Counted as canon (decided). Our enemy roster matches its 討伐 list, and its helper-character list is our pool for extra cards.
+4. The 2026 film 『ちいかわ 人魚の島のひみつ』, an adaptation of the セイレーン arc.
+5. Fan wikis and news sites are leads only. Verify before quoting.
+
+### 2.2 Rules
+
+- Every gallery line and every character ability has a `sources` entry and a `confidence` tag in `data/gallery.json`. Anything that cannot be sourced is either cut or kept as clearly playful game flavor, never presented as story fact.
+- The gallery states only what the panels show. Fan theories are not canon even when popular. Example: the Momonga and でかつよ body swap is a theory. The gallery may say Momonga's first words were 「ついにやったゾ」「おもいっきりかわいこぶってやる」 and that でかつよ was chasing it, nothing more.
+- Known manga/anime discrepancy: in the manga Chiikawa passed the 草むしり検定5級 on the third attempt in July 2025 after two failures; the anime is still at the second failure (episodes 109–110). The gallery follows the manga and may note the anime lag.
+- でかつよ is one character (settled 2026-11-06): the shaggy yellow creature on four black legs that chased Momonga. Chiikawa Pocket treats it as a helper and recaps call it timid; nothing shows it as a villain. Making it an enemy boss is ours: the final boss, at 6-5 (owner's call, 2026-11-09; it was World 4's until then).
+
+### 2.3 Tone rules
+
+- Defeat: an enemy collapses in place and fades out; a friend has no defeat frames and just fades away as it was, in about 0.5 s (owner's call, 2026-11-08, like PvZ's plants). No fleeing, no flying away, no blood.
+- Loss screen says 討伐失敗 and shows the party collapsed, then the retry button. Win screen is the 討伐報告 at the 鎧さん's desk with the payout.
+- Catchphrases are used as text in speech balloons, never as recorded voice (no official audio).
+- The gallery's words are relaxed and warm, in a Chiikawa-ish voice (owner's call, 2026-11-06): short lines, simple words, gentle endings (「〜よ」「〜なんだって」). Stories say only what the series shows, but leave out episode and volume numbers, years, the cast's voice actors and the darker details (who was eaten, poison). Hearsay is said as hearsay (「〜なんだって」「〜らしい」). No "this is how it plays" lines: the gallery's 「このゲームでの動き」 (In this game) heading already sets the game's own behaviour apart from the story. Ability lines are friendly too but keep every rule a player needs (reach, numbers that matter, who stays home where).
+
+---
+
+## 3. Platform and technology
+
+| Area | Decision |
+|---|---|
+| Engine | Custom Canvas 2D renderer for the battlefield; Preact + signals for menus and the HUD (DOM); TypeScript; Vite 7 (changed from Phaser, see §19) |
+| PWA | `vite-plugin-pwa`: manifest, service worker precaching all assets, "add to home screen" prompt after first clear |
+| Deploy | GitHub Actions builds `main` and publishes `dist/` to GitHub Pages |
+| Orientation | The whole game is landscape, like PvZ 2. Holding the phone upright shows a "turn your phone" overlay on every screen; battles pause under it. The installed app asks for landscape |
+| Layout | The battlefield canvas fills the screen. Along the top, with no bar behind them, the 草 counter, the wave bar (or the boss bar), the shovel, speed and pause float over the scenery as separate pieces, like PvZ 2; the cards stand in a floating column down the left edge, like PvZ 2 on phones. The camera keeps the field clear of both, and the scenery runs underneath them. The canvas renders at device pixel ratio (max 2.5) and its camera fits the field plus a margin into whatever space is left; extra space shows more of the world art, never a bigger grid |
+| Simulation | Fixed timestep 60 Hz with an accumulator; rendering interpolates. Seeded RNG (mulberry32) per level attempt |
+| Input | Pointer events. Tap card → tap tile, or drag a card onto a tile. Long-press a card for its details. Desktop: keys 1–9 pick cards, S shovel, Esc cancel, Space pause |
+| Audio | Web Audio, unlocked on the first tap (iOS requirement). Every sound and music loop is synthesised as a placeholder until a file named by its id exists in `art/audio/` |
+| Fonts | Yusei Magic (OFL, one weight, hand-lettered like a felt-tip pen) for all UI text, with Zen Maru Gothic (OFL) behind it for missing glyphs and the placeholder art's labels; both via Fontsource: unicode-range subsets, cached by the service worker on first use. No synthetic bold. System font fallback |
+| Storage | `localStorage` for saves, versioned JSON. See §13 for the iOS eviction caveat |
+| Analytics | None |
+
+### 3.1 Performance budget `[TUNE]`
+
+| Budget | Value |
+|---|---|
+| Enemies alive at once | ≤ 60 |
+| Allies placed | ≤ 45 (5 × 9 grid) |
+| Projectiles alive | ≤ 120 |
+| Pictures | WebP in the build, loaded per screen; each scene piece and character frame is turned into a sticker once, at screen resolution (a few million pixels per piece at most; a character frame never finer than it was drawn) |
+| First load | The app shell (≈ 0.7 MB) installs; art loads with its screen and the rest warms the cache in the background |
+| Frame time | 16 ms on a 2019 mid-range Android phone |
+
+### 3.2 Browser behavior rules
+
+- `visibilitychange` hidden → pause the simulation and audio. On return, resume on the pause screen, never catch up lost time.
+- Clamp `delta` to 50 ms so a hitch never spawns a wave on top of you.
+- Disable double-tap zoom and pull-to-refresh on the canvas (`touch-action: none`, `overscroll-behavior: none`).
+- Respect iOS safe areas (`env(safe-area-inset-*)`) for the HUD.
+- A sticker is cut from the picture itself or from a canvas kept in main memory (`willReadFrequently`), never from a GPU-backed canvas: finding the outline reads the pixels back, and reading a GPU canvas back costs tens of milliseconds a time whatever its size (the gallery's faces, puppet parts and scene pieces each took ~30 ms instead of ~1 ms before 2026-11-07). A preview outside the battle fetches only the frames of the motion it shows (`motionKeys`); the battle fetches every frame.
+- The audio context is opened in a spare moment while the game loads (opening it takes up to a third of a second on some computers) and unlocked by the first gesture, so the first tap never pays for it.
+
+---
+
+## 4. Arena and HUD
+
+### 4.1 Field geometry (decided)
+
+Landscape, like PvZ. Lanes run left to right. Enemies enter at the **right** edge and walk **left**. The place being protected sits at the **left** edge, with Rakko's cars parked in front of it. Everything is drawn in side view: allies face right, enemies face left.
+
+| Constant | Default `[TUNE]` | Notes |
+|---|---|---|
+| `LANES` | 5 | Levels may activate 1, 3 or 5 (centered). Inactive lanes show scenery and reject placement |
+| `COLS` | 9 | Columns are the length of a lane. Column 0 is nearest the base (left); column 8 is where enemies enter (right) |
+| `TILE` | 170 px | Square tiles |
+| Field | 1530 × 850 on screen (world units) | 9 × 170 long, 5 × 170 tall. Inside the simulation the travel axis is still called `y` (distance walked from the spawn side); the renderer maps it to screen x |
+| Right strip (spawn edge) | `world<N>_right.png`, 400 × 1200, drawn right of the field | The road the enemies arrive on; they appear 80 px beyond the field edge and walk in |
+| Left strip (protected place) | `world<N>_left.png`, 400 × 1200, drawn left of the field | Rakko's cars park here |
+| Horizon strip | `world<N>_top.png`, 2400 × 260, drawn above the field | Sky and distant scenery; mostly visible on tall screens |
+| Ground | `world<N>_ground.png`, 340 × 340, tiled everywhere | The engine draws a soft tile checker on top |
+| Camera view | x −500–1554, y −12–864 (field units), right of the card column | The card column, then most of the protected place (from 500 px left of the field), the parked cars and the field, fitted into the screen under the top strip (`battleView`, `src/game/render/view.ts`). On a phone (844 × 390) a tile is about 64 px (60 on a notched iPhone) and the field takes about 68 % of the width. Spare width goes to the road; spare height is split evenly. Where the view runs past the picture (above and below on a squarish screen, and under the card column while a world's picture is narrower than planned) the picture's edges are stretched outward (`worldBleed`). The rightmost 170 units of the left strip are a clear parking apron for Rakko's cars |
+| HUD strip and card column | DOM, over the canvas | Safe-area aware |
+
+Enemy walk time across the field: `COLS × seconds per tile`. At the normal speed tier (6 s per tile) that is 54 s, close to PvZ's pacing.
+
+### 4.2 Why landscape (changed from portrait)
+
+v0.6 was portrait (5 lanes across, 8 rows deep, front-facing art) for one-handed play and larger tiles on a phone. The owner chose a landscape field like PvZ instead: 5 horizontal lanes, 9 columns, side-view art. Costs accepted with that choice: on a phone the tiles are about a fifth smaller than in portrait, a web page cannot lock orientation on iPhone (the installed app can on Android), and every character needs a side-facing drawing. The simulation did not change its rules; only the field is wider by one column and the renderer maps it sideways.
+
+### 4.3 Tiles
+
+- **Placeable**: empty active tile.
+- **Occupied**: holds one ally. Weeds can still sprout on it.
+- **Terrain** (`v1`, World 2 onward): stump or bush. Neither can be placed on, and enemies walk through both. Since 2026-11-06 (owner's call) each does one thing more:
+  - **Stump (切り株)**: stops shots. A straight shot (うさぎ's blast, モモンガ's acorns, シーサー's ゴーヤ, フタバ's and ヒトハ's shells) that reaches the middle of a stump's tile stops there, hitting nothing beyond it; フグ's spit stops the same way. A lobbed can (栗まんじゅう) flies over, and jabs (ハチワレ) are not shots. フグ will not stand spitting into one: it walks on past the stump until its line to the friend is clear.
+  - **Bush (茂み)**: hides. A walking enemy whose feet are in the middle of a bush tile (within 0.32 of a tile of its centre, where the picture stands) is drawn behind the bush and is hidden: friends do not aim at it and shots fly past it, though area damage (うさぎ's splash) and Rakko's car still reach it. A giant is too big to hide, and a flier is above it. Bushes are drawn with the characters, in front of the enemies in their lane.
+  - The bot puts a lane's wall just in front of a bush ahead of its attackers.
+- **Weed**: a sprouted weed pickup sits on a tile for 10 s `[TUNE]` with a wobble, then wilts. Tapping it gives 草.
+
+### 4.4 Base rule (decided, PvZ binary)
+
+If an enemy crosses the left edge of its lane, the lane's **rescue** fires if unused: ラッコのくるま (Rakko's car) drives along the lane to the right, defeats every ordinary enemy in it, deals 1500 damage to bosses (so a full-health boss survives), and is gone for the rest of the level. If the rescue is already used, the level is lost immediately. World 6 has no rescue: Rakko is not on the big hunt (§10.4), so the first enemy to cross loses the level.
+
+Rescues drive in along each active lane just before the battle starts and park in plain view, so the player can count them.
+
+### 4.5 HUD
+
+| Element | Where | Behavior |
+|---|---|---|
+| 草 counter | top strip, left, above the cards | The weed on a round yellow badge overlapping the end of a slim bar, and a big number. Pulses when a weed is collected |
+| Wave bar | top strip, over the field, centred between the 草 counter and the buttons (up to 300 px on phones, 380 on tall screens) | Fills over the level; drawn pennants mark 大群 waves, a crown marks a boss wave, and the last wave's mark stands on the end of the bar |
+| Level name | above the wave bar | e.g. 「1-3 野原」 |
+| Pause | top strip, right | Opens pause menu: resume, restart, settings, quit to map. Top-strip buttons have a 44 px tap area around a 36 px round face, and the areas never overlap |
+| Cards | left column | Up to 8 cards top to bottom, by the thumb. The column is only as tall as its cards, and cards shrink to fit the deck so none ever scroll out of view; on a phone a full deck switches to a short card, its picture moved aside for the cost. Each card: the friend's in-game picture close up on a colour of their own, the 草 cost big in the corner (red when too dear), a dark shade while it can't be used. The testing ground has every friend, so its column scrolls |
+| Shovel 「帰ってもらう」 | top strip, left of speed and pause | Tap, then tap an ally to remove it (no refund). Turns red while active |
+| Speed toggle | top strip, next to pause | 1× / 2×, unlocked after World 1, remembered |
+| Boss bar | top strip, over the field (replaces the wave bar) | Name and HP of the boss on the field |
+| Banners | over the field | Announce the start, big waves, the final wave and bosses. Nothing else is shown over the field: no tutorial tips or hint dialogues, so the screen stays clear |
+
+### 4.6 Placement flow
+
+1. Tap a card. It lifts, affordable tiles highlight in the active lanes, the lane under the finger highlights brighter.
+2. Tap a tile. The ally appears with a small bounce, 草 is deducted, the card starts its cooldown.
+3. Tapping the same card again, or an invalid tile, cancels.
+4. Dragging a card onto a tile does the same in one motion: as the finger leaves the card it is picked up (the tiles it can go on light up and its ghost shows on the tile under the finger), and let go off the field it is put back. Tapping a weed always collects it, and placing on a tile that has a weed collects it too.
+5. One-use cards (`v2`) are placed the same way, their friend's ghost on the tile under the finger, and resolve immediately: オデ goes on an empty land tile like anyone (owner's call, 2026-11-08; his whole lane lit up before), むちゃうマン on any tile of an open lane. 星's card (`v2`) is the card of the friend wished for, but what it puts on the field is the star itself, not a one-use effect: the ghost under the finger is the star's idle picture, and it goes on an empty tile of that friend's ground (even for むちゃうマン). It stands there as itself, casts, and 1.2 s after it was placed that friend takes its place; a one-use friend does their one thing then, and the tile is free again.
+
+---
+
+## 5. Core loop
+
+```
+Lobby → あそぶ → quest board → a quest (world) → its sheet of levels → tap a level
+    → its job, both papers turned over: the job page (労働の鎧さん's note, who is coming, a ramen ticket) and the
+      team page (pick the team: cards unlocked so far, N slots; 出発). Tap an enemy's face, or hold a friend's, for
+      their details card
+    → Battle: a quick glance at the enemies waiting on the road, then waves → 大群 waves → final wave
+    → 討伐報告 (pay, new card, gallery unlocks; 次へ opens the next level's notice)  |  討伐失敗 (retry with the
+      same team / back to the notice)
+    → back up to the sheet, the board and the lobby (図鑑, お店, 設定)
+```
+
+Quests are pinned on the quest board by the job counter: each world is one quest, and each level a 討伐 job at its place. The place is what sits at the left edge of the field. This is the one framing the story fully supports: 討伐 is paid work handed out by the 鎧さん, and the official series blurb says Chiikawa-folk get attacked by chimeras, witches and strange creatures in daily life.
+
+---
+
+## 6. Economy
+
+### 6.1 草 (in-level currency, the "sun")
+
+| Rule | Value `[TUNE]` |
+|---|---|
+| Starting 草 | 50 |
+| Sprouting weed | 25 草, first after 2.5 s, then every 7–10 s on a random active tile (usually an empty one), lasts 10 s and droops and shivers before wilting. Tap to collect. Optional setting: collect automatically |
+| ちいかわ production | 25 草 every 20 s (first after 6 s). The 草 is drawn in her hand on her frames, so none is laid out to tap: it goes straight to the count, flying from her hand |
+| ちいかわ passive | She also auto-pulls any sprouted weed on her tile or the 4 neighboring tiles |
+| Night rule (World 4) | No sprouting weeds (`sprout: null`). Only ちいかわ produces, so every night job starts with 250 草 instead of 50 |
+| Cap | 9990 |
+
+### 6.2 Card costs and cooldowns `[TUNE]`
+
+| Card | Cooldown | Ready at level start |
+|---|---|---|
+| ちいかわ, うさぎ, ハチワレ | 7.5 s | immediately |
+| シーサー, 古本屋 `v2` | 7.5 s | after 3 s |
+| モモンガ, 栗まんじゅう; ちいかわ（人魚の島）, ハチワレ（パジャマ）, うさぎ（クール） `v2` | 7.5 s | after 5 s |
+| 鎧さん | 20 s | after 8 s |
+| 偉い鎧さん `v2` | 30 s | after 12 s |
+| フタバ `v2` (water only) | 7.5 s | after 3 s |
+| ヒトハ `v2` (water only) | 7.5 s | after 3 s |
+| 島二郎 `v2` (water only) | 20 s | after 8 s |
+| たい焼き `v2` (a trap) | 30 s | after 10 s |
+| One-use: オデ; むちゃうマン `v2` | 50 s | after 20 s |
+| 星 `v2` | as the friend wished for | as the friend wished for |
+
+Per-card costs are in §7.
+
+### 6.3 お金 (meta currency)
+
+Earned at the 討伐報告. Spent at the 鎧さん shops. There is **no third currency** (decided: no gems).
+
+| Source | Amount `[TUNE]` |
+|---|---|
+| First clear of a level | 400 (1-1: 300, World 1 and 2 bosses: 600, World 3, 4 and 5 bosses: 800, World 6's boss: 1000): 14,100 in all, which pays for everything lasting in the shop (10,550) |
+| Replay clear | 50 |
+| Each unused rescue at the end | +25 |
+| Endless mode | 10 per wave fully cleared |
+| Stars (map) | 3 = no rescue used, 2 = one, 1 = more |
+
+### 6.4 Shop (all `v1`)
+
+| Shop | Seller | Item | Price `[TUNE]` |
+|---|---|---|---|
+| ポシェット屋 | ポシェットの鎧さん | ポシェット拡張 ×3, one more friend each (6, 7, 8), bought in order; the same name and picture, only the line and the price differ | 750 / 1500 / 3000 |
+| 郎 | ラーメンの鎧さん | ラーメン券 ×2: lasting, +25 草 at the start of every job each (+50 with both), bought in order, same name and picture | 600 / 1200 |
+| 郎 | ラーメンの鎧さん | ぶた入りラーメン券: one use, chosen on the job notice: every friend ready from the start, without the opening wait (up to 9) | 150 |
+| なかま屋 | シーサー | Friends who join the team, each sold once: シーサー herself (no longer a level reward) and 星 (`v2`). ポシェットの鎧さん was sold here too, until he left the team (2026-11-08) | 1000 / 2500 |
+
+Nothing in the shop changes card stats (the ラーメン券's start 草 and the ぶた入りラーメン券's readiness are about the start of a job, not a card). Difficulty per world comes from an enemy toughness knob in `src/data/worlds.json` (`enemyHp`: World 2 is 0.88, World 3 is 0.75, World 4 is 0.7), tuned with the bot after the weapon shop was removed.
+
+---
+
+## 7. Allies (cards)
+
+Stat conventions: ally HP 300 unless noted. A basic enemy bites for 100 per second, so an ordinary ally lasts about 3 s under attack, a 鎧さん 40 s, 偉い鎧さん 80 s. Attack intervals are in seconds. Range is counted in tiles along the lane.
+
+### 7.1 Roster
+
+| id | Name | Scope | Cost | HP | Attack | Targeting | Special | Item anchor | Confidence |
+|---|---|---|---|---|---|---|---|---|---|
+| `chiikawa` | ちいかわ / Chiikawa | v1 | 50 | 300 | none | — | Produces 25 草 / 20 s; auto-pulls sprouted weeds within 1 tile. Sits searching between finds and holds up what she finds | Weed pulling is her job | High |
+| `chiikawa_island` | ちいかわ（人魚の島） / Chiikawa (Mermaid Island) | v2, built; joins at 5-5's clear | 225 | 300 | 120 dmg / 3.0 s, projectile flame | First enemy in lane | One heavy hit, and nothing burns (owner's call, 2026-11-08) | Chiikawa in island dress, a pink flower crown and a green grass skirt (the cover of manga vol. 8); kept searching alone, crying, when friends were captured on the island; shared a campfire with the islanders once the Siren was driven off (Pixiv 百科事典; Real Sound). The torch is ours: no torch or fire dance is confirmed, so the lore leaves it out | Medium |
+| `hachiware` | ハチワレ / Hachiware | v1 | 100 | 300 | 30 dmg / 1.3 s, hitscan jab | First enemy within 3 tiles | Jab is hitscan, not a projectile (decided: lore over full-lane range). Hits harder than a peashooter to make up for the short reach | Her さすまた, matching Chiikawa's (anime ep. 17–18) | High |
+| `hachiware_pajama` | ハチワレ（パジャマ） / Hachiware (Pajamas) | v2, built; joins at 6-2's clear | 150 | 300 | 30 dmg / 2.6 s, hitscan jab with a deck brush | First enemy within 3 tiles | **Pushes** the enemy it hits back half a tile (`pushTiles`; it slides back at 600 px/s, whatever it was doing): not a boss or a giant, not one in the air, jumping or lunging, and never back off the field (owner's call, 2026-11-08: Hachiware's poke, slower, with a push) | Pochette 鎧さん's pajamas (he had the trio try his sample pajamas, anime ep. 46; the official 2022 pajama plush has Hachiware in pale blue with a cat-eared hood); standing in for the kidnapped Pajama Parties members, the trio faced the giant bird with deck brushes Usagi brought (anime eps. 150 and 153, via ABEMA TIMES). The push is ours | High |
+| `yoroi` | 鎧さん / Yoroi-san | v1 | 50 | 4000 | none | — | Wall. Two damage states (dented, cracked) | Armor | High |
+| `yoroi_erai` | 偉い鎧さん / Chief 鎧さん | v2, built; joins at 4-4's clear, in time for the first giant | 125 | 8000 | none | — | The tough wall (owner's call, 2026-11-08: PvZ's tall-nut, but no taller than 鎧さん: only tougher). Two damage states. Recharge 30 s, first after 12 s | A 鎧さん in gold armour, like a boss to the others, with a crown-like ornament; told Pochette 鎧さん off (「オイ、仲良くしすぎだ」) as he sang and danced his way home from sukiyaki (anime ep. 114, via ABEMA TIMES; Pixiv 百科事典) | High |
+| `usagi` | うさぎ / Usagi | v1; everyone's first friend (1-1 is hers) | 100 | 300 | 20 dmg / 1.4 s, projectile blast | First enemy in lane, any range | The plain shot (owner's call, 2026-11-08: PvZ's peashooter, and the first friend; her blast no longer splashes behind). ハチワレ joins at 1-3's clear | 討伐棒 fires blasts from both ends (seen vs. あのこ) | High |
+| `usagi_cool` | うさぎ（クール） / Usagi (Cooler) | v2, built; joins at 6-4's clear | 300 | 300 | missiles: 60 each / 5.0 s | One missile on each lane with an enemy on the field, at one of its enemies picked at random, landing 0.7 s later a little either side (up to 0.2 tile) | Never moves: no attack motion (owner's call, 2026-11-08). Each missile blows up where it lands: every enemy on the ground in that lane within 0.75 tile either side takes 60; not one hidden in a bush, ちいかぶ in disguise or a flier. With no enemy on the field none fall | The look is ours: no scene of Usagi in sunglasses was found in the manga or anime (sunglasses are only on goods), so the gallery stamps it 本作創作. Its lore uses a real scene: Usagi's sudden rap on the island, which got the mermaids grooving (Pixiv 百科事典) | Original |
+| `momonga` | モモンガ / Momonga | v1 | 325 | 300 | 20 dmg / 1.4 s, projectile acorn | First enemy in own lane **and** each neighboring lane | Does not move (decided). Acorns deal double damage to fliers, the でかい鳥 specialist (§9.4) | None, playful; the flying squirrel knows the sky | Low |
+| `kurimanju` | 栗まんじゅう / Kurimanju | v1 | 300 | 300 | 80 dmg / 2.9 s, lobbed can that splashes | First enemy in lane; the lob passes over 鎧さん, オデ and terrain | **Splash** (PvZ's melon-pult, owner's call 2026-11-07): the can bursts where it lands, and every enemy in the 3×3 tiles round the spot (a lane and a tile and a half each way) takes the 80; not one hidden in a bush, nor ちいかぶ in disguise. Sometimes says ハァ〜ッ in a balloon | Loves sake and snacks | Medium |
+| `shisa` | シーサー / Shisa | v1 | 175 | 300 | 20 dmg / 1.4 s, projectile ゴーヤ | First enemy in lane | Target is **slowed** 50% for 5 s | Clerk at 郎; recommends Okinawan specialties | Medium |
+| `ode` | オデ / Ode | v1, one-use (since 2026-11-08); joins at 3-1's clear, in time for キメラ | 125 | — | none | — | One use (owner's call, 2026-11-08: PvZ's jalapeño, played as Rakko's car): put down like any friend, on an empty land tile (his ghost shows there as he is placed), he comes running in from the base end of its lane and sprints the whole lane at 800 px/s. Every enemy on the ground he runs into is defeated, through armour; a boss takes 1500, as from the car; fliers are overhead. Recharge 50 s, first after 20 s (he was an 8000 HP wall until then) | Giant met in the forest, jailed with the trio by goblins | High (role is ours) |
+| `pajama_parties` | パジャマパーティーズ | v2, built; joins at 3-3's clear, in time for ゾウ | 175 | 300 | none | — | Each placement is one of the four members, at random (owner's call, 2026-11-08; each dances on frames of its own). Aura: allies in the same lane attack 50% faster while it sings | Idol group of four who bought green, pink, pale purple and white pajamas from ポシェットの鎧さん (no red member: red, blue and yellow were the trio's stand-in pajamas when they took the stage in their place) | High |
+| `hoshi` | 星 / Star | v2, built; sold at シーサー's なかま屋 (2500) | the wish's | the wish's | the wish's | — | Grants a wish, like PvZ's Imitater: the player picks a friend for it before setting off, and its card is that friend's card (cost and recharge too, so a team can take a friend twice). What it places is the star itself, standing on its tile for 1.2 s, doing nothing but casting at the end, and then that friend. A one-use wish (オデ, むちゃうマン) goes as it turns, leaving the tile free | The stars stuck to the 三ツ星レストラン's wall, freed by Chiikawa and Hachiware, flew back to the sky (anime eps. 70–75); they later granted Shisa a wish to repay a kindness (manga, Sept 2026). Hachiware only wondered whether they had granted the camera. Canon calls them 流れ星; 星 is the owner's name for the card, and turning into a friend is our reading of the wish | High |
+| `futaba` | フタバ / Futaba | v2, built; joins at 5-1's clear; water only | 100 | 300 | projectile 20 / 1.4 s (seashells), **through everyone** (`passThrough`) | Every enemy in its lane, each once | Goes only on the water lane. Skims shells that go on through every enemy in the lane. With ヒトハ on the tile right in front or behind, throws 1.5× as fast (`bond`) | An islander of the island arc, always with ヒトハ, bound by a "too-strong bond", who helps Chiikawa and friends in all sorts of ways (the 2026 film's official site and cast news). The boat and the shells are ours. The film's twist about the pair stays out of the game's words (owner's call) | High |
+| `hitoha` | ヒトハ / Hitoha | v2, built; joins at 5-2's clear; water only | 125 | 300 | projectile 50 / 1.6 s (a big spiral shell) | First enemy in its lane | Goes only on the water lane. Hits one enemy hard. With フタバ right beside, throws 1.5× as fast (`bond`) | An islander, always with フタバ; its voice actor calls it a little timid but very curious. Same sources and the same care with spoilers. The boat and the spiral shell are ours | High |
+| `shimajiro` | 島二郎 / Shimajiro | v2, built; joins at 5-3's clear; water only | 50 | 4000 | none | — | The water lane's wall. Swims, so he needs no boat | The owner of 「島二郎」, the diner deep in the island's forest (the film's official site). Much bigger than the Chiikawa-folk, a burly man with a moustache and only an apron at his waist; dives into the sea himself for the shellfish in his 貝汁; looked after Chiikawa, alone and collapsed at his diner, with カツカレー and 貝汁; tried to get Chiikawa and friends away from セイレーン (Real Sound, ゲーム攻略大百科). Holding the water as a wall is ours. His look (hair like a swirl of whipped cream or a chestnut, a pattern on the side of his head) is from fan write-ups; the placeholder colours are guesses until the owner's picture | High |
+| `rakko` | ラッコ / Rakko | v2, built; joins at 3-5's clear, in time for the horned bug at 4-2; stays home on jobs without his car (World 6) | 300 | 2000 | 70 / 1.0 s, a sword sweep (his own tile and one tile ahead, in his lane and the lanes either side), **through armour** | The first enemy within reach in each of his three lanes (a giant across them, once); he swings when any of them has one | A front-line fighter: tough (2000 HP) but not a wall (no damage pictures); recharge 20 s, first after 12 s | The top-ranked hunter, Chiikawa's and Hachiware's 先生, who once beat the horned bug Chiikawa could not (hence his blows going through armour). He also drives the rescue cars, so where they do not come (the big hunt, which he is not on) neither does he. He fights with a sword, as in the original; the sweep reaching the lanes either side is ours | High |
+| `taiyaki` | たい焼き / Taiyaki | v2, a trap (since 2026-11-08), built; joins at 2-2's clear, in time for 魔女 | 25 | 300 | 1800 once, when it goes off | — | A trap (owner's call, 2026-11-08: PvZ's potato mine): put down, it cooks for 12 s, and enemies bite it like anyone meanwhile; cooked, the first enemy on the ground to reach it sets it off: every enemy on the ground in its lane from half a tile in front of its tile to the back of it takes 1800 (through armour), and it is used up (gone, not counted as a friend lost). Recharge 30 s, first after 10 s (it was a one-use lane heal until then) | A taiyaki found floating in mid-air (anime ep. 289); a helper in Chiikawa Pocket. The filling and harmlessness come from one strategy guide only, so the gallery leaves them out | Medium (role is ours) |
+| `muchauman` | むちゃうマン / Muchau-Man | v2, one-use, built; joins at 4-2's clear, in time for 山姥 | 75 | — | none | — | One use (owner's call, 2026-11-08: PvZ's ice-shroom): put on any tile of an open lane, he appears and strikes his pose (1.1 s), then every enemy in play freezes for 5 s (no walking, biting or abilities; whatever it was in the middle of waits; it can still be hit; one that comes later is not frozen); half a second later he is gone. Recharge 50 s, first after 20 s | The hero and image character of むちゃうまヨーグルト, a popular product in the story; Chiikawa is a big fan, and tried to get a photo with him at a むちゃうま event (manga vol. 3, anime eps. 137–141; Pixiv 百科事典, ABEMA TIMES). His stand-in look (a caped hero) is a guess until the owner's picture | High |
+| `furuhonya` | 古本屋 / Furuhonya (fans: カニちゃん) | v2, built; joins at 1-5's clear; its gallery page is with the friends (known from the first time the gallery opens, as it keeps the book) | 200 | 300 | 20 dmg / 1.4 s, two books (`volley: 2`, 0.17 s apart) | First enemy in lane | The repeater (owner's call, 2026-11-08: PvZ's repeater). It healed the friends round it until then | Runs the used-book shop; the crab headband is from Momonga (the 2026 film's official site). 古本屋 and カニちゃん are the same character. Sails to the island in the film. Throwing books is ours | High |
+
+### 7.2 Rescue (not a card)
+
+| id | Name | Rule | Anchor | Confidence |
+|---|---|---|---|---|
+| `rakko_car` | ラッコのくるま / Rakko's car | One per active lane (none in World 6, where Rakko is absent). Fires when an enemy crosses the base line. Drives along the lane, defeats every ordinary enemy in it, deals 1500 to bosses, consumed | Rakko is the top 討伐 ranker, saved Chiikawa from the horned bug, and is the only main-cast member who owns a car | High |
+
+### 7.3 NPCs (no card)
+
+| Name | Role in game | Anchor | Confidence |
+|---|---|---|---|
+| 労働の鎧さん | The job counter in the lobby, the note for the next job on the quest's level sheet, 討伐報告 payout | Assigns weeding and extermination jobs; the first 鎧さん in the story; pestered by Momonga | High |
+| ポシェットの鎧さん | Pochette shop (deck slots); on the gallery's people pages. He was a friend card too (a wall that punched back, from the なかま屋) until 2026-11-08 | Crafts the pochette and the pajamas | High |
+| ラーメンの鎧さん | 郎 shop | Owner of 郎, Shisa's mentor | High |
+| 古本屋 | Keeper of the 図鑑 (gallery) | Runs the used-book shop; fans call it カニちゃん because of the crab headband | Medium |
+| スフィンクス | `[PROPOSAL]` cameo, role not decided | Huge sphinx that introduced Chiikawa and Hachiware, never harmed anyone | Medium |
+
+### 7.4 Targeting rules for allies
+
+- "First enemy in lane" means the nearest enemy ahead of the ally in its lane, within range.
+- Projectiles travel along the lane at 900 px/s `[TUNE]` and hit the first enemy they touch. Lobs are drawn as arcs and resolve on the target's tile, where 栗まんじゅう's can splashes over the 3×3 tiles round it.
+- Allies never retarget mid-projectile. If the target collapses first, the projectile hits whatever is in front.
+- Disguised enemies (§9.1) are skipped by targeting until revealed. The rescue still hits them.
+- Allies under the **song** status (§9.2) neither attack nor produce.
+- On a water lane (§9.5) only the islanders stand (ヒトハ, フタバ, 島二郎); friends beside it reach in with whatever crosses lanes (モモンガ's three-lane throw, ラッコ's sweep), and うさぎ（クール）'s missiles fall on it as on any lane.
+- Fliers (§9.4) are valid targets for every attack kind. Lobs resolve on the flier's current tile. Attacks may carry a `vsFlierMultiplier`.
+
+---
+
+## 8. Enemies
+
+Speed tiers (decided: speed is rare): **slow** 9 s per tile, **normal** 6 s per tile, **fast** 3 s per tile. Only 魔女 is fast (セイレーン was too, until 2026-11-07; and キメラ once her claws are out: twice her normal speed).
+Size tiers set how big a character is drawn (S 150, M 195, L 262, XL 338 field px tall; a spec's `height` overrides it) and how slowly it moves (tempo), nothing else: S, M, L, XL. Every enemy occupies one lane.
+Melee enemies stop at the first ally or wall in their lane and attack it. Only フグ attacks from range. でかい鳥 is the only flier (decided) and never attacks at all, and 六足の虫 never attacks either: it jumps over every friend in its way. ちゅーしです lunges at a friend from a tile away, goblins pick up the 草 growing where they walk, and キメラ, who starts with her claws hidden, stops at 30% HP to draw them and then moves and claws twice as fast. A friend can be put down anywhere, under an enemy too (owner's call). Who reaches whom goes by the enemy's front: a friend in front of it, or on the tile its front is in (the enemy is on top of it), and the enemy fight each other (it stops there; the friend's shots hit it even from behind the muzzle); a friend on a tile behind its front (under its trailing body) neither hits it nor is hit, and the enemy walks on.
+
+**Modes (decided, 2026-11-07, owner's call).** Every character is always in exactly one mode, and a mode, once begun, runs to its end before the next is chosen. Modes with a length: an enemy's swing (wind-up, blow, follow-through; でかい鳥's grab is its swing; ちゅーしです's lunge is a swing whose wind-up is a dash, after a 0.6 s pause eyeing its friend), 六足の虫's jump (2.3 s: getting ready, in the air, landing), a goblin picking up 草 (0.5 s × its tempo), キメラ drawing her claws (1 s), セイレーン's call (2 s, singing) and the coming-up of each one she calls (0.9 s × its tempo), 黒い星's heal, 山姥's spell (2 s), ちいかぶ's transformation, and a friend's attack (0.5 s) or ちいかわ's pull. Open modes give way at once to whatever there is to do next: walking (it stops the moment it reaches a friend or an ability comes due), waiting up against a friend between swings, and でかい鳥's hovering. Only being defeated ends a mode early (it falls at once), and for a friend, being carried off by でかい鳥. So: a blow that fells its friend still finishes its swing before the enemy walks on; a blow whose friend has gone (shovelled, felled by someone else) swings on and hits nobody, or whoever is up against it by then; an ability that comes due mid-swing waits for the swing to end; a friend silenced or held mid-attack still finishes it (its shot still flies); でかい鳥's talons close partway through its grab, and it flies off only once the grab is over. Swings still come the interval plus 220 ms apart. The sim decides what comes next in one place (Sim.decide), only when a mode is over.
+
+### 8.1 Roster
+
+| id | Name | Scope | Size | Speed | HP `[TUNE]` | Damage / interval | Ability | Anchor | Confidence |
+|---|---|---|---|---|---|---|---|---|---|
+| `mushi_twolegs` | 虫（二足） | v1 | S | normal | 200 | 100 / 1.0 s | none, the basic | Common 討伐 target, fans call it ギチギチ | High |
+| `goblin` | ゴブリン / Goblin | v1 | S (drawn 135, a touch under Chiikawa) | normal | 270 | 100 / 1.0 s | **Picks up 草**: it walks on over a weed growing where it walks (not ちいかわ's finds, nor one she is pulling, nor one on a friend's tile while the friend stands) until the weed is under its hand, about half a tile behind its front, then bends down for it (0.5 s), and the weed simply vanishes as its hand reaches it. While it fights, a weed that sprouts on its own tile (at its back) it grabs too: it finishes its swing, picks the weed up, and goes back to attacking (its next swing about 0.4 s later). Beaten, it drops all it took where it falls, sprouting there to be picked up again (they wilt as a sprout would). It still attacks ちいかわ like any friend | 監獄ゴブリン編: jailed the trio after the mushroom theft, nearly ate them | High |
+| `mushi_sixlegs` | 虫（六足） | v1 | M | normal | 560 | none | **Jumps over every friend** in its way (walls too): it crouches ready where it is (0.8 s), flies over the friend's tile (1 s) and lands, steadying itself (0.5 s), 2.3 s a jump with friends hitting it all the while, landing just past the friend's tile (straight into the next jump if another friend waits there), and never attacks. Tankier than the basic bug | Flashback bug, stronger for its extra legs | High |
+| `chushidesu` | 中止で〜す | v1 | M | normal | 350 | 100 / 0.5 s | **Lunges**: within a tile of a friend it stops for 0.6 s, eyeing it (its first attack frame held), then pounces, dashing in over its swing's wind-up, and that swipe hurts twice as much (200). Then it attacks twice as fast as usual. Never at a friend put down on the tile it is in (it swings there) | A chimera that says its catchphrase; its claws got stuck in a tree | High |
+| `fugu` | フグ / Fugu | v1 | S | normal | 220 | 60 / 1.5 s spit | **Ranged**: halts when any ally or wall is within 3 tiles and spits at it. Walls hold it like anyone else. It stops only where it can be hit back: on the field, out of any bush, and with no stump between it and the friend (it walks on past one), because otherwise neither side could reach the other and the lane would stall | Set a 網脂 trap on Hachiware, then left | High (ranged is ours) |
+| `majyo` | 魔女 / Witch | v1 | L (山姥's height) | **fast** | 300 | 150 / 1.0 s slash | Fast runner. Low HP to pay for it | Named simply 魔女 in the gallery (decided); her arc is unverified, so the entry stays brief until it is | Medium |
+| `kimera` | キメラ / Chimera | v1 | S (the pink chimera, Chiikawa's size) | normal; twice that (3 s a tile) once her claws are out | 1100 | 150 / 1.0 s; 0.5 s once her claws are out | **Draws her claws** (`claws`): she starts with them hidden (her first look, `enemy_kimera`); the first time she is down to 30% of her HP she stops and draws them out, 1 s (a mode: a swing in progress ends first; friends keep hitting her), in her clawed form from then on (`form: 'claws'`, sprite `enemy_kimera_claws`, whose ability is the drawing), and moves and claws twice as fast until she falls, even if healed back over that. A blow from above that straight to 0 fells her with them still hidden | The pink chimera (anime ep. 16 「キメラ」, from the manga): it came up to Chiikawa laughing, said 「こんなになっちゃった…」 and went for her in tears; Chiikawa drove it off. Possibly a former Chiikawa-folk; sharp claws. Hiding and drawing the claws is ours (a Chiikawa Pocket guide says it had only just turned and was not used to its claws yet: a lead, unverified) | High |
+| `mushi_horned` | 虫（ツノ） | v1 | L | slow | 1200 | 300 / 1.0 s | **Armor**: every hit loses 10 flat damage | Chiikawa could not beat it alone; Rakko arrived and did | High |
+| `mushi_pink` | 虫（ピンク） | v2, boss, built; World 1's boss (1-5) | XL | normal | 3000 | 300 / 1.0 s | none: the bugs' boss, a much bigger two-legged bug with much greater stats | Not from the story: the owner's own design (gallery stamp 本作創作, `confidence: "original"`) | Original |
+| `kuroi_nagareboshi` | 黒い流れ星 / Black Star | v1 | S (drawn 128) | normal | 150 | none | **Healer**: every 4.5 s heals the enemies in the 3×3 tiles around it (its lane and the lanes either side, a tile and a half ahead and behind; not itself) for 30 HP, stopping for 1 s each time (`pauseMs`: its black pulse, 0.7 s, is over before it moves) before drifting on; its 3.5 s cooldown starts once the stop is over, so it heals every 4.5 s. Never attacks | The black shooting star arc (Jan–Apr 2022, vol. 5): an ominous star that warps the days | Medium (role is ours) |
+| `guchokipanogitaigata` | グーチョキパーの擬態型 | v1, boss | L | normal | 2000 | 200 / 1.0 s | **Lure song** (§9.2): 3 s after it comes onto the field, then every 9 s (its 6 s cooldown starts once a song is over), it sings as it goes, and up to 3 friends in its lane, however far, picked at random, are held for 3 s (no attacks, no 草, no support), drawn as 山姥's spell leaves a friend (frozen in a spell circle, purple); its blows land twice as hard on a held friend | Gathers Chiikawa-folk with a song, strikes once they relax; strong enough that top rankers were needed | High |
+| `zou` | ゾウ / Elephant | v1, boss | XL | slow | 3000 | one stomp defeats an ally outright, every 2.5 s | Gargantuar | 悪夢 arc: nightmares for those who lose a staring contest; beaten by Chiikawa and Usagi together | High (role simplified) |
+| `chiikabu` | ちいかぶ / Chiikabu | v1, boss | S → XL | normal | 2500 (true form) | 300 / 1.0 s | **Disguise + transform**, see §9.1 | A beetle that followed Chiikawa like a child, treated as 友好型, later revealed 擬態型 (anime ep. 93) | High |
+| `ningyo` | 人魚 / Mermaid (canon: just 人魚) | v2, built (World 5) | S (drawn 120, smaller than Chiikawa) | normal | 250 | 100 / 1.0 s | none, island basic, spawns in threes; also called up by セイレーン on a water lane; bites | They stay by セイレーン's side, and attacked the trio with it in the island's cave; there were really three of them (one was eaten), which coming in threes nods to. It was セイレーン that carried off islanders to find the culprit (the film's official site, vol. 8) | High |
+| `mermaid_twolegs` | 人魚（二足） / Mermaid (two-legged) | v2, built; only called up by セイレーン | S | normal | 200 | 100 / 1.0 s | none: about the two-legged bug's stats; comes up out of the ground where it is called (its spawn frames), on land lanes | Not from the story: the owner's own design (`confidence: "original"`); left out of the gallery (owner's call, 2026-11-07) | Original |
+| `yamanba` | 山姥 / Yamanba | v2, built; comes in at 4-3 (World 4) | L | slow | 1000 | 150 / 1.0 s | **Spell**: 3 s after she comes onto the field, then every 8 s (her 4 s cooldown starts once her hold wears off), she stops 2 s to chant at up to 5 key friends (any that attack, make 草 or support; never a wall) anywhere on the field, picked at random, any not held yet first; each is held (no attacks, no 草, no support) for 4 s, frozen in place, tinted purple, in a spell circle | An old woman who freed the trio from traps in the マロングラッセの森 and looked after them, then began a spell before a poison mushroom felled her (vol. 7; anime eps. 306–311). Nothing shows she set the traps | Medium |
+| `seiren` | セイレーン / Siren | v2, boss, built (World 5) | XL (drawn 480, the giants' height, in one lane) | normal | 3500 | 250 / 1.0 s knock | **Summoner** (owner's call, 2026-11-07: the game's summoner boss). She swims at normal speed and no longer sings as she swims. 3 s after she comes onto the field, then every 10 s (her 8 s cooldown starts once a call is over), she stops 2 s to sing and calls up 4–6 small followers round the column she is in, one after another through the song, in random lanes (each open lane once before any has a second): 人魚 on a water lane, the two-legged mermaid (`mermaid_twolegs`) on land; each comes up (its spawn mode, 0.9 s) just ahead of her front, so it is not hidden behind her, before it walks on; never past a friend level with her or ahead of her in its lane (in front of that one instead). While she is on the field every mermaid, anywhere, moves twice as fast (`rally`). Knocks with her forelegs in front of a friend | The island arc (on X 13 Mar – 26 Nov 2023, vol. 8) and the 2026 film | High |
+| `anoko` | あのこ / That Kid | v2, boss, built; World 4's boss (4-5) | XL, **giant** (three lanes, §9.6) | normal | 9000 | 400 every 2.44 s (a slow 1.6 s swing, the blow landing 0.88 s in) to each friend in front of it, in each of its three lanes | **Giant** (§9.6). Falls at 0 HP like everyone else (it was driven off and ran away until 2026-11-06) | Strongly implied, never stated, to be Chiikawa's former sticker-job coworker turned chimera; on the おっきい討伐 its tail knocked Hachiware flat and Usagi drove it off (anime eps. 130–132; first anime appearance ep. 130) | High, emotionally heavy |
+| `dekatsuyo` | でかつよ / Dekatsuyo | v2, boss, built (6-5, the final boss) | XL, **giant** (three lanes, §9.6) | slow | 12000 | 600 every 2.44 s (a slow 1.6 s swing, the blow landing 0.88 s in) to each friend in front of it, in each of its three lanes | **Giant** (§9.6), the biggest stat block | One character (settled, §19.1): the shaggy yellow creature on four black legs that chased Momonga shouting 「返せッ」 (anime cast list, ep. 27; a Chiikawa Pocket helper). Recaps call it timid; making it a boss is ours | High |
+| `dekai_tori` | でかい鳥 / Giant Bird | v2, built (3-1) | M (drawn 170) | normal | 1200 | none, it never bites | **Flier**: flies over walls to the ally nearest the base, hovers 2.5 s, grabs it and flies back out. Full rules in §9.4 | Carried off Pajama Parties members mid-show; the trio beat it together with deck brushes (vol. 4; anime ep. 154). "Too big for one person" is unverified | High (decided: the only flier) |
+
+### 8.2 Status effects (one implementation each)
+
+| Status | Applied to | Effect | Source |
+|---|---|---|---|
+| `slow` | enemy | speed × 0.5 for 5 s, refreshed on hit; tinted blue | シーサー |
+| `armor` | enemy, passive | `damage = max(1, damage − flat)` | 虫ツノ |
+| `heal_aura` | enemy, passive | periodic heal to enemies within radius | 黒い流れ星 |
+| `song` | ally | cannot attack, make 草 or support for N s: frozen in a spell circle, tinted purple, whether caught by 擬態型's song (whose blows on it land twice as hard) or held by 山姥's spell | 擬態型, 山姥 |
+| `disguised` | enemy | not targetable by allies; lane-wide effects still apply | ちいかぶ |
+| `carried` | ally | lifted by でかい鳥; returns to its tile if the bird collapses before leaving `v2` | でかい鳥 |
+
+---
+
+## 9. Boss mechanics
+
+Common boss rules: no HP bar (nothing shows health, like PvZ), a one-line banner announces it (e.g. 「ちいかぶ…？」), the wave bar shows a boss marker, and the world's boss BGM variant plays. One boss per world finale; later worlds may reuse earlier bosses as mid-level threats.
+
+### 9.1 ちいかぶ: disguise and transform (decided)
+
+```
+DISGUISED  ──reaches attack range of first ally/wall──▶  TRANSFORMING (1.5 s) ──▶  TRUE FORM
+   │ small S sprite, walk only                             XL sprite, plays once        XL sprite, melee boss
+   │ not targetable by allies
+   └─ if the lane is empty: transforms on row 0 and keeps walking in true form
+```
+
+- Nothing can damage it while disguised, so it always reveals at full HP. The player sees it coming and must prepare that lane: stack damage, add a wall, or keep the rescue.
+- The rescue still hits it in disguise.
+- After the reveal it behaves like ゾウ-class melee: normal speed, 300 damage per second.
+
+### 9.2 Song (擬態型)
+
+The lure song (owner's call, 2026-11-07; it used to stop the friends within 2 tiles for 2 s every 10 s, while it stood singing too): 3 s after it comes onto the field, then every 9 s, 擬態型 sings as it goes, never stopping for it (notes rise from it), and up to 3 friends in its lane, however far, picked at random, are held by the song for 3 s: no attacks, no 草, no support, drawn as 山姥's spell leaves a friend (frozen in a spell circle, purple, with sparkles). Its blows land twice as hard on a held friend (in the story it gathers Chiikawa-folk with a song and strikes once they relax). It sings only when a friend is in its lane; friends in other lanes go on as usual (モモンガ's acorns still reach it from beside). Data: `{ "kind": "song", "cooldownMs": 6000, "durationMs": 3000, "firstMs": 3000, "relaxedDamageMul": 2, "targets": 3 }`.
+
+### 9.3 ゾウ
+
+Gargantuar rules: slow, huge HP, each stomp defeats one ally. Counter is damage density plus the rescue. `[PROPOSAL]` if you want the nightmare flavor later, add a passive: allies within 1 tile in front of it attack 25% slower.
+
+### 9.4 でかい鳥: the only flier (decided)
+
+| Rule | Value |
+|---|---|
+| Movement | Enters at the top of a lane at normal speed, flies over walls, terrain and other enemies. Never bites |
+| Target | The ally nearest the base in its lane, so it crosses the whole line and every attacker gets shots at it |
+| Telegraph | Flies a little above its own lane (50 px), its shadow right under it (at 175 px it looked to be in the lane above; at 18 px it skimmed the ground). Over the target it rises for 2.5 s, then grabs |
+| Grab | Lifts the ally (`carried` status) and flies back along the lane at normal speed. Leaving the right edge removes the ally for good, no refund |
+| Drop | If it collapses while carrying, the ally lands back on its own tile, else on the nearest free tile in the lane, else it is lost |
+| Empty lane | With no ally in the lane it turns around at row 0 and leaves. It never triggers the base rule |
+| Hittable by | Every attack kind. Lobs resolve on its current tile |
+| Specialist | モモンガ's acorns deal double damage to fliers (`vsFlierMultiplier: 2`). Its ability line says so on the details card and in the gallery (no tip in battle) |
+| Helpers | シーサー's slow applies and keeps it under fire longer. The rescue car never fires on it because it never reaches the base, by design |
+| Stats | HP 1200 `[TUNE]`, M canvas (drawn 170 tall: smaller than in the story, so it stays over its lane). One Hachiware cannot stop it alone; a lane with three attackers kills it before it leaves |
+| Lesson | Walls do not help, the back line needs covering fire, and the lane's combined damage wins. Canon: too big for one person, beaten by teamwork |
+| First appearance | World 3 level 3-1, two levels before パジャマパーティーズ join, the group it kidnapped in the story |
+
+The carried ally is drawn with its own idle frame under the bird's talons, so no extra art is needed beyond the bird's fly, grab and collapse sets.
+
+### 9.5 The water lane (World 5, decided)
+
+| Rule | Value |
+|---|---|
+| Where | World 5's bottom lane (the fifth; lane 4 in the code) is the edge of the sea in every job (`water: [4]` in worlds.json), painted into the battle picture with its surf along y 1040 and the sea carrying on below the field (owner's call, 2026-11-09; it was the middle lane) |
+| Enemies | 人魚 and セイレーン (`aquatic`) come down only the water lane; every other enemy only the land. Without water (endless mode) mermaids walk like anyone else |
+| Friends | Only the islanders (`aquatic`) go on the water, and they go nowhere else: フタバ and ヒトハ throw from their boats, and 島二郎, who swims, is the wall. A land friend tapped onto it says 「水の上には、島の人たち（ヒトハ・フタバ・島二郎）しか置けません」. One-use cards (たい焼き) work on it as on any lane. On a job without water the islanders stay home (greyed on the team page; 星 cannot wish to be them there) |
+| Help from the banks | モモンガ's throw and ラッコ's sweep cover the water lane from the lane above it; うさぎ（クール）'s missiles fall on it too |
+| Partners | ヒトハ and フタバ are stronger side by side: each throws 1.5× as fast while the other is on the next tile in the lane |
+| Shots | フタバ's shells go through every enemy in the lane (`passThrough`: each enemy is hit once, and the shell flies on off the field), lightly; ヒトハ's spiral shell hits the nearest one hard. Against 人魚 in threes the one, against セイレーン the other |
+| Ground | Nothing sprouts on water; characters on it get ripples instead of a shadow |
+| Rescue | Rakko comes by boat on the water lane (`rescue_rakko_boat`), the same rescue as the car |
+| Lesson | 5-1 has no water friend yet: the bank defends the sea with モモンガ from the lane above. フタバ joins at 5-1's clear, ヒトハ at 5-2's and 島二郎 at 5-3's |
+
+### 9.6 Giants: でかつよ and あのこ (decided 2026-11-06)
+
+The two last bosses are giants (`"giant": true`), one body three lanes wide. The owner asked whether they should be much bigger than the other bosses and fill three lanes, always in the middle; my recommendation was yes, for these two only (ゾウ comes back too often as a mid-level threat, and セイレーン's point is the water lane), with the rules below, and the owner said to build it. It fits the story: あのこ is many times Chiikawa's size, the hunt is おっきい討伐, and でかつよ's name is でかい + つよい.
+
+| Rule | Value |
+|---|---|
+| Where | Always down the middle of the field: the active lane nearest the middle with an active lane on each side (`giantLane`, lane 2 in a five-lane job). With no three lanes side by side it comes one lane wide like anyone else (`Enemy.half` 0) |
+| Body | `Enemy.half` 1: its body is in its lane and the lanes either side (`sim.covers`). It is drawn three lanes tall (size tier XXL, 480 px), its feet and its wide shadow inside the nearest of its lanes (lifted 65 px off that lane's ground line, so nothing spills into the lane below and its body is centred on its three; only the top of its head or fur reaches a little into the lane above), over every friend in its lanes (a friend in a nearer lane comes in front of it), and among the enemies layered by where its feet stand (true depth, owner's call 2026-11-07): it covers the enemies further back in its other two lanes, and those in front of its feet cover it |
+| Getting hit | Every friend in its three lanes can hit it: shots, jabs, lobs and splash in any of them, and モモンガ's three acorns can all land. The spark shows where the blow came down. HP is about 2.5× what a one-lane boss would have, to keep the fight long |
+| Being stopped | By the first friend in any of its lanes (whichever it reaches first) |
+| Attacking | Each swing hits the friend it is up against and, in each of its other lanes, the friend in front of it if level with it (within half a tile). Damage per friend is lower than before (でかつよ 300, あのこ 200), but a line of three walls takes it all at once |
+| Reaching the base | It calls every parked car in its three lanes at once (three rescues used, so one star); each car does what a car does to a boss (1500). In World 6 there is no car, so it ends the job, as before |
+| Black stars | 黒い星 heal it when it is within reach of any of its lanes |
+| Endless | The same rules; its `weight` is higher (でかつよ 24, あのこ 18), so fewer others come with it |
+| Line-up | Before the battle it waits on the nearest of the middle three lanes, drawn behind the others |
+
+Measured by the bots when でかつよ was World 4's boss and あのこ World 6's: でかつよ lived about 70 s and reached the middle of the field, often hitting two or three friends at a swing; あのこ about 35–60 s.
+
+---
+
+## 10. Worlds and progression
+
+### 10.1 World table
+
+| # | Name | Protected place (left) | Enemy side (right) | Ground | Special rule | Boss | Scope |
+|---|---|---|---|---|---|---|---|
+| 1 | 野原 / Meadow | ハチワレの洞窟 | Country path | Grass | Tutorial ramp: 1 → 3 → 5 lanes | 虫（ピンク） | v1 |
+| 2 | 森 / Forest | 森の出口 / Forest Exit | Forest mouth | Leaf litter | Terrain tiles (stumps, bushes) | 擬態型 | v1 |
+| 3 | 街 / Town | ラーメン屋「郎」 | Street | Paving | Fliers and heavy enemies, with ゾウ partway through a job | ちいかぶ | v1 |
+| 4 | 夜 / Night | ちいかわの家 | Dark path | Night grass | No sprouting weeds | あのこ (owner's call, 2026-11-09: the harder でかつよ closes the game instead; they were the other way round) | v2, built |
+| 5 | 島 / Island | 浜辺の洞窟 | Sea | Sand | The bottom lane is sea: only 人魚 and セイレーン come down it, only the islanders (ヒトハ, フタバ, 島二郎) stand on it (§9.5) | セイレーン | v2, built |
+| 6 | おっきい討伐 / The Big Hunt | 着地したところ / The landing spot | Tall grass | Wild grass | No rescue car (Rakko is not on this hunt), so jobs start with 100 草; mixed rosters of big ones | でかつよ | v2, built |
+
+### 10.2 The campaign, job by job (owner's call, 2026-11-09)
+
+Six worlds of five levels, 30 in all (it was ten a world until the owner asked whether that was still right once every friend had a place). The owner's rules:
+
+- A new friend on every level of World 1, and after that one every two levels at most.
+- A friend joins for what the player faces next, or to answer a hard enemy that has just come in. Enemies come by how hard they are and friends by what answers them. The story's order does not bind (where it costs nothing it is kept: パジャマパーティーズ still join after the bird that kidnapped them).
+- The special versions of the trio come last: ちいかわ（人魚の島） in World 5, the other two in World 6. World 5 unlocks only フタバ, ヒトハ, 島二郎 and ちいかわ（人魚の島）; World 6 only ハチワレ（パジャマ） and うさぎ（クール）.
+
+うさぎ is everyone's first friend and シーサー and 星 join at the なかま屋 (§6.4), so 18 of the 21 friends join from levels, which is exactly what those rules make room for at five levels a world: 5 in World 1, 7 in Worlds 2–4, 4 in World 5 and 2 in World 6. (Ten a world would have made room for 31, and 32 of the 60 levels brought no new friend or enemy.) Worlds 2–4 and 6 bring one exactly every two levels; World 5 goes faster at its start (5-1 to 5-3) because nobody else can stand on the water. A friend joins when its level is cleared and can go from the next level on. First clears pay twice what they did, so the campaign still pays for the shop (§6.3).
+
+The waves are the earlier levels' where they still fit, rewritten where someone's first appearance moved, then balanced with the bots on 2026-11-09: the good bot wins every level on all three seeds and the casual bot on at least two of three (over 24 seeds the good bot won 88% or more of every level, the casual bot 83% or more). 六足の虫 was what broke through most of all, since it jumps every friend and must be shot down before it lands behind them: it now counts as a big enemy for pacing (none in the opening, not in two waves running), and most waves have no more than one. The bots leave たい焼き, オデ, むちゃうマン, パジャマパーティーズ and 星 at home, so a player has more answers than they do.
+
+| Level | Lanes | New enemy | What answers it | Joins on clearing | Lesson |
+|---|---|---|---|---|---|
+| 1-1 | 1 | 虫（二足） | うさぎ | ちいかわ | Tap card, tap tile. Weeds sprout, tap them |
+| 1-2 | 3 | — | — | 鎧さん | Producer first, attacker second |
+| 1-3 | 3 | 中止で〜す | 鎧さん takes the lunge | ハチワレ | Walls buy time |
+| 1-4 | 5 | 虫（六足） | ハチワレ's harder jabs: it jumps over walls | 栗まんじゅう | Full width. Not everything stops at a wall |
+| 1-5 | 5 | Boss 虫（ピンク）, at 0.6 of its HP | 栗まんじゅう's cans, from behind the wall | 古本屋, and 2× speed | The first boss |
+| 2-1 | 5 | ゴブリン | ちいかわ pulls weeds before it can take them | — | Stumps. Usually the first job with a team to pick |
+| 2-2 | 5 | フグ | 古本屋's two books, from further than it can spit | たい焼き | Shooting first |
+| 2-3 | 5 | 魔女 | たい焼き, laid in her way | — | The first bushes |
+| 2-4 | 5 | 黒い流れ星 | 栗まんじゅう's splash reaches it behind the front | モモンガ | Priority targets |
+| 2-5 | 5 | Boss 擬態型 | モモンガ from the next lane, out of the song's reach | — | Spread out |
+| 3-1 | 5 | でかい鳥 | モモンガ's acorns, double against fliers | オデ | Walls do not stop it |
+| 3-2 | 5 | キメラ | オデ's charge fells her before the claws | — | A one-use answer |
+| 3-3 | 5 | — | — | パジャマパーティーズ | Everything so far, in town |
+| 3-4 | 5 | ゾウ, partway through, with its banner, at 0.8 of its HP | パジャマパーティーズ: more hits before it arrives | — | Damage before it arrives |
+| 3-5 | 5 | Boss ちいかぶ | オデ's charge hits it even in disguise | ラッコ | Keep something for the reveal |
+| 4-1 | 5 | — (night begins) | — | — | Spend the start's 草 on ちいかわ first |
+| 4-2 | 5 | 虫ツノ | ラッコ's blows go through its armour | むちゃうマン | Heavy hits against armour |
+| 4-3 | 5 | 山姥 | むちゃうマン's freeze stops her spell | — | Timing a one-use friend |
+| 4-4 | 5 | — (ゾウ comes back, at 0.8 of its HP) | — | 偉い鎧さん | Keep the ちいかわ alive: they are the only income |
+| 4-5 | 5 | Boss あのこ, a giant (§9.6) | 偉い鎧さん: a line of walls across three lanes | — | The first giant |
+| 5-1 | 3 | 人魚 | モモンガ from the lane above | フタバ | The sea: land friends cannot stand on it |
+| 5-2 | 5 | — | — | ヒトハ | フタバ's shells go through every 人魚 |
+| 5-3 | 5 | — (魔女 on the beach) | — | 島二郎 | フタバ and ヒトハ side by side |
+| 5-4 | 5 | — | — | — | All three islanders, before the boss |
+| 5-5 | 5 | Boss セイレーン, with her two-legged mermaids on land | 島二郎, a wall on the water | ちいかわ（人魚の島） | She calls up followers |
+| 6-1 | 5 | — (no rescue car) | — | — | Every lane holds on its own |
+| 6-2 | 5 | — | — | ハチワレ（パジャマ） | Cover the back line against でかい鳥 |
+| 6-3 | 5 | — (ゾウ, with its banner) | — | — | Everything so far, with no safety net |
+| 6-4 | 5 | — (擬態型, with its banner) | — | うさぎ（クール） | Answer the song from the next lane |
+| 6-5 | 5 | Boss でかつよ, a giant (§9.6) | うさぎ（クール）'s missiles, on every lane with an enemy | Endless mode | Everything so far |
+
+### 10.3 What each world adds
+
+- **World 1 野原**: the ramp from one lane to five, bugs only, ending with the bugs' boss.
+- **World 2 森**: stumps from 2-1, and bushes from 2-3, whose bushes stand well up the field (columns 6 and 7) so the first ones hide enemies away from the friends. The job notes of 2-1 and 2-3 say what stumps and bushes do.
+- **World 3 街**: fliers and heavy enemies. 3-3's job note says シーサー is at the なかま屋.
+- **World 4 夜** (music still a placeholder): nothing sprouts at night, so ちいかわ makes every 草 and each job starts with 250 草 instead of 50. 黒い流れ星 in every level, ゾウ back at 4-4, and the first giant as the boss. Enemy toughness 0.62.
+- **World 5 島** (music still a placeholder): the bottom lane is the sea (§9.5). 人魚 come down it in threes in every job, and セイレーン is the boss; the land has bugs and フグ, then 魔女 (5-3), キメラ and 虫ツノ (5-4). Rakko comes by boat on the water lane and by car elsewhere. Enemy toughness 0.62.
+- **World 6 おっきい討伐 (The Big Hunt)** (music still a placeholder): five jobs with no rescue car, each starting with 100 草 so a slip is less likely; the big ones (キメラ, 山姥, 虫ツノ, でかい鳥, with ゾウ and 擬態型 as mid-level threats) with goblins and bugs, and でかつよ as the boss at 6-5, whose first clear pays 1000 and opens endless mode. Enemy toughness 0.45, the lowest, because there is no car to catch a slip.
+
+### 10.4 The Big Hunt's story notes
+
+Written before World 6 was built, for ten levels with あのこ as the boss (the 6-10 twist was declined), and kept for what they say about the story.
+
+- **The plan, as written before building**: the big hunt from the story (anime eps. 129–132; manga posts of 29 April – 7 May 2021). The series never names the place. What it shows: Chiikawa, Hachiware and Usagi are flown in wearing propeller gear, land among mushrooms they have never seen, the grass rustles and a giant one appears, あのこ points at a frog, its tail knocks Hachiware flat (Hachiware's sight goes black and white), and Usagi fights on alone and drives it off. The hunt fails, they retire (リタイヤ), and everyone gets home safe.
+- Protected place: the landing spot, where the team came down and would be lifted out. Losing a level means the team retires, the way the real hunt ended. Defending it is our framing, as with the cave or 郎.
+- 6-1 to 6-9: the big ones come out of the tall grass. The story does not show which monsters live there, so a mixed roster from every world is ours (built that way).
+- 6-10: boss あのこ, driven off rather than killed, because that is what Usagi did and あのこ's past is sad. At 0 HP it runs off instead of collapsing.
+- No rescue car: Rakko is not on this hunt, and in the story only Usagi came to the rescue. World 6 is harder for it and needs its own bot balance pass.
+- ~~Twist for 6-10, from the story: Hachiware lies knocked flat at the landing spot, and Hachiware's card is out for that level.~~ Declined (owner's call, 2026-11-06): ハチワレ can go on 6-10 like any job.
+- Battle picture (the usual layout): sky and the far side at the top; wild grass, with the field kept flat; tall grass on the right where the big ones come out; the landing spot with the unfamiliar mushrooms on the left; grass tips, mushrooms and a frog along the front edge. The write-ups describe only the mushrooms, the grass and the frog, so check the episodes for the rest before drawing.
+- Clearing World 6 unlocks endless mode (owner's call). Its 討伐ランキング paper is the last one on the quest board.
+
+### 10.5 Mini-games
+
+| Game | When | Rule | Anchor | Confidence |
+|---|---|---|---|---|
+| 討伐ランキング (endless) | After World 6, from its paper at the end of the quest board (so not in v1) | Infinite generated waves from every enemy met so far: a big wave every 5, a boss every 10, rising HP after wave 15. Local best; ラッコ sits at #1 forever with 「測定不能」 | ランカー title and ranking exist | High |
+| スロット `[PROPOSAL]` | Shop corner | Spend 20 お金 for a spin, small prizes | The スロット arc exists (vol. 5) | Medium |
+
+---
+
+## 11. Data formats
+
+All content is JSON under `src/data/`. Code never contains stats. Text lives in `src/i18n/ja.json` and `en.json` (a test checks both have the same keys).
+
+### 11.1 Ally (`data/units.json`)
+
+```json
+{
+  "id": "hachiware",
+  "scope": 1,
+  "cost": 100,
+  "cooldownMs": 7500,
+  "hp": 300,
+  "size": "S",
+  "initialCooldownMs": 0,
+  "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 1300, "rangeTiles": 3, "fx": "fx_jab" }
+}
+```
+
+Attack kinds: `hitscan`, `projectile`, `lob`, `spread3` (projectile into three lanes), `missiles` (うさぎ（クール）: one from the sky on each lane with an enemy, blowing up `blastTiles` either side along it), `none`. `volley: n` (古本屋: 2) throws n shots an attack, 0.17 s apart; `pushTiles` (ハチワレ（パジャマ）: 0.5) pushes back whoever a jab hits. A `hitscan` with `sweepLanes: n` (ラッコ: 1) is a sweep: the first enemy within reach in its own lane and in n lanes either side, each struck once.
+Other fields: `produce` (ちいかわ), `wall: true`, `splashBehind`, `slowMs`, `catchphrase`. World 5 (built): `aquatic: true` on a friend (only on water tiles: ヒトハ, フタバ, 島二郎), `passThrough: true` on a friend's projectile (it goes through every enemy in the lane, each hit once: フタバ) and on an enemy (only down water lanes when a job has any: 人魚, セイレーン), `bond: { "with": id, "attackMul"?, "damageMul"? }` (stronger while that friend is on the next tile in the lane), and `water: [lanes]` on a world in worlds.json. `v2` (built): `support` for friends who never attack, `{ "kind": "aura_attackspeed", "mul": 1.5 }` (パジャマパーティーズ: the whole attack, wind-up included, is that much quicker for friends in its lane while it sings and is not silenced) or `{ "kind": "heal_adjacent", "amount": 10, "intervalMs": 1000 }` (古本屋: the four tiles beside it); `oneUse` for one-use cards, `{ "kind": "lane_heal", "fx": "fx_taiyaki" }` (たい焼き, drifts out from the base and fully heals every friend it passes). A one-use card goes on any tile of an active lane, occupied or not, leaves nothing there, and shows in the battle tray as a dashed coupon. `wish` for 星, `{ "transformMs": 1200 }`: the battle's `wish` (the friend picked for it, saved with the team) makes its card that friend's card, and what it places is a star until `transformMs` has passed (`Ally.wishUntil`), then that friend (`wishGranted`). 星's own cost and recharge are never used; it stands with that friend's HP, or its own `hp` (300) if they have none (a one-use friend); without a wish it stays home.
+Optional attack fields: `vsFlierMultiplier` (モモンガ: 2).
+Since 2026-11-08: `mine: { readyMs, damage }` (たい焼き: a trap that cooks, then goes off under the first enemy to reach it), and `oneUse` is `{ kind: 'charge' }` (オデ runs his lane) or `{ kind: 'freeze', freezeMs }` (むちゃうマン). `support` is only パジャマパーティーズ' song now (`heal_adjacent` and the taiyaki's `lane_heal` are gone: no friend heals).
+
+### 11.2 Enemy (`data/enemies.json`)
+
+```json
+{
+  "id": "mushi_horned",
+  "scope": 1,
+  "size": "L",
+  "speed": "slow",
+  "hp": 1200,
+  "attack": { "kind": "melee", "damage": 300, "intervalMs": 1000, "rangeTiles": 1 },
+  "abilities": [ { "kind": "armor", "flat": 10 } ],
+  "boss": false
+}
+```
+
+Timed abilities (`heal_aura`, `song`, `spell`, `summon`) come again `cooldownMs` after they are over: 黒い星's stop, 擬態型's song (as long as it holds friends), 山姥's hold, セイレーン's stop to call (`abilityBusyMs` in `game/sim/tempo.ts`). `summon` (セイレーン): `{ "kind": "summon", "cooldownMs": 8000, "castMs": 2000, "firstMs": 3000, "min": 4, "max": 6, "water": "ningyo", "land": "mermaid_twolegs" }`; `rally`: `{ "kind": "rally", "who": ["ningyo", "mermaid_twolegs"], "speedMul": 2 }` (while she is on the field). Ability kinds: `armor`, `heal_aura`, `song`, `disguise`, `lunge` (ちゅーしです), `jump` (六足の虫), `steal` (ゴブリン), `claws` (キメラ: `{ "kind": "claws", "atHp": 0.3, "ms": 1000, "attackSpeedMul": 2, "moveSpeedMul": 2 }`; her clawed form is the sprite `enemy_kimera_claws`), and `v2` (built): `spell` (山姥), `rally` (セイレーン), `flier` (`{ "kind": "flier", "hoverMs": 2500 }`, §9.4) (`driven_off`, あのこ running off at 0 HP, was removed on 2026-11-06). An enemy may be `"giant": true` (でかつよ, あのこ): three lanes wide, down the middle (§9.6). An enemy may have `"pack": 3` to come in a group one after another in the same lane (小さい人魚); its `weight` is for the whole group. Attack kinds: `melee`, `ranged`, `stomp`, `none`. `weight` is the difficulty cost endless mode uses.
+
+### 11.3 Level (`src/data/levels/world1.json`, one array per world)
+
+```json
+{
+  "id": "1-3", "world": 1, "index": 3,
+  "lanes": [1, 2, 3],
+  "startWeeds": 50,
+  "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+  "deck": {},
+  "terrain": [{"lane": 1, "row": 5, "kind": "stump"}],
+  "rescues": true,
+  "waves": [
+    { "at": 24, "spawns": [ {"enemy": "mushi_twolegs"} ] },
+    { "at": 66, "spawns": [ {"enemy": "mushi_sixlegs", "lane": 2} ] },
+    { "at": 130, "final": true, "spawns": [ {"enemy": "mushi_twolegs", "count": 4}, {"enemy": "mushi_sixlegs", "count": 2} ] }
+  ],
+  "rewards": {"firstClear": 200, "replay": 50, "unlockCard": "yoroi"}
+}
+```
+
+`lane` is a number, `"random"` (the default, spread across lanes) or `"all"`. A spawn may add `"boss": true` (the boss banner and music, limited rescue damage) and `"hpMul"`. Wave flags: `big`, `final`, `boss` (announced 3 s ahead with a banner). Waves keep their gaps: a wave fires when its gap since the previous wave has passed, or earlier once the field is clear and at least max(8 s, 60 % of the gap) has passed, which keeps good players moving without halving their setup time. `tools/levelgen.py` writes these files from a compact notation. `"sprout": null` means nothing sprouts (World 4's night).
+
+### 11.4 Gallery entry (`data/gallery.json`)
+
+```json
+{ "id": "chiikabu", "tab": "enemies", "unlock": "seen", "sources": ["pocket", "abema93"], "confidence": "high", "badge": "gitai" }
+```
+
+`sources` point into a shared `sources` table (label + URL) in the same file. Lore text lives in the i18n files under `lore.<id>` so translators work in one place.
+
+### 11.5 i18n (`data/i18n/ja.json`, `en.json`)
+
+Key families: `card.<id>.name|ability`, `enemy.<id>.name|ability`, `npc.<id>.name`, `lore.<id>`, `world.<n>.name|place`, `job.lines.<level id>`, `prep.*` (getting ready), plus one family per screen (`map.*`, `battle.*`, `result.*`, `shop.*`, `settings.*`, `artkit.*`).
+
+### 11.6 Save (`localStorage["chiikawa-td.save"]`)
+
+```json
+{
+  "v": 4,
+  "cleared": { "1-1": { "stars": 3, "clears": 1 } },
+  "attempts": { "1-1": 1 },
+  "cards": ["hachiware", "chiikawa"],
+  "features": { "endless": false, "speed": false },
+  "gallery": { "seen": ["mushi_twolegs"], "defeated": ["mushi_twolegs"], "met": ["yoroi_rodo"] },
+  "money": 175,
+  "upgrades": { "slots": 0 },
+  "items": { "ramen": 0 },
+  "best": { "endless": 0 },
+  "settings": { "lang": "ja", "bgm": 0.6, "sfx": 0.8, "autoCollect": false, "reducedMotion": false, "hpBars": true, "guides": false, "speed": 1 },
+  "tips": [],
+  "lastDeck": []
+}
+```
+
+---
+
+## 12. Gallery (図鑑)
+
+- Opened from the lobby's 図鑑 button, kept by the 古本屋. The book is 「討伐と労働の図鑑」. 25 entries in v1: 9 なかま (including Rakko), 12 討伐対象, 4 ひと.
+- Layout (the owner's design, from v0.10, kept like a sticker book): the open book lies on 古本屋's table while 古本屋 reads beside it on the left, wiggled like a cut-out tilted by hand (it snaps between leaning 6° each way, 1.6 s a lean; still when motion is reduced); it is sized by the room beside 古本屋 and may run off the bottom of the screen. The book and its tabs are one paper cut-out: a single white die-cut edge and shadow around their shared outline. Index tabs tucked into the top of the left page, like stationery tabs: なかま (allies, green), 討伐対象 (enemies, pink), ひと (NPCs, blue); the open one is pulled up in full colour. The left page, headed by the open tab's name under a highlighter stroke in its bookmark's colour and a count of that part's pages filled in (3/18: an enemy only sighted does not count), has every entry's face cut out as a sticker (the game's white die-cut edge), three to a row, each stuck on a little crooked; the chosen one is lifted and circled in pink pen; entries not met yet are empty dashed spots with 「？」, enemies only sighted are dark shape stickers. The right page: the name under a highlighter in the entry's colour, a red stamp saying how well its facts are sourced (原作確認 / 資料確認), then the entry's character standing on the page as a cut-out, moving as in battle with its own shadow under it (no spot of colour since 2026-11-07) (tap it for its other moves; a caption names the move, 「待機中」 at rest; ひと show their face cut out), then notes on ruled lines: the lore paragraph (3–4 sentences), 「このゲームでの動き」 and stat chips under little label stickers, and the 出典 links. Canon taxonomy shown as a chip: 友好型 / 擬態型 where it applies. The pages scroll with no bar and fade out at the foot.
+- Unlock rules: allies when their card is obtained (Rakko when his car first fires), enemies on first sighting (silhouette) and full entry on first defeat, NPCs on first meeting (労働の鎧さん in the lobby, the sellers in the shop, 古本屋 in the gallery; Rakko on his first rescue or endless run).
+- Every entry shows a confidence chip (原作・公式で確認 / 二次資料で確認); the source links were removed (owner's call, 2026-11-06) and live in Appendix A. There is no footnote under the faces (removed, owner's call, 2026-11-06): the 「このゲームでの動き」 heading on each page marks what is the game's own.
+
+---
+
+## 13. Save system
+
+- Autosave after every level result, shop purchase, settings change and gallery unlock.
+- Versioned schema with forward migrations in `src/save/save.ts`; missing fields are filled from defaults. An unreadable save is copied to a backup key before starting fresh.
+- **Export / import**: settings screen shows the save as a code `CTD1.<base64url(deflate(json))>.<crc32>` and accepts one back; tampered codes are rejected. This is the only cross-device path on GitHub Pages.
+- **iOS caveat**: Safari may evict site storage after 7 days without a visit for sites that are not installed to the home screen. The PWA prompt after the first clear exists for this reason, and the export code is the safety net.
+- Reset save requires typing 「削除」 / "DELETE".
+
+---
+
+## 14. Localization
+
+- Default language from `navigator.language`, `ja*` → Japanese, everything else → English. Toggle in settings.
+- All strings in the i18n files, including numbers formatting (`1,000` both languages).
+- English runs about 30% longer. Every text box auto-shrinks font to fit, never overflows.
+- Name table used everywhere:
+
+| JA | EN |
+|---|---|
+| ちいかわ | Chiikawa |
+| ハチワレ | Hachiware |
+| うさぎ | Usagi |
+| モモンガ | Momonga |
+| 栗まんじゅう | Kurimanju |
+| ラッコ | Rakko |
+| シーサー | Shisa |
+| 古本屋 | Furuhonya |
+| 鎧さん | Yoroi-san |
+| カニちゃん | Kani-chan |
+| オデ | Ode |
+| パジャマパーティーズ | Pajama Parties |
+| 草 | Weeds |
+| お金 | Money |
+| 討伐 | Tobatsu (job) |
+| 草むしり検定 | Weeding Certificate Exam |
+
+---
+
+## 15. Screens
+
+### 15.1 Art direction: stacked paper cut-outs everywhere (from v0.9)
+
+The whole game is flat paper pieces, layered: menus, battlefields, characters and effects alike. Artists paint
+flat, straight on, with outlines, and never paint the white border, shadows or glow; the game adds the sticker
+look itself (a white die-cut border that follows each outline and bridges narrow gaps, an edge shadow, a soft drop
+shadow), so every piece of art, real or placeholder, reads as the same set of stickers. The paper texture is the
+art's own: nothing is laid over the pictures (a full-screen grain did that until v0.10 and made real art look dusty);
+only the game's own paper panels, buttons and tags carry a light grain so they match. Text stays real text on paper
+panels, never painted into pictures, so both languages work.
+
+**UI drawn like the line art (from v0.10).** Everything the game draws itself (buttons, panels, pop-ups, tags, the
+battle HUD and cards) follows the Chiikawa line art and the owner's quest board mock-up: dark chocolate outlines and
+text (#4A2A12) on warm cream paper, soft pastel fills (pink, yellow-green, blue, yellow, orange), flat shadows like a
+sticker's thickness instead of soft app shadows, slightly uneven hand-drawn corners on panels, and dashed dividers.
+The lobby's four buttons are game icons, not app tiles: the owner's pictures, each an icon with its name plate drawn in (a picture book for 図鑑, a pink bear-face pouch for お店, a gear for 設定, a quest paper and a さすまた on a pink circle for あそぶ), cut out as a sticker like the scene pieces and floating gently; あそぶ reads as the main button by its size and place (the biggest, at the bottom right), with no glow or badge, which would be app-like on an all-paper screen. The plates are Japanese in both languages, like もどる (screen readers get the names in the player's language). The battle's buttons along the top are game icons too (a trowel for the shovel, chunky arrows for 2×, fat bars for pause); switched on, the shovel lifts onto a pink badge and 2× glows on a yellow one with a 「2×」 tag. The pictures are `art/ui/button_*.png` for the lobby and `art/ui/icon_*.png` for the battle (placeholders drawn by code until the owner's arrive). The text is hand-lettered too
+(Yusei Magic, like Nagano's felt-tip lettering), including the speech balloons in battle. The tokens live at the top
+of `global.css` (`--font`, `--ink`, `--outline`, `--ow`, `--pop`, `--wob` and the pastels).
+
+There are three kinds of art:
+
+- **Scenes** (`art/scenes/<scene>/`): a menu scene is one picture split into pieces, a battle world one flat picture. Menu scenes (1620 × 972; the engine can also pan wider ones)
+  are seen through a 3D camera: straight on at rest, so the pieces line up exactly like the picture, with a flat
+  pan to fit the screen; the viewpoint drifts a few pixels (an idle sway, plus a lean toward the mouse or the
+  phone's tilt) so near pieces slide past far ones; focusing on a character swings the camera 10° toward the paper
+  sheet's side as it moves in. Pieces may run off the picture's edge; the game stretches those edges and keeps them
+  off screen (checked on phone, desktop, 4:3 and ultrawide shapes, through every camera move). **Slots** are places
+  in a scene where the game puts live content (the shop's name tags). A menu piece can also be an **idle loop**: a
+  few hand-drawn frames of one size in one place, shown in turn (the lobby's 鎧さん breathes in four, 0.9 s each,
+  1-2-3-2; reduced motion holds the first). Battle worlds (3360 × 1500, the field at x 900–2430, y 360–1210) are one picture each (`picture.png`, owner's call, 2026-11-09),
+  drawn whole behind the field with no white edge, since the game merged any pieces into one still picture anyway; right of the field, x 2430–3360 is the road the enemies come along, where
+  they wait before a battle while the camera glides over to look at them (in battle it shows only on very wide screens).
+- **Characters** (`art/sprites/<character>/`, owner's call from 2026-11-06): frame animations. Each character comes
+  as a few short motions of hand-drawn frames, side view (`idle`, `walk`, `attack`, for an enemy `death`, and as it needs
+  `ability`, `transform`, `cook`, `weed_search`, `weed_found`, a wall's `damaged1`–`3`), brought in by `npm run art:sprites -- <folder>`, which cuts each
+  motion to the box its frames share and records where the feet stand. The game scales a character to its tier's
+  height (a long one is kept to 1.25 times that in length; a giant keeps its three lanes), puts its front where an
+  ordinary one's would be (a long body trails behind), adds the white cut edge and shadow to every frame, and plays
+  them: standing by is one picture the game makes breathe (2% taller and back about once a second, feet planted;
+  held still when motion is reduced), a walk loops at the walker's pace, an attack plays once in the sim's 0.52 s, a fall plays while
+  fading, ちいかぶ's transform grows it from where its small form stood. Rakko's car and boat are one picture each,
+  drawn the same way and held still. A character needs its frames before it can appear on the field (a test names any
+  that has none). Battle cards show a friend's standing
+  frame close up, each framed by hand (`src/art/spec/cards.ts`). Faces for job
+  notices and the gallery list are the owner's portraits (`art/portraits/`: every friend and enemy has one).
+- **Stickers** (`art/stickers/`): single pictures the game pops, spins, grows and fades (projectiles, hit
+  effects, weeds, terrain); plus faces (`art/portraits/`), logos (`art/ui/`) and the quest board's blank paper
+  and world pictures and the 「準備中」 stamp (`art/quests/`, brought in and scaled by `npm run art:quests -- <folder>`).
+
+**Delivering art.** Characters come in as frames (above). A battle world is one flat picture, brought in with `npm run art:import -- <picture.png> --as world2`. Paint a menu scene as one document with a layer per piece; export the layers
+(numbered back to front) and a composited `preview.png` into a folder, and run
+`npm run art:import -- <folder> --as <id>`. The tool matches each layer to its piece (by name, or by order when
+the counts agree), measures where it sits against the preview (layers may be cropped or full-canvas), finds the
+sides that run off the picture, and writes the pieces and a `layout.json` into `art/`. The game takes sizes and
+positions from the art; the spec keeps the behaviour (depths, taps, slots, motions). `ASSET_CHECKLIST.md` and
+設定 → アートキット list everything, with live previews; 設定 → アートガイド outlines every piece in place.
+
+**Menus as places, with a mobile-game front end (from v0.10).** The game starts in the lobby: the job counter with
+the 鎧さん behind it (the owner's art), and four big sticker buttons floating over it like a mobile game's lobby
+(あそぶ, 図鑑, お店, 設定; screen controls rather than scene slots, so they keep their place and size on every screen
+shape). あそぶ turns the camera from the counter to the quest board: kraft paper with one pinned notice paper per world
+(the owner's blank paper and world pictures; the game writes the number, the names and the buttons on it), side by
+side, then the 討伐ランキング paper. Tapping a quest zooms in: its paper on the left, a pinned sheet of its five levels on
+the right, written by hand like the gallery book. Tapping a level circles it with the pink pen and turns both papers
+over to the level's job: the job page (労働の鎧さん's note, who is coming, the ramen ticket) on the quest paper's back,
+the team page (the team to take, 出発) on the sheet's; 出発 starts the battle, which only glances at the enemies on the
+road first (§15.2). The gallery is the owner's open book on 古本屋's table, 古本屋 reading beside
+it (§12); the shop (ラーメン屋「郎」, in the owner's own art) zooms to whoever is tapped. Settings is not a place: 設定
+opens a pop-up over the lobby. Every screen has a back button that goes up one screen, the same way as the phone's
+back gesture, which closes an open pop-up first; every back button is the owner's 「← もどる」 tag picture (`art/ui/back.png`, the same in English).
+
+**Shipping.** Art stays as delivered (lossless PNG) in the repository; the production build converts it to WebP
+(alpha stays lossless, so the borders the game cuts from it are unchanged; the shop's 4.4 MB became 0.37 MB). The
+app installs light (the code and styles); pictures and sounds load when a screen needs them and are cached by the
+service worker, and after start-up the rest is fetched in the background for offline play.
+
+### 15.2 Screen list
+
+| Screen | Contents |
+|---|---|
+| Lobby | The first screen (there is no title screen): the reception counter with the 鎧さん; the owner's title 「ちいかわ 討伐ディフェンス」 at the top left (cut out with a white rim, the same picture in English) and, in the top-right corner, the money with a small 設定 (a gear, opening the settings pop-up) beside it; floating game buttons (the owner's pictures, name plates drawn in): 図鑑 (a picture book) and お店 (a pink bear-face pouch) on the left, and a big あそぶ (a quest paper and a さすまた on a pink circle) at the bottom right; the add-to-home-screen card |
+| Quest board | あそぶ turns the camera to it. One notice paper per world, side by side, marked up like the gallery book: number, the world's name on a label sticker, the place highlighted, its picture, 「この場所を守ろう」 and 「レベルをえらぶ」, the stars collected on a label sticker with a star sticker, and a red round 「討伐完了」 stamp pressed on the picture's corner once all its levels are done (Japanese in both languages, like the book's stamps); every paper that is not open yet (locked worlds, Worlds 5–6 until they are built, the ranking until World 6) carries the owner's red 「準備中」 stamp, and locked worlds also say what opens them. Then the 討伐ランキング paper: the owner's picture of Rakko, #1 of the ranking, with his car (art slot `art/quests/ranking.png`), with 「1. ラッコ · 測定不能」 on a label sticker and a red 「1位」 stamp; until that picture is drawn, Rakko's face as a cut-out sticker with the stamp and the line written under it. Locked until World 6 is cleared, then showing the best run. Swipe or use the arrows; below, a pin for each paper (red for the papers on screen; tap one to slide to its paper); back to the lobby |
+| Quest | The camera comes in on the chosen paper, and a sheet of the world's five levels is pinned beside it, written by hand in the gallery book's style: a highlighted heading; each level's number in ink (faint pencil while locked) with its stars below as stickers when earned and pencil outlines when not; the boss level as the boss's face sticker (a dark shape until beaten) with a red 「ボス」 stamp (Japanese in both languages, like the book's stamps); the pink pen circles the level to play next; at its foot the world's stars. Tapping a level turns the level sheet over, in perspective, to that level's job notice on its back (もどる turns it back to the levels; the quest paper stays in view on the left): the level and 「討伐の依頼」 highlighted, 労働の鎧さん's note for the job on ruled lines, 「出てくる討伐対象」 as face stickers (dark shapes named ？？？ until seen, the boss stamped 「ボス」), 「連れていくなかま」 as stickers with the pink pen circling who goes (n/N on a label; allies left at home faded; a set team, as in 1-1, is shown but not chosen), the ぶた入りラーメン券 as a sticker circled when used, and a big 「出発！」 plate. Tapping another level swaps the notice; もどる closes it, then goes back to the board |
+| Getting ready | The battle's first moments, before wave 1 (like PvZ's look at the street, in this game's paper style): the screen stays clear of cards and buttons while the camera rests on the field and glides right to the level's enemies waiting on the road, one of each kind (ones never met are dark shapes). When there is a choice (more cards than slots, or a ramen ticket), a paper tray opens over the field beside the column of cards, which comes in with it: tap cards to take them (the column shows the team; tapping it takes one out), the ramen ticket, 「もどる」 (back to the quest, as does the back gesture) and 「出発！」. Then the camera glides back as the cards come in from the left, Rakko's cars (his boat on a water lane) drive in one lane after another, 「よーい…」 shows for a moment and the battle starts with 「討伐開始！」. World 6 has no cars. With nothing to choose it is a short look. A tap on the way to the road goes back at once with the cars already parked, and a tap on the way back starts the battle as soon as it can. Reduced motion cuts instead of gliding and leaves out the cars' drive and the countdown |
+| Battle | §4 |
+| Result | 討伐報告: pay breakdown, new card reveal, gallery unlocks; or 討伐失敗 with retry |
+| Gallery | §12: the open book on 古本屋's table (the owner's art); bookmark tabs, the list on the left page, the chosen entry on the right, moving as in battle; back to the lobby |
+| Shop | The inside of ラーメン屋「郎」 as a paper diorama (§15.1), with three counters, each with its name tag in the scene: the ラーメンの鎧さん (ramen tickets; tag on his chest), シーサー's なかま屋 (friends who join the team; tag over her head) and the ポシェットの鎧さん (deck slots; tag on his shoulder). Tap a seller to zoom in; their goods open on a line-art card on the other side (cream, outlined like the characters, cut out with a white rim), the shop's name on a name plate in the seller's colour across its top, written like a price list in the gallery book's style: what the seller says on ruled lines, each item as a cut-out sticker (the owner's pictures in `art/shop/item_*.png`: the bear pochette with its 「+1」, the ramen and ぶた入りラーメン tickets kept wide as drawn, and each friend's face with a padlock; a friend without a shop picture shows their face sticker) with its name, what it does and its price run over with a yellow highlighter (in pencil when it is too dear or cannot be bought), upgrades bought as dot stickers (pencil dots for the rest), and a red 「売り切れ」 stamp once an upgrade is maxed (Japanese in both languages). Tapping an item circles its sticker with the pink pen while the game asks to buy it (the item's name on the question's plate) |
+| Settings | A pop-up over the lobby, with no screen or scene of its own, its groups in two columns: language, volumes, auto-collect, reduced motion, art guides, Art Kit (the pop-up opens again on the way back from it), export/import/reset, about. × or a tap outside closes it |
+| Art Kit | Every scene assembled with its pieces and slots, every character moving through its motions with its parts, stickers, faces, logos and sounds, real-or-placeholder status, ZIP export |
+| Endless mode | From the 討伐ランキング paper on the quest board, which shows the ranking (Rakko first with 「測定不能」, then the player's best): straight into the battle, getting ready as for a level with every enemy seen so far on the road; then endless waves |
+
+---
+
+## 16. Audio
+
+- No official music or voice. Placeholder BGM is a small step sequencer: title, map, one loop per world, boss. Win and lose are short synth stings.
+- SFX list in the asset checklist. Catchphrases appear as text balloons with a short "pop" sound.
+- Unlock audio context on the first pointer event; show a muted icon until then.
+
+---
+
+## 17. Architecture
+
+```
+src/
+  main.tsx              boot: fonts, save, language, router, audio unlock, service worker
+  game/sim/             pure, deterministic simulation (runs headless in tests and tools)
+    constants.ts rng.ts types.ts defs.ts waves.ts endless.ts sim.ts bot.ts
+  game/render/renderer.ts   Canvas 2D battlefield: the world scene, characters (frames), stickers, effects, art guides
+  game/controller.ts    loop (fixed 60 Hz step, 1×/2×), input, audio events, HUD signals
+  art/spec/             every picture the game needs: scenes (pieces, slots), characters (size, facing, moves), stickers
+  art/sprite.ts         characters drawn from frames (which frame, size, where the feet stand, the paper edge)
+  art/sticker.ts        each picture's white cut edge and shadow, cut once at the screen's resolution and kept
+  art/paper.ts pieces.ts   the sticker look (border, shadows), the panels' grain and stretched cut edges
+  art/layout.ts         layouts written by the importer, merged with the spec
+  art/placeholders/     procedural placeholder painter, cut into pieces (also runs in Node)
+  art/store.ts warm.ts  real files from /art when present, placeholders otherwise; background cache warm-up
+  app/scene/            the 3D scene camera, Diorama (slots, pan, focus), SceneScreen (scene + paper sheet)
+  audio/audio.ts        synth SFX, step-sequencer music, real-file override
+  app/                  Preact UI: App, router, progress rules, install prompt, screens, components, styles
+  save/save.ts          versioned save, migrations, export/import codes
+  i18n/                 i18n.ts, ja.json, en.json
+  data/                 units, enemies, worlds, levels/world1-4, gallery, shop
+tools/   balance.ts art-kit.ts checklist.ts import-art.ts (+ lib/layers.ts) gen-icons.ts levelgen.py
+tests/   sim, content (incl. bot plays every level), i18n, save, scenes, characters, sprites, import
+art/     real art and sound go here
+```
+
+- Update order per tick: card cooldowns → waves → weed sprouting → pickups → allies → enemies → projectiles → rescues → cleanup → win check. Events are drained after each step for the renderer, audio and gallery.
+- Rendering reads simulation state only.
+- `?debug` (always on in dev) exposes `window.__ctd`: unlock progress, add money or 草, skip time, win.
+
+---
+
+## 18. Scope and milestones
+
+### 18.1 v1 definition of done
+
+- Worlds 1–3, 30 levels, 8 cards (ちいかわ, ハチワレ, 鎧さん, うさぎ, モモンガ, 栗まんじゅう, シーサー, オデ), car rescue, 12 enemies including 3 bosses.
+- 草 economy, お金, pochette slot shop, gallery with sourced lore for everything in v1, endless mode (built and kept working, but it opens after World 6, so players reach it in v2).
+- JA + EN, PWA offline, save with export/import, deployed on GitHub Pages.
+
+### 18.2 Milestones `[TUNE]`
+
+| # | Milestone | Done when | Status |
+|---|---|---|---|
+| M0 | Skeleton | Vite + TS boots to a game on a phone, deployable to GitHub Pages | Done |
+| M1 | Core battle | Lanes, placement, attackers, basic enemy, collapse, base rule | Done |
+| M2 | Economy + cards | 草, sprouting, Chiikawa, card tray with costs and cooldowns, wave scripts from JSON | Done |
+| M3 | World 1 | All 10 levels, 7 cards, 5 enemies, boss, result screen, save, JA/EN | Done |
+| M4 | Meta | Map, gallery, shop, endless, PWA, export/import | Done |
+| M5 | Worlds 2–3 | Remaining v1 content, terrain, 3 bosses, balance pass | Done (bot-balanced) |
+| M6 | Polish | Placeholder audio, art pipeline, release setup; final art and sound come from you | Done except final art and sound, and QA on physical phones |
+| v2 | Worlds 4–6 | New data and art only | Worlds 4–6 built (placeholder battle art, puppets and music); endless mode opens after 6-5 |
+
+---
+
+## 19. Decision log
+
+| Date | Decision |
+|---|---|
+| 2026-11-04 | PvZ-style lane defense, Chiikawa theme, JA primary + EN, GitHub Pages, offline save, gallery, unlocks, 草 as in-level currency with ちいかわ as producer, duplicates allowed |
+| 2026-11-04 | Chiikawa Pocket counts as canon. The ninth icon "hitoha" is dropped |
+| 2026-11-04 | Allies are ranged throwers; attack methods need not be strict canon. Enemies are melee except フグ at double range |
+| 2026-11-04 | Everyone collapses and fades on defeat. 鎧さん is the wall |
+| 2026-11-04 | Speed is a rare ability: only 魔女 is fast. 虫六足 is tankier instead. 黒い流れ星 heals. フグ is held by walls |
+| 2026-11-04 | No allies move around the arena. Momonga stays put and covers three lanes |
+| 2026-11-04 | Arena is Claude's call: portrait, 5 × 8, enemies from the top, protected place at the bottom, front-facing art. The old `image/lawn.png` is not a reference |
+| 2026-11-04 | All current images are temporary; art is produced after the design settles |
+| 2026-11-04 | ちいかぶ is a boss: disguised small form, transforms into a larger true form before its first attack |
+| 2026-11-04 | Rakko's car is the per-lane rescue `[PROPOSAL accepted so far]` |
+| 2026-11-04 | World 2's protected place is the forest exit (森の出口) |
+| 2026-11-04 | The witch is named simply 魔女 in the gallery; her entry stays brief until her arc is verified |
+| 2026-11-04 | Exam grades above 5級 are game-only progression |
+| 2026-11-04 | Hachiware keeps the 3-tile さすまた jab (lore) rather than a thrown projectile |
+| 2026-11-04 | でかい鳥 is the only flier. Counter: every attack can hit it, モモンガ's acorns deal double damage, and killing it before it exits drops the carried ally back on its tile |
+| 2026-11-04 | Build: Canvas 2D + Preact instead of Phaser. The UI is DOM (crisp Japanese text, safe areas, scrolling lists) and the field is a small custom renderer, which keeps placeholder and real art on one code path |
+| 2026-11-04 | Balance from bot runs: Hachiware's jab is 30 per 1.3 s (the 3-tile reach needs a harder hit), speed tiers are 9 / 6 / 3 s per tile, ちいかわ makes 25 every 20 s, walls recharge in 20 s (鎧さん) and 30 s (オデ), every level opens with one enemy |
+| 2026-11-04 | The rescue car defeats ordinary enemies but deals 1500 to bosses, so a boss cannot be beaten by letting it walk in |
+| 2026-11-04 | All shop items ship in v1 (deck slots, さすまた and 討伐棒 tune-ups, ramen tickets) to give Worlds 2–3 a progression goal |
+| 2026-11-04 | Shop slimmed to two sellers (owner's call): the weapon shop and its さすまた / 討伐棒 tune-ups are gone, and older saves get the coins back. The ポシェットの鎧さん sells deck slots; the ラーメンの鎧さん and シーサー sell ramen tickets. Worlds 2–3 were retuned with an enemy toughness knob per world (0.88, 0.75) so the curve matches the old one |
+| 2026-11-04 | Scenes are sticker dioramas in real 3D with a dynamic camera: a slight resting angle, a swing toward whoever is tapped, idle sway and a lean toward the pointer or phone tilt. The game draws the white die-cut border, so artists deliver flat pieces with none |
+| 2026-11-04 | The whole game becomes stacked paper cut-outs (owner's call): menu scenes, battle worlds as layered scenes, characters as paper puppets moved by the game instead of frame-by-frame animation (382 frames became about 130 part pictures), effects and pickups as single stickers. Art is delivered as layered pictures plus a composited preview through `npm run art:import`; the build ships WebP and loads art per screen |
+| 2026-11-04 | The shop uses the owner's own art: one 1620 × 972 picture in five pieces, nothing beyond its edges. So the camera rests straight on (the scene matches the picture exactly), crops to fill the screen and never shows a cut edge; the close-up swing goes toward the goods side (it keeps the far wall covering the screen at the asked zoom); the sway and lean drift the viewpoint instead of turning the picture (about 2% crop instead of 6%) |
+| 2026-11-04 | Correction: 古本屋 and カニちゃん are the same character (カニちゃん is a fan nickname for the crab headband). The v2 healer card is 古本屋 |
+| 2026-11-04 | Enemy ids follow the existing art pipeline: `majyo`, `guchokipanogitaigata`. `death` frames are accepted as `collapse` |
+| 2026-11-04 | Weeding exam: decoy flowers from 15 s, grades at 22 / 36 / 50 / 64 / 78 weeds, hiding the page pauses it |
+| 2026-11-04 | Owner's call after playing v0.6: the field is landscape like PvZ. 5 lanes × 9 columns, enemies from the right, protected place on the left, side-view art (allies face right, enemies face left). Battles pause with a "turn your phone" overlay when held upright |
+| 2026-11-04 | Art direction: menus become paper-cutout dioramas instead of app-style lists (owner's call: the game looked like an app). The shop is the pilot, set in 郎 from the owner's sketch; the rest follow after review |
+| 2026-11-04 | The weeding exam mini-game is removed (owner's call: it only paid shop money). Its lore stays in the gallery. Saves migrate to version 2 and drop the exam records |
+| 2026-11-04 | The あそぶ tab is removed (owner's call: without the weeding exam it only led to endless mode). Endless mode stays: its entry is the 討伐ランキング sign on the map where World 1 meets World 2, and its briefing is Rakko at the ranking board with the ranking on the sheet. The rail is マップ / 図鑑 / お店 / 設定 |
+| 2026-11-04 | Menus are landscape too, so the phone stays sideways from the title onwards: a navigation rail on the left instead of a bottom tab bar, worlds side by side on the map, two-pane briefing and gallery (details beside the list), sellers side by side, settings in two columns, and centred pop-ups instead of bottom sheets |
+| 2026-11-04 | The top HUD has no bar: its pieces float over the scenery above the field (the PvZ 2 layout convention, not its look). The shovel stays at the top because the bottom-right corner is the bottom lane's entrance |
+| 2026-11-04 | Battle HUD ergonomics: the shovel moved to the top strip, cards shrink to fit up to 8 without scrolling, top buttons got 44 px tap areas, the wave bar is shorter |
+| 2026-11-04 | No tutorial tips or hint dialogues in battle (including the weed ring, the card pulse and the "Rakko's car!" banner); only wave and boss banners remain. The save keeps an unused `tips` list for compatibility |
+| 2026-11-04 | The field fills the screen: cards moved from a top bar to a left column, the HUD is a thin top strip, and the camera frames only the field and the parked cars, so the house and road show as slivers on phones |
+| 2026-11-05 | World 6 is おっきい討伐, the big hunt from the story (owner's call), replacing 討伐受付, a made-up place with no scene behind it. The player defends the landing spot; 6-10 is あのこ, driven off rather than killed; World 6 has no rescue car because Rakko is not on this hunt; でかつよ has no world for now (§19.1). The world table's columns now say left and right instead of the portrait-era bottom and top strips |
+| 2026-11-05 | Endless mode opens after World 6, not World 1 (owner's call), and stays locked until World 6 is built; 1-10 now unlocks only 2× speed. Saves migrate to version 4, which locks endless mode again unless 6-10 is cleared (the best run is kept). The 討伐ランキング sign moves to the right end of the map, past the last world, and the world name signs move 120 px left to make room. A content check rejects an endless unlock on any level but World 6's boss |
+| 2026-11-05 | A mobile-game front end (owner's call, with the owner's art): the game starts in the lobby, the job counter with the 鎧さん, with four big floating buttons (あそぶ, 図鑑, お店, 設定). あそぶ turns the camera to the quest board, where each world is a pinned quest paper (Worlds 4–6 「準備中」, then the 討伐ランキング paper), and a quest opens a sheet of its ten levels. The title screen, the map and the navigation rail are removed; back buttons go up one screen, the same way as the phone's back gesture. Quest pictures come in with `npm run art:quests` |
+| 2026-11-05 | Settings is a simple pop-up over the lobby instead of a screen (owner's call). The settings scene (Chiikawa at home: room, futon, Chiikawa, table) is removed from the art spec, the checklist and the art kit; the Art Kit returns to the lobby with the pop-up open |
+| 2026-11-05 | No grain over the art (owner's call: the scenes looked dusty). The full-screen paper grain on menu scenes is removed, because the owner's pictures carry their own paper texture and the two stacked; only the game-drawn panels, buttons and tags keep a light grain |
+| 2026-11-05 | The UI is drawn like the Chiikawa line art (owner's call: buttons and panels did not look Chiikawa): dark chocolate outlines and text on cream paper, pastel fills, flat sticker-thickness shadows, hand-drawn corners, the lobby buttons as stickers with a white die-cut ring. Palette taken from the owner's quest board mock-up |
+| 2026-11-05 | The UI font is Yusei Magic, a hand-lettered felt-tip style (owner's call after trying it). Compared live against Kiwi Maru (softer but plainer) and Hachi Maru Pop (too bubbly, hard to read small); Yusei Magic read most like Chiikawa's lettering and stayed legible in both languages. One weight, so no synthetic bold; Zen Maru Gothic stays as the fallback |
+| 2026-11-05 | The lobby buttons are game icons instead of app-style tiles (owner's call): a sticker picture per button (picture book, ポシェット, gear, quest paper with a さすまた) with a name plate, and a glowing round badge under あそぶ. The pictures are new art slots, `art/ui/icon_*.png`, square with no text; code-drawn placeholders until then |
+| 2026-11-05 | The battle's shovel, speed and pause buttons are game icons too (owner's call): sticker pictures in the 44 px tap areas, art slots `art/ui/icon_shovel`, `icon_speed`, `icon_pause`; on-states show as a glowing round badge (and a 「2×」 tag for speed) |
+| 2026-11-05 | The briefing screen is gone (owner's call): picking a level goes straight into the battle, where the camera first glides to the level's enemies waiting on the road and, when there is a choice, a team tray opens over the field (like PvZ, in this game's own look). The lobby is already 労働の鎧さん's job counter, so a second job-board screen repeated it, and the team pick is often empty (5 slots, 8 cards). Battle worlds widen to 3060 × 1500 for the road; the job notes moved to the level sheet; the briefing and ranking-board scenes were dropped (not drawn yet) |
+| 2026-11-05 | Every back button is the owner's 「← もどる」 tag picture (owner's call): the quest board and level sheet, the gallery (and its entries), the shop, the Art Kit and the team tray. It is shown as drawn, with a sticker's thickness under it, and stays もどる in English too, like the 「準備中」 stamp. Single pictures come in with `npm run art:picture` |
+| 2026-11-05 | The gallery is the owner's design: their table-and-wall picture and blank open book, 古本屋 reading on the left (the owner's 古本屋 picture, placed as in their mock-up), bookmark tabs over the book, the list on the left page and the chosen entry on the right. The entry's picture is its battle puppet, moving, with the move as its caption (「待機中」 at rest, as in the mock-up); the ひと tab is kept as a third bookmark. The book is a picture the game lays over the scene, so its text stays sharp and the pages scroll |
+| 2026-11-05 | The gallery book's contents redrawn in the game's paper style (owner's call: they did not look Chiikawa-like; the faces and the in-game model are cut-outs): face stickers with the white die-cut edge on the left page, the puppet standing on the right page as a cut-out (no frames to clip it), highlighter headings, a source stamp, ruled notes with label stickers, no scrollbars. The book now fills the room beside 古本屋 and may run off the bottom of the screen |
+| 2026-11-05 | The lobby buttons are the owner's own pictures, name plate drawn in (`art/ui/button_*.png`, each 600 tall in its own shape): the game no longer draws name plates and the four square lobby icon slots are gone; it still cuts the pictures out as stickers and floats them. あそぶ's round badge is gone and nothing glows behind it (owner's call: a glow looked out of place among the paper cut-outs; its picture has its own pink circle, and it stands out by its size and place). The plates stay Japanese in English, like もどる |
+| 2026-11-05 | The level sheet is drawn in the gallery book's style (owner's call: they liked the book and asked for the pink circle on level selection): handwritten numbers instead of round tags, star stickers and pencil stars, the boss as its face sticker (dark until beaten) with a red ボス stamp instead of a crown, and the pink pen loop on the next level instead of a pulse; a tapped level is circled before its battle starts (0.45 s). The book's highlighter, pen loop and star marks are now shared paper marks (`components/PaperMarks.tsx`, CSS `.hl`, `.pen-loop`, `.star-mark`); the pen loop always means "this one", never decoration. The shop and the quest papers are to follow |
+| 2026-11-05 | The quest papers are marked up in the gallery book's style too (owner's call, before the shop): the world's name and the star count on label stickers (with a star sticker), the place highlighted instead of underlined, a red round 「討伐完了」 stamp instead of the 「クリア！」 box, and on the ranking paper Rakko's face as a cut-out sticker with a 「1位」 stamp instead of a framed circle on a blue panel. The red stamp is a shared paper mark (CSS `.red-stamp`, sized by `--s`); the shop's own `.stamp` (its MAX mark) is still to be redrawn with the shop |
+| 2026-11-05 | The shop's seller notes are drawn as handwritten price lists in the gallery book's style (owner's call), finishing the paper screens: item stickers (new art slots `shop/item_slot`, `shop/item_ramen`, square, no text; code placeholders: the pochette and a ramen meal ticket), highlighted prices instead of kraft price tags, dot stickers for upgrades bought, a red 「売り切れ」 stamp instead of the 「最大」/「Max」 one, and the pink pen circling the item while the purchase is confirmed. A maxed pochette now says how many friends you can bring, and a full stack of ramen tickets says it is all you can carry |
+| 2026-11-05 | Yes/no questions (buying in the shop, restarting or leaving a battle) pop up on a torn paper note taped down in the middle of the screen, a little crooked, the question on a ruled line, instead of a white app-style card (owner's call). It lands with a small slap (bigger and more crooked as it comes); the buttons are the game's usual pill buttons |
+| 2026-11-05 | No torn paper (owner's call: torn edges and masking tape did not feel Chiikawa-like). Game-drawn panels are line-art cards modelled on the name plates in the owner's button art: a rounded cream card outlined in the characters' chocolate line with hand-drawn uneven corners, cut out with a white rim and a soft shadow (CSS `.ink-card`), its title on a pastel pill plate with a thick outline (`.ink-plate`, colour `--plate`). Used for the shop's price lists (pochette shop pink, ramen shop yellow) and the yes/no pop-up, whose plate names what it is about (the item to buy, 「やりなおす」, 「クエストへもどる」). The marks drawn on them (highlighter, pink pen loop, red stamps, star stickers) stay. The owner's own quest paper keeps its wavy edge |
+| 2026-11-05 | The last old paper labels go the same way (owner's call): the quest board's heading, the shop's heading and the sellers' name tags standing in the shop are name plates (`.ink-plate`) instead of grainy paper labels with a pin, each in the colour of what it names (the board in あそぶ's pink, the shop in お店's peach, each seller in their own colour); the add-to-home-screen card is a line-art card |
+| 2026-11-05 | Every pop-up panel is a line-art card too (owner's call): the shared panel (`.sheet`: settings, its save-code, reset and about panels, the battle's pause and result panels, the Art Kit's) is cream with the characters' chocolate outline, hand-drawn corners, a white rim and a soft shadow, and a panel with a `title` carries it on a plate across its top edge (Settings in 設定's light blue with its gear, the reset panel in soft red, the pause panel 「一時停止」 in soft yellow). The close button is a small round outlined sticker sitting on the panel's top edge |
+| 2026-11-05 | No scrollbars anywhere (owner's call): they are the browser's, not the game's, and on Windows they showed as grey bars inside the panels. Everything still scrolls by touch, wheel, drag and keys; vertical scroll areas (pop-up panels, the Art Kit page; the gallery pages already did) fade out at their foot to show there is more. Cards' close buttons sit on their top-right corner, with the × centred |
+| 2026-11-05 | The 討伐ランキング paper gets its own picture slot, `quests/ranking` (1120 × 620, the world pictures' cloud frame), for the owner to draw: Rakko, #1 of the ranking, with his car (both from the sourced lore notes), optionally an evening sky with monster shadows on the horizon for the endless feel, no text. `npm run art:quests` takes it as 07-… or a file named …ranking…; until it exists the paper keeps Rakko's face sticker |
+| 2026-11-05 | The lobby's logo is the owner's title picture, 「ちいかわ 討伐ディフェンス」 (`art/ui/logo_ja.png`, 775 × 360), cut out with a white rim; it shows in English too unless an English logo (`ui/logo_en`, optional) is drawn. Every stamp in the game is Japanese only, in both languages (owner's call): 準備中, 討伐完了, 1位, ボス, 売り切れ, 原作確認 / 資料確認 |
+| 2026-11-05 | The owner's hand stamp (判子 seen from above, `art/ui/hand_stamp.png`) presses a red stamp the moment it is earned, once each (owner's call on my advice: never on every visit): 「討伐完了」 the first time a cleared world's paper is well in view on the quest board, 「売り切れ」 when the pochette is bought out, 「原作確認」/「資料確認」 the first time a filled-in gallery entry is opened. It drops in, squashes and lifts away in 0.72 s with a soft thud (`sfx_stamp`), leaving the ink; it never blocks a tap, waits for the screen to stop moving, and is skipped with reduced motion. The save remembers each pressed stamp (`stamped`). 「1位」, 「ボス」 and 「準備中」 are printed labels and never pressed |
+| 2026-11-05 | 設定 is small and sits in the lobby's top-right corner, with the money pill just left of it (owner's call): it is opened rarely, and at full size it competed with あそぶ; now あそぶ has the right side to itself |
+| 2026-11-05 | Getting ready moves from the field to a job notice on the quest screen (owner's call, on my advice): tapping a level pins its notice beside the level sheet, with who is coming and the team picking (so the enemies are still in view while choosing, as in PvZ), the ramen ticket and 出発. The battle then only glances at the enemies on the road (about 2 s, tap to skip) and starts, keeping the battle screen free of panels; the ticket is used and the team remembered when the battle really starts. Leaving a battle returns to its notice; 次へ opens the next level's notice; Restart and retry reuse the team (without another ramen ticket). Endless mode keeps picking on the field for now. 労働の鎧さん's note moved from the level sheet's foot to the notice |
+| 2026-11-05 | Opening a job notice is a camera move, not a swap (owner's call): the papers stand in slots across the board; tapping a level pans right (0.6 s), sliding both papers left (the quest paper off the board, the board behind by 4% for depth), and the notice is posted in the free slot as the pan ends. Swapping notices skips the pan; closing lifts the notice off as the camera pans back. Reduced motion jumps straight there |
+| 2026-11-05 | Taking a job is stamped (owner's call): 出発 on a job notice has the hand stamp press a red 「受注」 (what Japanese quest games call taking a quest) on the notice's top-right corner, every time, then the battle follows at 0.62 s; the battle's pictures start loading meanwhile, a tap goes at once, reduced motion goes straight in. Restart and retry skip it, and a notice you come back to is clean again |
+| 2026-11-05 | The quest board, a quest up close and a level's notice are one scene the camera moves through (owner's call: the screens did not feel connected). Tapping a quest paper zooms the camera in while that very paper flies from its place on the board to the left of the view, and the level sheet is pressed on beside it as it lands; the rest of the board fades back. Going back retraces it: the sheet lifts off, the paper flies back onto the board exactly where it was pinned, the camera zooms out. Level → notice and back keep the pan from before. One screen for both routes (`QuestScene`), so nothing flashes between them |
+| 2026-11-05 | The job notice is the back of the level sheet (owner's idea): tapping a level turns the sheet over in perspective (0.62 s, lifted a little while it turns) to that level's notice, and もどる turns it back to the levels. This replaces the third paper and the camera pan, so the quest paper always stays in view; the cost is that picking another level means turning back first. 出発's 「受注」 is pressed on the back's corner. Coming back from a battle, the sheet is already turned over |
+| 2026-11-05 | The hand stamp moves in beats you can follow (owner's call: at 0.72 s it was too quick to see what happened). It slides in from past the right edge of the screen, held up above the paper, and stops over the spot (0.4 s). It lifts a touch to aim, then presses down: the ink lands and `sfx_stamp` sounds at 0.62 s. It holds a moment, then lifts away up and to the right, fading (1.15 s in all). After 出発 the battle follows at 0.85 s, as the hand lifts away. If the paper goes before the hand comes down (a tap skips 「受注」, a gallery page is turned), the hand goes with it, silently. An earned stamp is only remembered once its ink is on, so it is pressed next time instead |
+| 2026-11-05 | Shisa stands higher in the shop on wide phones (owner's call). A wide phone crops the bottom of the shop picture, so she was cut off at the mouth. A scene piece can now `rise`: where a screen crops the bottom of the picture, the piece is raised by that share of the crop. Shisa rises by 0.3 of it, about 70 of the picture's 972 px on an 844 × 390 phone, enough for her whole face. It never raises her far enough to show the cut edge at the bottom of her piece, and screens that fit the whole height leave her where she is drawn. The 「ラーメン屋 郎」 tag over her head rises with her, onto the front of the bowl shelf, so it never sits on her ears |
+| 2026-11-05 | もどる always steps back one level (owner's call). It used to leave the shop even with a seller open, while on the quest screen it steps back one step at a time. An open seller is now a step of its own (route `shop` with `spot`), like a level's notice. もどる, the system back gesture, the goods card's ×, tapping the background or Escape close the seller first, and the next もどる leaves the shop. Tapping another seller swaps them without adding a step |
+| 2026-11-05 | Name plates drawn by hand, and the quest board's scroll bar swapped for pins (owner's call: neither looked like the owner's art). Beside the owner's もどる tag the plates looked machine-made, an even CSS line round a perfect pill, so every plate (the board's and the shop's names, the sellers' tags, 「出発！」, panel and pop-up titles) is now drawn behind its words: an outline that wobbles a little and swells and thins, a touch heavier along the bottom, faint paper grain, and the white cut edge with its shadow (`PlatePaper`; the same words always get the same plate). It stands in for a blank plate the owner may draw (the もどる tag without words), which would be drawn there instead. The board's plate says only 「クエスト」: its subtitle repeated the title, and up close repeated what the paper says. The green bar under the papers read as a progress bar, so it is now a row of pins, one per paper: red like the pin on 「あそぶ」 for the papers on screen, small and plain for the rest; tapping one slides its paper into view |
+| 2026-11-05 | No 「非公式ファンゲーム」 line along the foot of the lobby (owner's call: the game will never be sold or monetised). The about panel in Settings still credits ナガノ and says the game is unofficial and non-commercial, as does the README |
+| 2026-11-05 | シーサー runs her own counter in the shop, the なかま屋 (「Friend Shop」), where friends join the team (owner's call). She is its first friend and is no longer a level reward (1-7 used to bring her): she joins for 1000 お金, about what World 1 pays by 1-5, a first thing to save for before the first pochette. Her goods show her face sticker and what she does in battle, the question asks whether she should join (「シーサー を 1,000 お金でなかまにしますか？」), and once she has, the hand presses a red 「なかま入り」 stamp on her line. The ramen tag moves from over her head onto the ramen knight's chest, and her own tag takes its place over her head (rising with her on wide phones). 1-8's job note now says she is at the shop. Saves that already have her keep her. The balance bot never took her (its decks are full before her), so no level changes |
+| 2026-11-05 | ポシェットの鎧さん is the なかま屋's second friend (owner's call), for 2000 お金, a goal for Worlds 2–3 once the pochettes are bought (he was planned for 3-5 as a v2 card). A wall like 鎧さん (150 草, 4000 HP, 20 s to recharge) that punches back: 40 every 2 s at whatever stands in its own tile, which is whatever bites it; a spitter a tile away is out of reach. The punch is anchored in the story: he put on the knuckle duster the gang gave him and fought a big snake alone to rescue them (manga, 20 January 2025; added to the gallery's sources and his lore). His card text: 「壁。ナックルダスターで、かみついてきた相手をなぐり返す。」 He moves from the gallery's people to its friends. A friend met at the shop who has not joined yet (him, シーサー) shows as a dark shape with their name and 「なかまになるとくわしく分かる」, like an enemy only sighted. In battle he keeps his dents and cracks while punching. His look is the code placeholder (silver armour, the bear pochette) until the owner draws him; the knuckle duster is drawn on the near arm. The balance bot never owns shop friends, so no level changes |
+| 2026-11-05 | The pochette upgrade is three separate goods (owner's call): ちょっと大きいポシェット, 大きいポシェット and とても大きいポシェット, each a size bigger and one more friend (6, 7, 8), for 750, 1500 and 3000. They are bought in order: a later one shows its price in pencil with 「「ちょっと大きいポシェット」のあとで買えます」, and tapping it says so. They share the one pochette picture, drawn smaller for the smaller ones, and each gets its own 「売り切れ」 stamp. Saves keep their count (save v5); pochettes bought before the split count as already stamped, so the hand does not press them all again |
+| 2026-11-05 | The three pochettes share one name (ポシェット拡張), one picture and one size (owner's call); only their line (6, 7 or 8 friends) and price differ, and a later one says 「ひとつ上のを買うと買えます」. The ramen shop follows suit (owner's call, after I suggested keeping a one-use ticket instead): the one-use +50 ramen ticket became two lasting ラーメン券, +25 草 at the start of every job each (+50 with both; 600 and 1200, in order, one name and picture). Next to them is a new one-use ticket, the ぶた入りラーメン券 (150, up to 9): used from the job notice, every friend is ready from the start instead of waiting out their opening cooldown. Save v6 pays back any one-use ramen tickets still held (150 each). The balance bot plays without shop goods, so levels are tuned for a player without them; the lasting +50 makes every job a little easier |
+| 2026-11-05 | The shop's goods are the owner's pictures (`npm run art:picture`, from `image/items`): ポシェット拡張 (the pink bear pochette with a 「+1」), ラーメン券 and ぶた入りラーメン券 (wide tickets with their names written on), and the なかま屋's friends as their faces with a padlock (new slots `shop/item_shisa`, `shop/item_yoroi_pochette`). A sticker now fits its picture into its spot as drawn instead of stretching it, so the tickets keep their shape in the square spots. The ぶた入りラーメン券's spot on the job notice is a little bigger and reaches into the lines around it, so the notice keeps its height |
+| 2026-11-05 | Writing on paper is easier to read (owner's call: the shop's goods card was hard to read). The paper cards and panels (the shop's goods, yes/no pop-ups, Settings and the battle's panels, the team tray) show their grain at half strength, under a veil of the paper's own colour. Small writing is darker: what a good does, what a seller says and a setting's note in a new deeper brown (`--ink-soft`, about 9:1 on the paper), and small notes (who is selling, tickets held, 「ひとつ上のを買うと買えます」, the job notice's signature and notes, prices you cannot pay yet) in the mid brown instead of the palest one (about 6:1 instead of under 3:1). On phones a good's line is 13 px and its notes 12 px, a setting's note 13 px. Japanese on paper breaks between phrases instead of mid-word (Chrome and Android; other browsers keep their usual breaks), and a good's lines are evened out. The hand-lettered font stays |
+| 2026-11-05 | Dev mode for testing (owner's call): with `?dev` in the address the game plays from a save of its own (`chiikawa-td.save.dev`), and on every start everything is unlocked in it: every job cleared with three stars, every friend (the なかま屋's too), 2× speed and endless mode, every gallery entry, and at least 99,999 お金. The shop's goods are left to buy, so buying can be tried. The player's own save is never touched; without `?dev` it is back. The lobby says 「開発モード」 along its foot, and the console helpers (`window.__ctd`) are on. Works on the deployed site too |
+| 2026-11-05 | Every 「準備中」 stamp on the quest board lands at the same angle (owner's call): as the owner drew it, already a little crooked. Each paper used to turn it a few degrees more, a different way per paper |
+| 2026-11-05 | The faces on a job notice open a details card (owner's call, on my suggestion). Tapping an enemy's face opens it. A friend's face is held for about half a second instead, because tapping it still picks or drops them; a right click or the menu key works too, and on a set team (1-1) a tap opens it. The card is a small yes/no-style pop-up: the name on its plate, the face sticker (a boss with its 「ボス」 stamp), what it does in this game on ruled lines, and its numbers as the same chips the gallery book shows. What is known follows the gallery: an enemy never met stays 「？？？」 as a dark shape with 「まだ会っていない」, and one met but not yet defeated shows its face and name with 「討伐するとくわしく分かる」. There is no link to the gallery. It closes with ×, a tap outside it, Escape or the system back gesture; back closes only the card, leaving the notice up, so going back is still one step at a time |
+| 2026-11-05 | The system back gesture closes the pop-up on top first (owner's call): a yes/no question (back answers no: nothing is bought, the battle stays paused), Settings and the panels opened from it (export, import, delete, about), and the details card. Before, back left the screen under them, and a question stayed up over the next screen. Settings is a step of its own over the lobby (route `lobby` with `settings`), because the lobby is the first page in the game's history and there is nothing to step back to; that also brings Settings back when leaving the Art Kit with the back gesture, not only with its もどる. Questions and panels sit over a screen with a step below, so back closes them and keeps the screen (`closeOnBack` in router.ts) |
+| 2026-11-05 | Bigger faces on the job notice (owner's call: the faces, friends most of all, were too small). The faces take whatever room the notice has left, in two bands: the enemies on one line, and the friends in rows of up to five with the bigger share, so a friend's face comes out a fifth or so bigger than an enemy's. Each band sizes its faces to fit (CSS container units), up to 13% of the paper's height for a friend and 10.5% for an enemy. On a 390 px tall phone, friends grow from 27 px to 35-41 px and enemies to 27-33 px; on a 768 px tall screen, from 51 px to about 76 and 57-63. To make room: the ramen ticket sits beside 出発 instead of on a row of its own (its line says 「のこり n 枚」; what it does is in its label, for screen readers and as a hover tip); the enemies' names under their faces are gone (a tap shows the name, on the details card); many enemies stand closer, overlapping a little like stickers, by at most 30%; 労働の鎧さん signs at the end of the note's last line when it fits; headings and gaps are a little tighter. This also fixes a notice that ran off its paper on phones, by up to 69 px with tickets held (出発 below the screen on 3-9). The tightest notice, 1-4 with tickets (its note runs to three lines), still fits, with friends at 28 px |
+| 2026-11-06 | The job is two pages (owner's call, on my suggestion: the faces were still small on phones, and the owner was happy to rearrange the screen). Tapping a level turns both papers over, the quest paper a moment after the level sheet and the other way, like a notice opening out. The quest paper's back is the job page: the level, 労働の鎧さん's note, who is coming (faces over their names again, on up to two lines; tap for the details card) and the ramen ticket with its full explanation, at the foot, level with 出発 across the spread. The sheet's back is the team page: the friends in a grid as square as fits (3×3 for nine, a pen loop round each one going, the cost under each), then 出発. 「受注」 is stamped on the job page. Each page's faces fill the room left on it, up to a cap. On a 390 px tall phone, friends are 51-56 px (were 27 before this round, 35-41 after the first one) whether or not tickets are held, and enemies 43-50 px; on a 768 px tall screen, 92 and 80. This gives up the reason the notice was the sheet's back (the quest paper always in view): the world's picture is hidden while the job is open, and one もどる turns both back |
+| 2026-11-06 | The v2 roster is built (owner's call: keep six worlds and fill them from the GDD's sourced v2 list rather than invent "special" variants or cut worlds). Friends: パジャマパーティーズ (sing to speed up their lane), 古本屋 (heals the four friends beside it), and two one-use cards, 流れ星 and たい焼き. Enemies: 人魚 (in threes; canon calls them just 人魚), 山姥, でかい鳥 (the flier), and the bosses セイレーン, あのこ and でかつよ. All play by the rules above, with placeholder art until the owner draws them. Only two reach the current game: でかい鳥 in 3-6 (three of them, with 3-6's note saying so) and パジャマパーティーズ joining at 3-8. The rest wait for Worlds 4–6; dev mode has them all. The gallery now shows a page only once its subject can be met in the game (or already has been), so the World 4–6 pages turn up by themselves as those worlds arrive. Placing 山姥 and でかつよ in World 4 (with でかつよ as its boss) is a proposal to confirm when World 4 is built. A sourcing pass for the ten corrected five of this document's anchors: パジャマパーティーズ wear green, pink, pale purple and white (no red); the wish stars did not grant Hachiware's camera (they granted Shisa a wish); 山姥 freed the trio from traps (nothing shows she set them); it was セイレーン, not the mermaids, that carried off islanders; でかつよ is one character and not shown as a villain |
+| 2026-11-06 | World 4, 夜, is built (owner's call, confirming the proposal): 山姥 comes in at 4-4, ゾウ comes back as a mid-level threat from 4-6, and でかつよ is the boss at 4-10 instead of ゾウ, which already closes in at 3-7. でかつよ collapses like the other bosses; only あのこ is driven off. Ten levels on the night rule: nothing sprouts, so ちいかわ makes every 草, and each night job starts with 250 草 instead of 50 to pay for it. 虫ツノ is a regular, 黒い流れ星 comes in every level, and the basics are bugs. 4-5 brings the one-use たい焼き, the world's only card (流れ星, planned for 4-2, became 星, which joins at シーサー's なかま屋); 4-10 pays 400 on its first clear, like 3-10. Enemy toughness 0.7 (World 3: 0.75), tuned with the bot: the good bot wins every World 4 level on two or three seeds of three. Clearing 3-10 opens the world, so its quest paper loses the 「準備中」 stamp, and the pages of 山姥, でかつよ and たい焼き turn up in the gallery as they become reachable. 労働の鎧さん writes a note for each job, and the loss panel's tip for a night job says to spend the start's 草 on ちいかわ. The quest picture is the owner's (the white dome home at night); the battle picture (starry sky, blue bushes with the neighbours' domes, the grass, the dark path, ちいかわの家 as a white dome with a lit window, the front grass) and the music loop `bgm_world4` are placeholders modelled on it |
+| 2026-11-06 | 黒い流れ星 stops for a moment to heal (owner's call): each heal (every 3 s) it stops for 0.6 s, the length of its glow, then drifts on, like the singers who stop to sing. The stop counts toward the next heal, so it heals as often as before; it only arrives a little later. Its ability line says 「ときどき止まって」 |
+| 2026-11-06 | 山姥 has a spell (owner's call, from her story: she began chanting a spell she never finished): every 9 s she stops for 1 s and chants at the nearest friend ahead in her lane within 2 tiles, who cannot attack or make 草 for 4 s (the song's hold, drawn as a purple tint, with a burst over her and sparkles round the friend). A wall in front of the attackers takes the spell harmlessly, which is the counter. Her weight in endless mode went from 4.5 to 5. Only 4-9 needed easing to keep both bots on 3/3 (its second big wave lost a 6-legged bug and its final ゾウ is at 80% HP). Her ability and lore lines say so; the lore marks the spell as how she plays in this game |
+| 2026-11-06 | The campaign was retuned for people rather than the bot (owner: the later worlds were too hard, the waves too quick, too few regular enemies between the tough ones; they could afford only a second attacker before the tough ones came constantly). Measured first: wave gaps were 22–25 s in every world, the first L/XL enemy came at 46–68 s from World 2 on, when a player has about 200–300 草. Now `pace()` in levelgen reshapes every script: the waves' times are stretched per world (World 1 ×1, 2 ×1.1, 3 ×1.15, 4–6 ×1.25); no big enemy before 90 s (an earlier one moves to the first wave at 90 s or later, a basic in its place); big enemies never come in two waves running unless the second is the final or boss wave (the second wave's big ones move one wave on, or are let go before a final, basics in their place). The toughness knobs came down (World 2 0.8, 3 0.68, 4 and 5 0.62, 6 0.45), and nine finals were trimmed by a big enemy each (1-9, 2-6, 3-5, 3-8, 3-9, 4-7, 5-6, 5-7, 5-8), with 3-8's early horned bug moved later (it was spending lane 1's car before the zou came) and its zou at 80% HP. The bar is now stricter and closer to a person: the good bot wins every job on all three seeds and the casual bot (3.5 s taps, a shallower build) on two of three, and the tests enforce it. World 1 is unchanged |
+| 2026-11-06 | The hand stamp follows its stamp (owner: it looked broken when screens changed or the UI moved). It used to be placed once, where the stamp was when the press began, and drawn over everything, so a scroll, a page turn or the camera's glide left it pressing empty paper, and after a screen change it went on lifting away over the next screen. Now it follows the stamp every frame, hides while the stamp is scrolled out of its box, and goes the moment the stamp leaves the screen (so setting off from a job no longer carries the hand into the battle) |
+| 2026-11-06 | Enemies' raw numbers are hidden (owner's call): no stat pills for enemies in the gallery or on the job notice's details card; their ability line still says what they do. Friends keep their pills, and the gallery shows a friend's in-game ability and pills before its story (おはなし) |
+| 2026-11-06 | The gallery no longer shows sources or any links (owner's call): the 出典 section and its hyperlinks are gone from every entry, and the source list is out of gallery.json, so the shipped game holds no external links at all. The list moved to Appendix A.1, so each entry's lore stays traceable. The red 原作確認 / 資料確認 stamp stays |
+| 2026-11-06 | Gallery tab switches no longer lag (owner: still laggy, worst on the bookmarks). Two causes. The bookmark tabs sat inside the book's cut-out layer, which is nine stacked CSS drop-shadow filters over the whole book, so the open tab's 0.18 s rise re-ran all nine every frame; the tabs are now a layer behind the book with their own white edge as an SVG stroke, and the filtered layer holds only the still sheet. And the puppet sticker store kept 24 characters while the friends and foes tabs have 33, so every switch evicted puppets that were then cut again (the open one on the spot, the rest in a storm of idle work); it now keeps 36, at a density of at most 1.5 (about 46 MB of canvases at most, versus the old cap's 63), and the other tabs' open puppets are warmed too. After warming, a switch makes no canvases and takes 2–16 ms of script |
+| 2026-11-06 | A big team's faces no longer shrink below about an enemy's on the job page (owner's call, scrolling allowed): the team page's faces have a floor (15% of the paper's height, up to 76 px, never wider than a column), and past what fits, the friends' band scrolls while 出発 stays put. With all 15 friends, faces are 80 px against the enemies' 78 on a 620 px tall screen (were about 50), and 50 against 43 on a 375 px phone |
+| 2026-11-06 | 黒い流れ星 is called 黒い星 / Black Star in the game (owner's call): its name, the job notes and the lore line's subject. The arc keeps its own title, 「黒い流れ星」編, where the lore and the source cite it; its id stays `kuroi_nagareboshi` |
+| 2026-11-06 | セイレーン is fast (owner's call: she swims faster than a mermaid), 3 s per tile instead of 9. Ours, not from the story |
+| 2026-11-06 | Friends can go under enemies again (owner's call, replacing the earlier no-placing rule): what matters is the enemy's front. In front of it, or on the tile it stands on, a friend and the enemy fight each other; behind its front (under a long body, でかつよ's for one), neither touches the other. Shots from a friend now hit an enemy standing on the shooter's own tile even when it is past the muzzle (a shot's first step reaches back to the tile's far edge: `back`); before, such an enemy could eat a shooter that could not hit it |
+| 2026-11-06 | Bosses fall slower still (owner's call): a boss's fall and fade take twice as long as its size alone gives (`BOSS_FALL` in game/sim/tempo.ts): ゾウ, セイレーン and ちいかぶ's true form fall over 1.7 s and fade over 2.4 s, でかつよ and あのこ over 2.1 s and 3 s. A job's last boss used to freeze on the first frame of its fall, because the sim stops the moment the job is won: now the drawing's clock runs on after a win (`afterMs`), so falls and effects play out, and the result waits until the last one still falling has gone (at least 1.7 s as before, at most 4.5 s) |
+| 2026-11-06 | Moves take longer, and bigger ones longer still (owner's call: the frames ran too quick, attacks could not be seen, giants should move slowest and hit slow and heavy). Every move has a tempo by size (`game/sim/tempo.ts`): S 1, M 1.15, L 1.3, XL 1.5 (ちいかぶ's true form too), giants 1.9. A small one's frames: standing 0.26 s, walking 0.19/0.15/0.11 s by speed, a special move 0.17 s, each times its tempo. An enemy's swing lasts 0.64 s times its tempo, the blow landing halfway (the sim times it: `swingOf`), where it used to land 0.22 s into a 0.52 s swing; enemies still attack as often as before (a longer wind-up counts toward the next swing). Giants swing for 1.6 s, the blow landing 0.88 s in, every 2.44 s instead of 1.22 s, each blow twice as heavy (でかつよ 600, あのこ 400), so they hurt as fast as before. A fall plays over 0.56 s times the tempo and the fade lasts 0.8 s times the tempo (a giant lies fading for 1.5 s); the fade is slow at first, so the fall can be seen. Balance not rechecked (on hold) |
+| 2026-11-06 | あのこ's frames are in (owner's art): idle (sitting), walk (on all fours), an 8-frame claw swipe on a canvas grown toward the front, and a fall that closes its eyes. Every enemy is now drawn from the owner's frames. 虫（ツノ）'s redrawn idle frames came in at the same time. New or redrawn frames go into `image/sprite/<name>/` and come in with `npm run art:sprites -- image/sprite --only <name>`; frames copied straight into `art/sprites` keep their old names and are not found |
+| 2026-11-06 | Enemies meet friends face to face, and nobody stands inside an enemy (owner's report: friends planted inside でかつよ's body were ignored by it while the first one could hit it, and every enemy overlapped the friend it was attacking, でかつよ half of オデ). An enemy drawn from frames now has its front 8 px ahead of the point it stands on and its body behind (it stops 68 px short of the friend's middle; an ordinary friend's front is about 60 px from it), so it touches an ordinary friend and leans a little into a wide wall; drawing only. A friend put down on the tile an enemy's front is in now stops it there (`Sim.aheadIn`); tiles further back under an enemy's body cannot take a friend (the renderer's `underEnemy`, used for the highlights and the tap; one-use cards are fine). The bot puts only walls onto a tile an enemy has come into. Two close jobs were eased a little to keep the bots' bar: 2-5's big wave has one goblin fewer, 5-2's final wave one bug more and one mermaid trio fewer. From here on balance waits (owner's call): characters and enemies will change a lot first, and one balance pass comes at the end |
+| 2026-11-06 | セイレーン sings again, but only as she swims (owner's call, clarifying the earlier correction: she sings when no friend is near, and knocks as her attack in front of one). While no friend stands within 2 tiles of her (her lane or a lane beside it) she sings as she swims, on her singing frames; near one she swims quietly; in front of one she knocks (250 every 1 s). The song does nothing to anyone, so balance is unchanged. Her ability words say so; her story's words are unchanged |
+| 2026-11-06 | Battle characters are frame animations, not paper puppets (owner's call: the owner drew the frames; friends will follow). The owner's frames for 17 enemies (all but あのこ, not finished yet) and 星 came in through `npm run art:sprites` from `image/sprite`: the game draws each motion's frames with the white cut edge, scaled to its tier's height. Rules of ours: a long character (ちゅーしです, the giant bird, グーチョキパーの擬態型) is kept to 1.25 times its tier's height in length and stands lower instead, and its drawing moves back so its front reaches a friend no further ahead than an ordinary one's (でかつよ meets the wall face first, its body trailing down the road); its shadow lies under its body. 黒い星 heals with its ♪ frames, 山姥 chants with her own, the bird flaps on after its grab, ちいかぶ grows from its small form's size and place. セイレーン's eight ability frames are not used (she does not sing). Anything without frames stays its puppet |
+| 2026-11-06 | A testing ground for dev mode, テスト場 (owner's call, on my suggestion: playing through the jobs to try something was impractical). With `?dev`, a テスト場 button sits beside the lobby's dev note; it is never shown without `?dev`. It is a battle with no script: all five lanes of a world's field, every friend in the tray (all but 星), 1000 草, nobody waiting on the road, and nothing won, lost or saved (what is met or beaten there is not noted in the gallery; an enemy that gets through with no car to stop it just leaves). A panel down the right of the field (the camera keeps the field clear of it; it folds away to a tab) has: the field (any world's, with its water lane and enemy toughness; Rakko's cars on or off; tap a tile to turn it none → stump → bush → none); rules switched while it runs (free cards that are ready again at once, friends or enemies who cannot be hurt but still take the blow, enemies on the field held still; +1000 草); enemies on demand (any enemy and count, one lane, a random one or all, down the road or straight onto a column; or any job's wave, replayed); time (hold, step one frame or 0.5 s, ×0.5 to ×4); clean-up (defeat every enemy, defeat every friend: each falls as in battle so its death can be watched, since 2026-11-06 at the owner's request; heal everyone, park the cars again); a tap-to-inspect readout (name, HP, what it is doing, where); and the art guide. Its pause menu starts again on an empty field or goes back to the lobby. Rules carry over when the world or the cars change |
+| 2026-11-06 | The soft spot of colour on a gallery page is drawn only under a puppet, as ground to stand on; a face alone (the people, たい焼き, 星, a page not yet unlocked) has none (owner's call: on the people's pages it read as a blue glow) |
+| 2026-11-06 | Names under the gallery's faces take two lines at most (owner's call: some took four): a short name where the full one is long (`<card|enemy|npc>.<id>.short`, used by `shortNameOf` in the gallery and under the faces on a job notice: "RPS Mimic", 「グーチョキ/パー」, "2-Leg Bug"…; the page's title keeps the full name), never broken inside a word, Japanese names only at a break point that does not show (U+200B: ポシェットの/鎧さん), and a name never wider than its column: Gallery's PinName measures it in the game's font and the CSS sets the full size, or a little less if its line would not fit |
+| 2026-11-06 | The gallery's words were rewritten in a relaxed, Chiikawa-ish voice (owner's call: they were too detailed and serious): every story and ability line, in both languages (§2.3). 古本屋 moved from the people to the friends (it has been a card since 5-1), just before the islanders, and ヒトハ now comes before フタバ, the order they are always named in. The people page keeps 労働の鎧さん and ラーメンの鎧さん |
+| 2026-11-06 | The gallery book's order (owner's call; the order of data/gallery.json): friends start with the main cast, ラッコ among them (ちいかわ, ハチワレ, うさぎ, モモンガ, 栗まんじゅう, ラッコ, シーサー), then the two 鎧さん side by side, then the rest as they join, then たい焼き and 星. Enemies come in families (the three bugs, the two chimeras 中止で〜す and キメラ, the two mimics 擬態型 and ちいかぶ, 人魚 with セイレーン), each family where it first shows up in the campaign |
+| 2026-11-06 | ラッコ joins much earlier (owner's call: joining at 4-10 felt wrong for someone who drives the rescue car from 1-1): he is now 1-9's reward, in time for the horned bug at 1-10, which is his story moment (he beat the one Chiikawa could not). 1-10's job note says his blows go through its armour. The test bot still does not use him |
+| 2026-11-06 | ラッコ joins as a friend (owner's call: a strong front-line melee fighter), at first the reward for beating でかつよ at 4-10: 300 草, 2000 HP, 70 a blow every second at his own tile and the one ahead, straight through armour (from the story: he beat the horned bug Chiikawa could not). He stays home on jobs without his rescue car (World 6, the big hunt he is not on), greyed on the team page with 「この討伐には来ていない」 (`rescuer`, `homeReason`). The test bot does not use him, so no level's balance depends on him. His puppet is a stand-in from the owner's car and boat pictures; his gallery page stays known from the first time his car comes |
+| 2026-11-06 | Every enemy is drawn over every friend (owner's call), whatever their lanes; among enemies nearer lanes are in front, a giant stays behind the other enemies in its lanes, and a bush still covers whoever hides in it |
+| 2026-11-06 | No health bars, like PvZ (owner's call): nothing shows a character's HP, friend, enemy or boss. The boss bar at the top is gone (the wave bar stays, and the boss music still starts), and so is the 体力バー setting. Walls still show their damage pictures |
+| 2026-11-06 | Falling (owner's call): a friend or an enemy at 0 HP plays its fall and fades out as it falls, gone when both are over (0.8 s); no puff of smoke, and the `fx_puff` sticker is gone. あのこ falls too, instead of being driven off and running away (the `driven_off` ability and the `flee` state are removed); its gallery story still tells how Usagi drove it off |
+| 2026-11-06 | 草's pictures (owner's call): `pickup_weed` is the 草 icon (the count, every cost, and what flies to the count when a weed is collected); `pickup_drop` is the weed that grows on the field and the one ちいかわ finds. ちいかわ no longer holds a weed: the rig's weed item is gone, and what it finds simply collects itself |
+| 2026-11-06 | Terrain does more (owner's call): a stump stops shots (friends' and フグ's; a lobbed can flies over), and a bush hides an enemy in its middle, drawn behind it, so friends do not aim at it and shots fly past. 2-5's bushes moved up the field (from columns 4 and 2 to 6 and 7), and 2-5's big wave and 2-9's final were eased a little, for the bot to keep winning World 2 on every seed |
+| 2026-11-06 | でかつよ and あのこ are giants, three lanes wide down the middle of the field (owner's idea; my rules, which the owner approved; §9.6). Their HP went up (でかつよ 5000 → 12000, あのこ 3000 → 9000) because three lanes of friends hit them, and their blow went down per friend (400 → 300, 300 → 200) because it lands in three lanes. Reaching the base calls the three middle cars. New rig tier XXL (480 px tall) for their pictures; neither had battle art yet. Endless weights 24 and 18 |
+| 2026-11-06 | The water lane's roles change (owner's call): フタバ and ヒトハ both throw from their boats, フタバ lightly but through every enemy in the lane (20 a shell, no limit on how many it passes), ヒトハ hard at one (50 a spiral shell; it was a wall), and 島二郎 joins at 5-4 as the water's wall (4000 HP, 50 草), swimming, with no boat. The pair's bond is now the same both ways: each throws 1.5× as fast beside the other (ヒトハ's half damage went with the wall; my change, as nothing else fitted an attacker). ヒトハ costs 125: at 150 the bot spent so much on the water that a land lane fell in 5-9. His look and story are sourced (the film's site, Real Sound, ゲーム攻略大百科; see A.1); the swimming wall, the spiral shell and the skimming are ours. With three islanders a World 5 team of 8 has five land friends (オデ usually stays home); the good and casual bots still win every World 5 job on all three test seeds but 5-4, where the casual bot loses one of three |
+| 2026-11-06 | セイレーン does not sing; she knocks (owner's correction): her song is gone, and her attack (250 every 1 s) is a knock with her forelegs. Only the 人魚 bite. Her words, the 5-10 job note and the rig notes say so, and the lore no longer calls her a singer. She has no ability now beyond speed and weight |
+| 2026-11-06 | World 6, おっきい討伐, is built (owner's call, from the GDD plan): no rescue car, the big ones out of the tall grass, あのこ driven off at 6-10, whose first clear (500) opens endless mode. Without the car any slip ends a job, so the bot's first pass lost half the world; jobs now start with 100 草 and the enemy toughness is 0.5 (the lowest knob), and 6-9 was eased, so the good bot wins every job on two or three seeds of three while the casual bot drops to one in three at 6-7 and 6-8: the hardest world, as planned. The mixed roster is ours (the story shows only あのこ), as the plan said. The proposed 6-10 twist (ハチワレ knocked flat and out of the team) is left out (owner's call). The job notes, a loss tip for jobs without the car, a march for the music and the battle picture (the owner's quest picture's clearing: pink trunks, pastel bushes, striped mushrooms) are placeholders or mine to replace |
+| 2026-11-06 | World 5, 島, is built with a water lane (owner's idea and call): its middle lane is a channel of sea in every job. Only 人魚 and セイレーン come down it, and only two new friends can stand on it: ヒトハ and フタバ, the islanders of the island arc who are always together (owner's choice of characters; their own icons give the look: round, mauve, one leaf and two). Roles are mine, accepted by the owner: フタバ throws seashells from a little boat, ヒトハ is a wall in a boat, and side by side フタバ throws 1.5× as fast and ヒトハ takes half damage. Friends beside the water help from the land: モモンガ's three-lane throw and 古本屋's heal, and セイレーン's song silences exactly those helpers. The middle lane rather than an edge so two banks can help. 5-1 and 5-2 have no water friend yet, so the banks defend the channel; 古本屋 still joins at 5-1, フタバ at 5-2, ヒトハ at 5-3. Nothing grows on water; Rakko comes by boat. On jobs without water the pair stay home, greyed on the team page. Sourcing: the film's official site (島民。いつも一緒にいる) and the cast news (helpers of Chiikawa and friends, a "too-strong bond", ヒトハ a little timid but curious). The film's twist about the pair is a spoiler and stays out of the game's words (owner's call, on my suggestion). The bot defends water lanes with the pair and, before they join, with モモンガ on the banks; with toughness 0.7 the good bot wins every World 5 job on two or three seeds of three |
+| 2026-11-06 | 流れ星 became 星, which grants a wish by turning into another friend, like PvZ's Imitater (owner's call). It joins at シーサー's なかま屋 for 2500, once; it is no longer World 4's 4-2 reward. When 星 joins the team (on the job notice's team page, or on the field before an endless run) a card asks which friend it becomes, from every friend the player has, the last wish circled. The team page then shows that friend's face stuck on the star, with their cost. In the battle tray it is that friend's card on pale gold, with a gold star in the corner, named 「星→ハチワレ」 when held. It costs and recharges like that friend, its opening wait too, so a team can take a friend twice. Placed, it floats over the tile as a twinkling star for 1.2 s, doing nothing but able to be bitten (with that friend's HP), then bursts into the friend with a little jingle; a one-use wish (たい焼き) goes at once. Without a wish it stays home, and once it is owned the team is always picked by hand, so it can be wished for. The wish is saved with the team. The lane-damage one-use card went with it, so たい焼き is the only one-use card. Its pictures: one plump smiling star (card, gallery and the battle's star), and a padlocked star for the shop (the owner's to draw) |
+| 2026-11-07 | Hit sparks and armour clinks come in three versions each (owner's art: `fx_hit_1`–`3`, `fx_clink_1`–`3`, listed in `STICKER_VARIANTS`): every hit shows one picked at random, never the one before it, so a run of hits does not repeat one spark. The stomp keeps `fx_dust`; Rakko's car and boat leave a trail of their own, `fx_trail`, laid on the ground behind them with its big cloud tucked under the vehicle's back (measured from its picture, so the boat's starts behind its motor), stretching out as he sets off and puffing as he goes. The boat keeps its ripples under the trail |
+| 2026-11-07 | Sizes fact-checked against the stories (owner's list): 魔女 is drawn as big as 山姥 (L; in なんとかバニア she carries off the trio's bodies, the silhouette chase shows her well over their height, and 山姥 speaks her words); キメラ is the pink chimera, as big as Chiikawa (S); goblins stand a touch under Chiikawa (drawn 135; 監獄編); mermaids are smaller than Chiikawa (drawn 120: an islander carried one off in a bag; they ride on セイレーン's head); セイレーン is drawn as tall as the giants (480) though she keeps to her one lane. 黒い星 is a little smaller (128, owner's call). でかい鳥 is drawn smaller than in the story (M, 170: owner's call) and flies low over its own lane with its shadow under it, rising over its target to grab, so it never looks to be in the lane above. In previews, anyone taller than XL runs off the stage like the giants, so セイレーン does not shrink every other page |
+| 2026-11-07 | Heals (owner's call): everyone healed shows the healed mark (`fx_heal`, the owner's 「＋HP」 with green light rising) for a moment (0.65 s), as big as they are: friends healed by 古本屋 or たい焼き, and enemies healed by 黒い星. The heal pulse spreads from the middle of whoever heals, not from the healed: 古本屋's from the middle of 古本屋, たい焼き's from the taiyaki where it passes, 黒い星's black one from the middle of its body (it used to sit at its front, a little to the left). 黒い星 now stops for 1 s to heal (was 0.6 s), so its 0.7 s pulse is over before it drifts on; its heal frames play over the whole stop. It still heals every 3 s, but walks a little less of the time |
+| 2026-11-07 | A swing plays out (owner's call): an enemy whose blow fells its friend (or whose friend goes mid-swing) finishes the swing where it stands before it walks on; it used to walk off halfway through. The gallery's spot of colour under a preview is gone (owner's call): the character's own shadow is its ground. ちいかぶ's redrawn true-form fall and 魔女's new idle loop had been copied into art/sprites without npm run art:sprites, so the game drew them squeezed into the old frames' boxes and cropped them; both are brought in properly now (魔女's idle frames copied from the generator's output into image/sprite/majyo), and a test checks every frame against its layout |
+| 2026-11-07 | The behaviour is a mode system (owner's call, the root fix for swings cut short): every character is always in one mode, and a mode with a length (a swing, a grab, a song, a phrase, a heal, a spell, a transformation, a friend's attack) runs to its end; walking, waiting and hovering give way at once; only a fall (or being carried off) ends a mode early. It replaces the one-off fix for swings that felled their friend. Seen to change: an ability due mid-swing waits for the swing; a swing whose friend was moved or replaced plays on; セイレーン sings in whole phrases, so she goes quiet a little later near friends; でかい鳥 lifts its friend partway through its grab and holds still until the grab is over. See §8 Modes |
+| 2026-11-07 | Giants are drawn 65 px higher (owner's report: でかつよ on lanes 2–4 looked to be on 3–5). Their bodies were already centred on their three lanes, but their feet stood on the nearest lane's ground line with the shadow spilling into the lane below, and でかつよ's face sits low on its body. Now feet and shadow sit inside the nearest lane and the face moves up toward the middle one; only the top of the head or fur reaches a little into the lane above. Drawing only: the sim's lanes are unchanged |
+| 2026-11-07 | The everyday enemies get moves of their own (owner's calls, after finding that 中止で〜す, both bugs and the goblin played the same): 中止で〜す lunges from a tile away (a dash in over its swing's wind-up, its swipe 2× as hard: our pick, the owner asked for the lunge only; the claws stuck in a tree were left out); フグ spits from 3 tiles (was 2); 六足の虫 jumps over every friend and never attacks; goblins pick up 草 they pass (not ちいかわ's finds) and drop them back when beaten. The owner is drawing 六足の虫's jump and the goblin's pick-up and carry; until then the bug hops on its walk frames and the goblin carries a 草 sticker. Balance and level testing wait for the final pass |
+| 2026-11-07 | The owner's frames for the new moves are in, named `ability` (each character's special move): 六足の虫's jump, drawn on the spot, so the game still lifts it over in its 120 px arc; and the goblin bending down to pick up 草. The 草 a goblin picks up simply vanishes as its hand reaches it (owner's call), so there is no walk with the 草 and no 草 on its back, and it stops for a 草 once the 草 is under its hand (about half a tile behind its front, where its frames reach down) instead of at its front. The importer now leaves out frames for a move a character no longer makes (六足の虫's attack frames, which the owner had removed). No level testing until every ability is decided (owner's call) |
+| 2026-11-07 | A fighting goblin grabs a 草 that sprouts on its own tile too (owner's call): it sits at the goblin's back, 139 px behind its front, just past the hand's reach, so the goblin used to ignore it. Its reach now runs from its hand (0.55 tile) to 0.85 tile back; it still never cuts a swing short: it finishes the swing, picks the 草 up, then swings again about 0.4 s later |
+| 2026-11-07 | 六足の虫's jump is slower and comes in three parts (owner: it went over friends far too quickly, which was unfair): it crouches ready where it is for 0.8 s, flies over the friend's tile in 1 s, and lands and steadies itself for 0.5 s, 2.3 s a jump (was 0.7 s), friends hitting it all the while. Its six `ability` frames are shared out over the parts (1 ready, 3 in the air, 2 landing), it is lifted only while in the air, and its take-off dust and sound come as it leaves the ground. Data: abilities `jump` {readyMs, airMs, landMs} |
+| 2026-11-07 | ちゅーしです pauses before it lunges (owner: it lunged too suddenly): within a tile of a friend it stops for 0.6 s, eyeing it (a mode of its own, `aim`, holding its first attack frame), then pounces as before; its bite sound comes with the pounce. If its friend is gone by then, it walks on (or fights whoever is in reach). Data: the lunge's `readyMs` |
+| 2026-11-07 | Heals reach the 3×3 tiles around the healer, the healer in the middle (owner's call: 古本屋 and 黒い星; Pajama Parties keep their lane-wide song): 古本屋 heals all eight tiles around it (was the four beside it), 黒い星 the enemies a lane and a tile and a half each way (was a tile). Neither heals itself. Both heal pulses are drawn three tiles across, so they show the reach. 黒い星 stopped at a friend (it never attacks) now stands at rest instead of drifting in place. The healed mark stays on the healed only (not on those at full HP) |
+| 2026-11-07 | Heals come less often and bigger (owner: both healers felt too frequent; the pulse and healed marks every second read as constant flashing, and 10 HP was too small to see): 古本屋 heals 30 every 3 s (was 10 every 1 s), 黒い星 30 every 4.5 s (was 20 every 3 s, still stopping 1 s each time). Healing per second is unchanged (balance waits for the final pass); a friend near death waits longer between heals, and 黒い星 stops less often, so it drifts along a little faster |
+| 2026-11-07 | Giants are drawn in true depth (owner's call, after seeing 山姥 in あのこ's middle lane drawn over its face): among the enemies, everyone is layered by where their feet stand, a giant by its lifted feet on its nearest lane. So it covers the enemies further back in its other two lanes (they can be hidden behind its body), and whoever stands nearer than its feet covers it. Every enemy is still drawn over every friend. The road line-up before a wave still draws a waiting giant behind the queue, so the preview shows everyone |
+| 2026-11-07 | キメラ cries (owner's call; it had no move of its own, only heavy stats), much like PvZ's newspaper zombie: the first time it is down to half its HP it stops for 1 s and cries (a mode, `cry`; its `ability` frames, crying while it laughs, are the owner's to draw, and until then it stands by), then claws twice as often until it falls, even if healed, so 2-8's 黒い星 pair stretch out its dangerous half. Faster rather than harder blows, because with no HP bars only the pace shows. From its scene in the story (anime ep. 16, from the manga): it came up to Chiikawa laughing and went for her in tears. Ruled out: being chased off (how the story ends, but nobody runs away in this game), growing (a fan theory, and it is Chiikawa's size), wing jumps and claw lunges (六足の虫's and 中止で〜す's). Data: the `cry` ability {atHp 0.5, ms 1000, attackSpeedMul 2}; its sound `sfx_cry` (a synth stand-in); job note 2-6 tells of it |
+| 2026-11-07 | キメラ draws her claws instead of crying (owner's call): she starts with them hidden and at half HP stops for 1 s to draw them out, then claws twice as often, as the cry had her do. Two sets of frames in the owner's layout: her first look, claws hidden, in `image/sprite/kimera/claws_retracted/` named like the rest (the game's `enemy_kimera`, brought in the same day from the owner's generator folder `image/sprite/others/generated/kimera/claws_retracted`: plain paws, a paw swipe for her attack), and the frames beside that folder with her claws out (now `enemy_kimera_claws`, a second form like ちいかぶ's true one: `form: 'claws'` from the start of the drawing), whose `ability` is the drawing (to come; the six crying frames there are the owner's work in progress, not imported). Until the drawing frames come she stands by while she draws them. The gallery shows her first look. Data: the `claws` ability (was `cry`); sound `sfx_claws` (was `sfx_cry`); the importer reads `claws_retracted/` as her first look (`SECOND_SETS`) |
+| 2026-11-07 | キメラ also moves twice as fast once her claws are out (owner's call): 3 s a tile, as fast as 魔女 and セイレーン, her walk frames quickening with it (by the square root of the speed-up, as the speed tiers' walk frames do). Her claw-drawing frames came in the same day: 4 frames (paws crossed bare, claws out crossed, raised overhead, spread wide), the owner's own cut of the generator's 6 (ignore its README and JSON, which still say 6), from `image/sprite/others/generated/kimera`, where the owner now works on her: both her sets are brought in from there (`npm run art:sprites -- image/sprite/others/generated/kimera` reads its `claws_retracted/` too). Data: `moveSpeedMul: 2` on the `claws` ability |
+| 2026-11-07 | キメラ draws her claws at 30% HP instead of half (owner's call: she was a little too strong), so her faster stretch is shorter: the last 330 of her 1100 HP (before a world's toughness). Data: `atHp: 0.3` |
+| 2026-11-07 | The moves that stop friends, reworked (owner's call: all three felt underwhelming, hard to notice and too rarely cast; two were the same hold, mostly wasted on walls that never attack, and セイレーン's song did nothing). 擬態型's lure song (§9.2): 3 s after it arrives, then every 6 s, it sings as it goes, and every friend in its lane, however far, sways for 3 s (no attacks, 草 or support), its blows landing twice as hard on a swaying friend. 山姥's spell: 3 s after she arrives, then every 6 s, she stops 2 s to chant at up to 3 key friends (any that attack, make 草 or support; never a wall) within 4 tiles in her lane and the lanes beside it, nearest first; each is held 4 s, frozen in place, purple, in a spell circle. セイレーン's song rallies her mermaids: while she sings, mermaids within 2 tiles of her swim twice as fast. The counts, reach and hold are starting values for the testing ground |
+| 2026-11-07 | No status badges (owner's call: the note and ゴーヤ badges were hard to spot): a status shows as a colour laid over the character, stronger than before (45%, was 32%): blue while slowed, purple while stopped by 擬態型's song or held by 山姥's spell. The two badge pictures moved out of art/stickers to image/unused/ |
+| 2026-11-07 | 栗まんじゅう is the game's melon-pult (owner's call): its can splashes where it lands, and every enemy in the 3×3 tiles round the spot takes the 80 (the owner said 9×9; read as the nine tiles of a 3×3, since a 9×9 would cover the whole field). The splash is the owner's three frames (`fx_can_splash_1–3`, renamed from fx-beer-splash-0N-200), drawn as wide as the tiles it reaches, with a wet `sfx_splash` (a synth stand-in). Data: `splashTiles: 1` on its attack |
+| 2026-11-07 | 栗まんじゅう's splash drawn small (owner: too big, it hid the enemies): at its planned size (100 px, about 0.6 of a tile), where the can comes down, as high as shots fly. It had been drawn as wide as its reach (three tiles, then two) and on the ground under the can, half a lane low. Every other enemy it splashes shows the same splash over it, armoured ones too (owner's call; they showed hit sparks at first). The owner's three splash pictures are versions, one picked at random each time like the hit sparks (they were played in turn as frames at first). What it hits is unchanged: the 3×3 tiles round the spot |
+| 2026-11-07 | ラッコ sweeps his sword (owner's call): each blow cuts the first enemy within reach in his lane and in the lanes above and below (a giant across them is cut once), and he swings when any of the three has one. Still 70 a blow, through armour, over his own tile and one ahead. He fights with a sword in the original, so the punch (a stand-in of ours) became the sword: his stand-in holds one, and his card shows 「3レーンで1体ずつ」. Data: `sweepLanes: 1` on his attack |
+| 2026-11-07 | Ability cooldowns start when the ability is over, not when it starts (owner's call: the number is then the free time between uses, and an ability's length and its wait can be changed apart). The data's `intervalMs` (one start to the next) became `cooldownMs` (the wait after it ends), set to keep the rhythm: 黒い星 3.5 s after its 1 s stop (still every 4.5 s), 擬態型 3 s after its 3 s song (every 6 s), 山姥 2 s after her 4 s hold wears off (every 6 s). First uses unchanged |
+| 2026-11-07 | Who the control moves reach (owner's call): 擬態型's song sways up to 3 friends in its lane, picked at random (was every friend in its lane); 山姥's spell holds up to 6 key friends anywhere on the field, picked at random, any not held yet first (was the 3 nearest within 4 tiles, in her lane and the lanes beside it). The picks use the sim's seeded random (`Rng.sample`), so a seed still plays the same. Data: `targets: 3` on the song; the spell's `targets` 6, its `rangeTiles` and `laneSpread` gone |
+| 2026-11-07 | Control moves tuned (owner's call): 山姥 holds up to 5 (was 6), with a 4 s cooldown (was 2 s), so every 8 s; 擬態型's cooldown 6 s (was 3 s), so every 9 s. The friends 擬態型's song catches now look as 山姥's spell leaves them (frozen in a spell circle, purple, with sparkles), not rocking with a note over each; notes still rise from the mimic as it sings, and its blows still land twice as hard on them |
+| 2026-11-07 | 人魚 (the small mermaids, in threes) are tougher (owner's call: bump up their HP): 250 HP, was 150 |
+| 2026-11-07 | A boss for the bugs (owner's call): `mushi_pink` 虫（ピンク）, the owner's pink two-legged bug drawn much bigger, XL, 3000 HP, 300 a blow every second, normal speed, no ability (first numbers, to be tuned in the level pass; it joins no job yet). It is not from the story, so the gallery gives it a third stamp, 本作創作 (blue, `confidence: "original"`: このゲームのオリジナル / Made for this game), never 原作確認 or 資料確認 |
+| 2026-11-07 | セイレーン is the game's summoner boss (owner's call): she walks with her walk frames and no longer sings as she swims; now and then (first 3 s after she comes onto the field, then 8 s after each call) she stops 2 s to sing and calls up 2–4 small followers round the column she is in, not down the road, each in its own random lane: 人魚 on a water lane, the new two-legged mermaid on land. Each plays a new mode, `spawn` (coming up, 0.9 s × tempo; the owner's spawn frames climb out of the ground; 人魚 has none and stands by), then walks on; one that would come up inside a friend comes up in front of it. Her passive: while she is on the field, every mermaid anywhere moves twice as fast (was: those within 2 tiles in her lane while she sang). `mermaid_twolegs` (人魚（二足）): the owner's design, 200 HP, 100 a blow, normal speed, gallery stamp 本作創作; it is in no job's waves (it comes with her) |
+| 2026-11-07 | セイレーン swims at normal speed (owner's call; she was fast, 3 s a tile, since 2026-11-06): 6 s a tile, like most. 5-10's job note now warns of her followers instead of her speed |
+| 2026-11-07 | セイレーン calls up more, one at a time (owner's call: she felt a little weak for a boss): 4–6 followers a call (was 2–4), each coming up at its own moment through her 2 s song (one in each equal share of it, somewhere inside), no longer all at once. With more followers than lanes, lanes are dealt out at random, each open lane once before any has a second |
+| 2026-11-07 | The gallery's count follows the open tab (owner's call), and the left page is headed by that tab's name in its bookmark's colour instead of 「ずかん」 (on my suggestion: 「ずかん 3/18」 would read as the whole book) |
+| 2026-11-07 | 人魚（二足） is left out of the gallery (owner's call): its entry stays in `data/gallery.json` marked `"hidden": true`, so the book has no page for it and 討伐対象's count leaves it out. The game still notes it as seen and defeated, so taking the mark away brings its page back |
+| 2026-11-08 | The friends get jobs PvZ players know (owner's call: the friends were the blandest part, too many walls and too few attackers). うさぎ is the plain shot and everyone's first friend: 100 草, 20 a blast every 1.4 s, no splash behind; 1-1 is hers and ハチワレ joins at 1-4's clear, where she did (an old save keeps him and gets her). 古本屋 throws two books an attack (200 草, 20 each). たい焼き is a trap: 25 草, cooks for 12 s, then goes off under the first enemy to reach it for 1800 (it was a one-use lane heal). オデ is a one-use charge: he runs the whole lane from the base end like Rakko's car (125 草, recharge 50 s; he was an 8000 HP wall). No friend heals any more. First numbers, to be tuned in the level pass |
+| 2026-11-08 | ポシェットの鎧さん leaves the team (owner's call): his card is gone from the なかま屋 and the friends' pages; he keeps his shop and stands on the gallery's people pages (`unlock: met`, as big as 鎧さん). The tough wall is now 偉い鎧さん (8000 HP, 125 草, as tall as 鎧さん: owner's call), in gold armour with a crown-like ornament, the 鎧さん's boss in the story |
+| 2026-11-08 | New friends, in no job until the level pass (owner's calls, with the owner's pictures for the three special versions): むちゃうマン, one use, appears, strikes his pose and freezes every enemy for 5 s; ちいかわ（人魚の島） throws one heavy flame (120 every 3 s) from a torch (the torch is ours); ハチワレ（パジャマ） pokes up to 3 tiles with a deck brush and pushes back half a tile, slowly (every 2.6 s); うさぎ（クール） only poses while missiles fall on every lane with an enemy (60 each, every 5 s). Lore checked by a research pass: 偉い鎧さん, むちゃうマン and the pajama ハチワレ are confirmed (原作確認); island ちいかわ's outfit is, its other lore is from secondary sources (資料確認); no sunglasses scene exists, so うさぎ（クール） is stamped 本作創作; its names are the owner's (うさぎ（クール）, and Usagi (Cooler) in English) |
+| 2026-11-08 | オデ is put down like any friend (owner's call): his card shows his ghost on the tile under the finger, and he goes only on an empty land tile (so not on World 5's water lane, nor on a friend's tile); once placed, he still comes running in from the base end of that lane. むちゃうマン still goes on any tile, and his ghost shows there too. Nothing lights up a whole lane any more |
+| 2026-11-08 | パジャマパーティーズ' dance lasts 6.33 s however many frames it has (owner's call, following the dance clip's length): the time is shared out among their song (`ability`) frames, the same in battle and in the gallery (`SPRITE_LOOP_MS` in `src/art/spec/sprites.ts`). 24 frames recommended (0.26 s each, the pace of the idle loops); 100 would cost about five characters' worth of frames |
+| 2026-11-08 | 古本屋's books come in three pictures, `fx_book_1`–`3` (owner's call, with the owner's pictures): each book thrown is one of them, picked at random like the hit sparks and never the same as the book before, so the two books of a throw always differ; a book keeps its picture all the way |
+| 2026-11-08 | Every battle character stands by on one picture, its first idle frame, and the game makes it breathe (owner's call, on my suggestion: most friends' four idle frames were already one drawing stretched by a script): feet planted, 2% taller and back in 1.04 s (as long as the four frames took; bigger ones by their tempo), held still when motion is reduced (`BREATH_MS`, `BREATH_RISE` in `src/art/sprite.ts`). `npm run art:sprites` brings in only the first idle picture and lists the rest; the other 69 idle frames came out of `art/sprites`, the originals staying in `image/sprite`. A wall's `damaged1`–`3` breathe too when each is one picture. The lobby's 鎧さん, a menu piece, keeps its four frames |
+| 2026-11-08 | ポシェットの鎧さん's standing picture is in (owner's art), brought in from `image/sprite/yoroi_pochette` with `npm run art:sprites`: he stands on the gallery's people pages as tall as the other two 鎧さん. A folder's `sprite.json` must name that folder (tested now): one copied from 労働の鎧さん's drew his picture instead |
+| 2026-11-08 | A long name at the top of a gallery page wraps between its words, never inside one (owner's call, after ポシェッ／トの鎧さん): at its short form's break point where that is the same name, else after its の (`headingNameOf`) |
+| 2026-11-08 | Every friend is now drawn from the owner's frames (`npm run art:sprites -- image/sprite`): no friend is a paper puppet any more. Owner's calls while bringing them in: friends have no defeat frames (they just fade away as they were, in 0.45 s, like PvZ's plants; only enemies need `death`). パジャマパーティーズ come one member at a time, at random: each of the four has frames of its own (`ally_pajama_parties_green`, `_pink`, `_purple`, `_white`), the card picks who is next ahead of time so its ghost shows them, and they are size S now. ちいかわ's found 草 is drawn in her hand, so none is laid out to tap: it goes straight to the count and flies from her hand |
+| 2026-11-08 | How the friends' frames are played (my reading of the owner's notes, to be corrected if wrong): ちいかわ sits searching the whole time between finds (`weed_search`, a 1.6 s loop; confirmed by the owner) and plays `weed_found` over each find, the 草 hers on its last frame 0.48 s in, held 0.42 s more; pulling up a weed beside her uses the same frames. たい焼き's `cook` frames are stages: raw and pale gold share the 12 s, the sparkling one shows 0.7 s as it comes ready, and then it stands on its idle (size set to 100, a fish is wide). むちゃうマン's pose is his `ability` frames, 0.15 s each, the last held (the anim is `pose`). A friend's attack frames are shared out over its 0.5 s attack, so the last ones are no longer cut off. 栗まんじゅう's can leaves on her throw, the last of her five frames (`releaseMs: 400`). A friend whose body is not in the middle of its picture stands by its feet (`FEET_X` in the importer, from the art's own pivots) |
+| 2026-11-08 | The battle draws by lane (owner's call, after 島二郎's head was drawn under enemies from the lane behind; it replaces 2026-11-06's every enemy over every friend whatever their lanes): a nearer lane is always in front of one further back, friend or enemy, and within a lane every enemy is over every friend, so whoever bites a friend stays in view (`drawKey`, `src/game/render/layers.ts`). A giant counts as standing in the lane its feet are in, and a bush still covers whoever hides in it. A tall friend can now partly hide an enemy passing behind it: 島二郎 up to about 60% of a small one, 鎧さん just its feet |
+| 2026-11-08 | Sizes (owner's calls): うさぎ, うさぎ（クール） and 古本屋 looked smaller than the other Chiikawa-folk, because a friend's height counts everything on top of it (her long ears, the crab on the headband). They now stand taller so their heads are as wide as the others': うさぎ and うさぎ（クール） 196, 古本屋 176 (the other small friends 150). Rakko's boat is smaller too: 96 tall (was 130, the car's height, which made it half as long again as the car and put its bow into the first tile) |
+| 2026-11-08 | 星 is put on the field like any friend (owner's call: it is no consumable). The ghost under the finger is the star's idle picture, and it stands on its tile as that picture, breathing, on the ground (it used to float above the tile in a glow). Then it casts, in its `attack` frames (0.6 s, `cast` in the game: eyes shut, pale, up in a puff), and the friend picked takes its place as the last frame begins, so the puff hides the change and clears round them. Still 1.2 s in all. A one-use wish (オデ, むちゃうマン) no longer goes at once: the star stands first, on an empty land tile, with 星's own 300 HP since they have none, and they go as it turns, leaving the tile free; its card is no dashed coupon. Its gallery page shows it from its frames, standing by and (tap) casting, labelled 「ねがいをかなえる」; the placeholder sticker `fx_wish` is gone. Dragging a card now picks it up as the finger leaves it, every card alike: nothing lit up and no ghost showed until it was let go. Let go off the field, it is put back |
+| 2026-11-08 | The testing ground has 星 at the top of its tray too (owner's call, once it became a friend to put down; last in a tray of 21 it would be off most screens): the panel's 「星が変身するなかま」 list has every other friend, ちいかわ to begin with. A change applies to its card at once, a star already on the field keeps its wish, and the pick carries over when the world or the cars change, like the rules. The inspect tool names a star 「星→…」 |
+| 2026-11-08 | World 1's picture is in (owner's art): six layers brought in with `npm run art:import`, each pasted onto the full canvas where the owner's `layer-positions.json` puts it. Its closed lanes (jobs 1-1 to 1-3) are solid sand, the road's own colour (`#F5E8D9`), laid under the road so its cut edge stays whole (owner's call, after the tan tint turned muddy on the pale green). A world sets its own with `closedLane`; World 5 keeps the tan until its art arrives |
+| 2026-11-09 | The cards moved from the left column to one row along the top, with the 草 counter, the wave bar and the buttons (owner's call, once World 1's real art showed the cave could not be seen behind the column; it reverses the 2026-11-04 move to a left column). The camera now shows the whole protected place on every screen. The field is about 4 % smaller on wide phones and 9–13 % smaller on narrower screens and tablets. A full team of 8 fits on every phone measured, 640–956 wide with notches allowed for |
+| 2026-11-09 | A new opening for every battle (owner's call, after looking at the order of events in PvZ 2; only the order, in this game's own style): nothing is over the picture while the camera rests on the field and looks at the enemies, the row of cards comes in on the way back, Rakko's cars drive in one lane after another (`src/game/render/arrival.ts`), and 「よーい…」 comes before 「討伐開始！」. About 4.5 s from a job notice. A tap skips it: on the way to the road it goes back at once with the cars parked; on the way back the battle starts as soon as it can. The loading screens show ちいかわ looking for weeds instead of a spinner |
+| 2026-11-09 | The cards went back to a column down the left, and the screen follows PvZ 2's arrangement: 草 counter above the cards, level name and wave bar over the field, speed and pause top right, scenery showing around the field (owner's call; the arrangement only, in this game's own style). It reverses the top row of the same day. The camera pulls back further than the old left column did, so most of the protected place shows between the cards and the cars (the picture from x 100 on). Tiles are about the size they were with the top row on plain phones and 7 % smaller on notched iPhones. Where the view runs past the picture, under the cards, its edges are stretched outward (`WORLD_BLEED`) |
+| 2026-11-09 | The paper-puppet rig is gone (owner's call): every fighter was already drawn from frames, and only Rakko's car and boat still went through it, one picture each. They are one-picture sprites now (`art/sprites/rescue_rakko_*`), drawn as before and held still (the bob they had while driving came to a quarter of a field pixel on the real art, so nothing visible went with it). Removed: the procedural motions, the part lists, the placeholder puppets and `art/rigs/`. Kept: the sticker cutter, now `art/sticker.ts`. What is left is named for characters (`art/spec/characters.ts`), the Art Kit lists frames instead of parts, and a test names any character without frames, since there is no stand-in any more |
+| 2026-11-09 | World pictures are planned 300 px wider, all of it on the left: 3360 × 1500 with the field at x 900 (owner's call, after seeing the streaks where the view ran past the picture: 92 px short on an 844 × 390 phone, up to 273 on a notched iPhone, with the cave's rock smeared into grey planks). The right side already had about 900 px to spare, and the height stays, since on squarish screens only sky and grass stretch. The field is now measured from the picture's right edge, so a 3060-wide picture keeps working, stretched on the left as before. World 1's own wider picture came in the same day. The placeholders of Worlds 2–6 mirror themselves into the new strip |
+| 2026-11-09 | Battle cards show the friend as they appear on the field (owner's call, after seeing both on a phone-sized battle screen; close-up faces were the other candidate): the standing picture close up and cut off by the card, so props and outfits tell lookalikes apart (the flower crown and torch, the hood and brush), each friend framed by hand so heads come out about the same size (`src/art/spec/cards.ts`). Each has a colour of their own, the 草 cost is big in the corner (red when too dear), a card that can't be used yet is in dark shade instead of faded, the one in hand steps toward the field ringed in pink, and the column has lost its panel. パジャマパーティーズ' card shows the member who comes next. Portraits stay on the job notice, the gallery and in dialogue |
+| 2026-11-09 | The top strip matches the new cards (owner's call, after a mock-up on the real screen): the wave bar lost its plate and is thicker (17 px, 21 on tall screens) with a whole outline, the level name sits above it with a white halo, and it is centred between the 草 counter and the buttons. Its marks are drawn pennants and crowns instead of emoji, and the last wave's mark stands on the end of the bar, a size larger. The shovel, speed and pause pictures sit on round faces outlined like the cards, in pink, green and blue (yellow or pale red when switched on); their tap areas and places are unchanged |
+| 2026-11-09 | The battle buttons' pictures have no white paper edge any more (owner's call, after comparing them on the real screen): it was there to lift pale icons off the scenery, which the round faces do now. The icons are larger in the same faces (30 px on phones, was 24), the green and blue faces are stronger so the pale icons stand out, and the pink one is a little lighter because the X is already a strong pink. Lobby and shop pictures keep their edge, since they sit right on the scene |
+| 2026-11-09 | The 草 counter is bigger and matches the rest of the top strip (owner's call, after a mock-up on the real screen; a big icon on the end of a bar is the idea taken from looking at PvZ 2, not its dark bar or its look): the weed, lost at 16 px in a small circle, is now 30 px on a round yellow badge as big as the buttons' faces, in line with the card column and overlapping the end of a slimmer cream bar. The number is 20 px (24 on tall screens), no longer the size of the card prices, and the shadow matches the cards'. Yellow because a green badge blended into the hills behind it |
+| 2026-11-09 | On big PC screens the top strip and the card column are drawn larger along with the field (owner's call, after measuring the buttons on phone, fold and PC sizes): 1.25× from 1500 × 680, 1.5× from 1900 × 850 and 2× from 2500 × 1150, which keeps the buttons at about 43% of a field square (they were down to 21% at 2560 wide, because everything but the field stopped growing at tablet size). Phones, folds, tablets and small laptops are unchanged. Cards may now go down to 28 px tall, so a full team of eight fits on a closed fold (344 px tall) and the smallest phones |
+| 2026-11-09 | Each battle world is one flat picture instead of six or seven pieces (owner's call, after comparing them on the real screen): the game merged the pieces into one still picture before every battle anyway, nothing moved on its own and even the front edge lay behind the characters, so all the split did was put a white paper edge round each piece. World 1's six pieces are stacked into `picture.png`, the same pixels as the owner's composite. Closed lanes now lie over the road's first 60 px, in the road's own colour. A world with water lanes has them painted in its picture (`paintedWater`). The importer takes a world's one picture directly |
+| 2026-11-09 | World 5's water lane moved from the middle to the bottom (owner's call): the fifth lane is the edge of the sea in every job (`water: [4]`), and the sea carries on below the field. 5-1 and 5-2 stay three lanes, now the bottom three (`[2, 3, 4]`), so they keep their water, with the two land lanes above it (one bank beside it, where there were two); how that plays waits for the final level pass. World 5's closed lanes have no cover (`closedLane: 'transparent'`): field and road are the same sand there, so a closed lane is bare sand with no tiles. |
+| 2026-11-09 | All six battle worlds have the owner's pictures (their composites, one flat picture each). World 1's is 3060 wide, 300 px short on the left; those 300 px come from the owner's own World 1 layers, the same painting. The importer now ignores a lone PNG gamma tag, which had shifted World 2's colours by up to 9 of 255: pictures come in as stored. Each world's `backdrop` colour is now its picture's top edge. |
+| 2026-11-09 | The weed on the field moves to suit the new battle screen (owner's call, after a mock-up on the real screen; the pictures are the same). It pops out of the ground with a puff of dust and stands on the friends' soft shadow, breathing and swaying, each weed in its own time, with no glow (it was a grey smudge on Worlds 4 and 5). Near the end it droops and shivers, then sinks into the ground, where it used to flicker see-through and fade. A picked weed is tugged out with a puff of dust and one solid weed flies off, where a see-through ghost and a spinning copy used to go at once. The flight is a page element above the HUD (`game/render/weedFlight.ts`), aimed at the badge's real place on each screen, so it lands on top of the counter instead of going under it; the number changes and the counter bumps as it lands. The 草 is the player's from the moment it is collected: only the number waits. With reduced motion there is no flight and the number changes at once. |
+| 2026-11-09 | The campaign is six worlds of five levels, 30 in all (owner's call, after counting: their unlock rules make exactly as many places as there are friends to fill them, where ten a world left 32 of the 60 levels with no new friend or enemy). Everyone was placed again by how hard the enemies are and what answers them, not by the story's order (§10.2): a new friend on every level of World 1, then one every two levels, World 5 bringing only フタバ, ヒトハ, 島二郎 and ちいかわ（人魚の島）, and World 6 only ハチワレ（パジャマ） and うさぎ（クール）. 虫（ピンク） is World 1's boss and 虫ツノ a regular from 4-2; 古本屋 moved to World 1 and ラッコ to 3-5; でかつよ, the toughest enemy, closes the game and あのこ moved to World 4's end. First clears pay twice as much. Saves keep the levels that are left, with 2× speed for 1-5 and endless mode for 6-5. The level sheet now shows the boss a level ends with (it showed the first boss-type enemy, so a ゾウ met on the way took its place). The waves are the earlier levels' where they still fit, with no bot balance pass yet |
+| 2026-11-09 | The 30-level campaign is balanced with the bots (owner's call, after building it): the good bot wins every level on all three seeds and the casual bot at least two of three. The waves had not been tested since the enemies were reworked on 2026-11-07, and 六足の虫, which jumps every friend, was behind most of what got through, so most waves now have at most one, and it counts as a big enemy for pacing; a few bosses and mid-level threats came down in HP or escorts. The bots now take the team the plan gives them (`botDeck`), and throw over stumps with 栗まんじゅう. フグ stops only where it can be hit back (on the field, out of any bush, with no stump between it and the friend): with フグ now in the forest, it could stand behind a stump where neither side could reach the other, and the job would never end. A spit still stops at a stump |
+
+### 19.1 Open questions
+
+- ~~**でかつよ: one character or a kind?**~~ Settled (2026-11-06): one character. The anime cast list and Chiikawa Pocket both mean the shaggy yellow creature on four black legs that chased Momonga; press and fans also use the word loosely for big monsters, so the game never calls other monsters でかつよ.
+
+---
+
+## 20. IP and release notes
+
+This is a non-commercial fan game. ちいかわ is the work of ナガノ. Before publishing: use only art drawn for this project (no official images, no traced frames, no official audio), keep the disclaimer in the README and in Settings' about panel (the lobby carries none: owner's call), keep the repository non-commercial, and be ready to take the site down on request. The `image/` folder holds working files and references and is not shipped; pictures the owner chooses are imported into `art/` (so far the shop and its goods, the lobby and the quest board).
+
+---
+
+## 21. Implementation status (v0.10)
+
+**Built.** All of v1: Worlds 1–3 (15 levels since 2026-11-09), 8 cards, Rakko's car, 12 enemies with armour, healing, song, disguise and stomp, 3 bosses, the gallery with sourced lore for 25 entries, the shop, endless mode (opens after World 6's boss), JA/EN, local saves with export/import codes, PWA offline support and a GitHub Pages workflow.
+
+**World 4 (v2).** 夜, five levels on the night rule (nothing sprouts; 250 草 to start), with 虫ツノ and 山姥 coming in, ゾウ mid-level and あのこ as the boss. Clearing 3-5 opens it. Its quest and battle pictures are the owner's; its music loop is a placeholder.
+
+**World 5 (v2).** 島, five levels with the bottom lane as the sea (§9.5): 人魚 come down it, セイレーン is the boss, and only the islanders stand on it (フタバ and ヒトハ throwing from their boats and 島二郎 swimming as the wall, joining after 5-1, 5-2 and 5-3), with ちいかわ（人魚の島） joining for beating the boss. Clearing 4-5 opens it. Its quest and battle pictures are the owner's; its music loop is a placeholder.
+
+**World 6 (v2).** おっきい討伐, five levels with no rescue car (100 草 to start), the big ones from every world coming out of the tall grass, and でかつよ as the boss. Clearing 5-5 opens it, and clearing 6-5 opens endless mode. Its quest and battle pictures are the owner's; its music loop is a placeholder.
+
+**Placeholders.** Every image is painted by code from `src/art/spec.ts`, in each character's palette and silhouette, at the exact size the final art must have. Every sound is synthesised. Dropping a file with the right name into `art/` replaces its placeholder with no code change; see the README and the in-game Art Kit.
+
+**Balance.** A heuristic bot plays every level on three seeds (`npm run balance`); the test suite requires each level to be winnable by it. With the world toughness knobs (World 2 0.8, World 3 0.68, Worlds 4 and 5 0.62, World 6 0.45) and no stat upgrades, the good bot wins every level on all three seeds and the casual bot on at least two of three (the test suite's bar since the 2026-11-06 retune). In World 4 the good bot wins every level on two or three seeds; it never uses the one-use cards or パジャマパーティーズ and builds about one ちいかわ per lane, so a player who plants more at night will find it easier. Humans will find the curve after playtesting; levels and stats are all in `src/data/`.
+
+**v0.7.** The field turned landscape (see §4.2). The simulation kept its rules and tests; the renderer, the battle layout and the placeholder poses changed, and the world art spec is now a ground tile, a horizon strip and a left and right strip per world.
+
+**v0.8.** The shop is the first paper-diorama scene (§15.1), with two sellers: a reusable 3D scene engine with an angled, swinging camera, the paper treatment for real art and placeholders alike, layer guides with an exploded view, and the 郎 scene with placeholder pieces. Other menus still use the earlier panel style.
+
+**v0.8.1.** The shop runs on the owner's real art (§15.1). The camera keeps every cut edge of the picture off screen, the resting view matches the picture exactly, and scene pieces can be stretched at the sides where they run off the picture.
+
+**v0.9.** The foundation for an all-cut-out game: scenes with slots and panning for every menu (title, map, briefing, gallery, settings, shop, and the ranking board for endless mode) and a layered scene per battle world; characters as paper puppets with procedural motions; effects, pickups and terrain as stickers; the layer importer; WebP builds and per-screen loading. Placeholders follow the same formats (puppets are cut from the procedural drawings), so real art drops in piece by piece.
+
+**v0.10.** A mobile-game front end (owner's call, in the owner's art): the game starts in the lobby, the reception counter with four floating buttons; あそぶ turns the camera to the quest board, whose pinned papers (one per world) replace the map; a quest opens the sheet of its levels. The title screen, the map and the navigation rail are gone; every screen has a back button that walks back like the phone's back gesture. Settings became a pop-up over the lobby, and its scene (Chiikawa at home) was dropped. The briefing screen went too: a level goes straight into its battle, which starts by gliding over to the enemies waiting on the road and, when there is a choice, opening a team tray on the field (battle worlds grew to 3060 × 1500 for the road). Scene pieces can be idle loops of hand-drawn frames (the importer groups `name_1.png`, `name_2.png` …); the lobby's 鎧さん breathes in the owner's four frames. The gallery became the owner's open book on 古本屋's table, its entries' puppets moving on the right page.
+
+**Not verified yet.** QA on physical phones (iOS Safari and Android Chrome), final art and audio, and long-session memory use on low-end devices.
+
+---
+
+## Appendix A. Lore sources checked during design
+
+- Chiikawa Pocket character guide (enemy and helper lists): https://gamepedia.jp/chiikawa-pocket/archives/21
+- Usagi's 討伐棒 and its blasts: https://realsound.jp/book/2025/12/post-2235448.html
+- Hachiware's さすまた episodes (anime 17–18): https://nlab.itmedia.co.jp/fav/articles/3924693/
+- Shisa at 郎, スーパーアルバイター: https://lifestyle.assist-all.co.jp/?p=30133
+- 草むしり検定: manga pass on the third try: https://dengekionline.com/article/202507/46407 ; anime ep. 109–110 status: https://times.abema.tv/articles/-/10177321
+- Momonga's first words, swap is a theory: https://kai-you.net/word/%E3%83%A2%E3%83%A2%E3%83%B3%E3%82%AC
+- 山姥 arc (vol. 7): https://ciatr.jp/topics/339082
+- 監獄ゴブリン / オデ arc (vol. 5): https://dengekionline.com/articles/159573/ ; https://www.toy-people.com/jp/?p=92616
+- ゾウ as an enemy character: https://realsound.jp/book/2025/07/post-2089232.html
+- 黒い流れ星 arc: https://dengekionline.com/article/202312/1034 ; https://animeanime.jp/article/2026/08/09/101886.html
+- 古本屋 = カニちゃん (crab headband from Momonga): the 2026 film's official character page https://chiikawa.toho-movie.jp/atm/characters.html ; KAI-YOU https://kai-you.net/word/%E5%8F%A4%E6%9C%AC%E5%B1%8B (the earlier lifestyle.assist-all page is dropped: it does not say the headband came from Momonga)
+- v2 roster sources (2026-11-06): the pages now in gallery.json's `sources` table, keys eiga_pajama, kodansha4, film_chars, film_story, dengeki_shisa, realsound_shisa, tvdb289 (fan-run), pocket_x_taiyaki, pocket_x_dekatsuyo, realsound_siren, realsound_siren2, ciatr_siren, ciatr_yamanba, appbank_scary, tvdb306 (fan-run), pash130, abema131, ciatr_tobatsu, abema154, realsound_restaurant
+- 草むしり検定: Hachiware passed first: https://toyokeizai.net/articles/-/650817?display=b ; Usagi Grade 2: https://kai-you.net/article/92874
+- セイレーン / island arc and the film: https://gamepedia.jp/story/?p=14555 ; https://kai-you.net/word/%E6%98%A0%E7%94%BB%E3%81%A1%E3%81%84%E3%81%8B%E3%82%8F%20%E4%BA%BA%E9%AD%9A%E3%81%AE%E5%B3%B6%E3%81%AE%E3%81%B2%E3%81%BF%E3%81%A4
+- パジャマパーティーズ: https://times.abema.tv/articles/-/10144924
+- あのこ: https://gamepedia.jp/story/?p=7939
+- おっきい討伐 in the anime, eps. 129–132 (flown in, the mushrooms, the tail, Usagi alone): https://times.abema.tv/articles/-/10200749 ; https://times.abema.tv/articles/-/10200756 ; https://www.pashplus.jp/anime/320954/ ; https://www.pashplus.jp/anime/321823/ ; https://times.abema.tv/articles/-/10203568
+- おっきい討伐 in the manga, posts of 29 April – 7 May 2021 (the frog, リタイヤ, everyone safe), fan recaps: https://chiikawa-biyori.com/officeglico ; https://chiikawa-moyou.com/office-glico/ ; https://ciatr.jp/topics/339017
+- あのこ's first anime appearance, ep. 130: https://dengekionline.com/articles/216492/
+- あのこ as one of the so-called でかつよ (a lead, §19.1): https://dic.nicovideo.jp/a/%E3%81%82%E3%81%AE%E3%81%93%28%E3%81%A1%E3%81%84%E3%81%8B%E3%82%8F%29
+- 労働の鎧さん runs a place like a job office and pays for the work (anime ep. 83); no place called 討伐受付 was found: https://www.appbank.net/2023/01/23/chiikawa/2383005.php ; https://times.abema.tv/articles/-/10149240
+- ちいかぶ reveal (anime ep. 93): https://times.abema.tv/articles/-/10157488
+- PvZ 3 moved to portrait: https://kotaku.com/popcap-soft-launches-plants-vs-zombies-3-1841951761
+
+### A.1 Gallery sources (moved out of the game, 2026-11-06)
+
+The gallery used to list these under each entry; the owner removed the sources section from the game. They stay here as the record of what each entry's lore rests on.
+
+- chiikawa: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21 ; ABEMA TIMES：アニメ第109・110話 https://times.abema.tv/articles/-/10177321 ; 電撃オンライン：草むしり検定の合否 https://dengekionline.com/article/202507/46407
+- chiikawa_island: 講談社：『ちいかわ』8巻（表紙：花かんむりとこしみののちいかわ） https://www.kodansha.co.jp/comic/products/0000420201 ; ピクシブ百科事典：島(ちいかわ) https://dic.pixiv.net/a/島(ちいかわ) ; ピクシブ百科事典：ちいかわ(キャラクター) https://dic.pixiv.net/a/ちいかわ(キャラクター) ; Real Sound：映画のキャンプファイヤー https://realsound.jp/movie/2026/09/post-2528838.html
+- hachiware: ねとらぼ：おそろいのさすまた（アニメ第17・18話） https://nlab.itmedia.co.jp/fav/articles/3924693/ ; 東洋経済オンライン：草むしり検定 https://toyokeizai.net/articles/-/650817?display=b ; ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- hachiware_pajama: ABEMA TIMES：アニメ第46話（パジャマの試着） https://times.abema.tv/articles/-/10171834 ; ABEMA TIMES：アニメ第150話（代わりにステージへ） https://times.abema.tv/articles/-/10226793 ; ABEMA TIMES：アニメ第153話（デッキブラシ） https://times.abema.tv/articles/-/10231357 ; 電撃オンライン：パジャマパーティーのぬいぐるみ https://dengekionline.com/articles/128681/
+- yoroi: ciatr：鎧さん https://ciatr.jp/topics/339010 ; ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- yoroi_erai: ABEMA TIMES：アニメ第114話（「オイ、仲良くしすぎだ」） https://times.abema.tv/articles/-/10182016 ; ABEMA TIMES：アニメ第121話 https://times.abema.tv/articles/-/10191306 ; ABEMA TIMES：声優・キャラクター一覧（金色のよろい） https://times.abema.tv/articles/-/10144924 ; ピクシブ百科事典：鎧さん https://dic.pixiv.net/a/鎧さん
+- usagi: Real Sound：うさぎの討伐棒 https://realsound.jp/book/2025/12/post-2235448.html ; KAI-YOU：うさぎ、草むしり検定2級に合格 https://kai-you.net/article/92874 ; AppBank：ちいかわのキャラクター https://www.appbank.net/2022/10/28/chiikawa/2321119.php
+- usagi_cool: 見た目は本作の創作（サングラスはグッズのみ：AppBank https://www.appbank.net/?p=2787945 ; Zoff https://haveagood-holiday.com/en/articles/zoff-chiikawa-eyewear-collection-vol3）。ラップ：ピクシブ百科事典：うさぎラップ https://dic.pixiv.net/a/うさぎラップ
+- momonga: KAI-YOU：モモンガ https://kai-you.net/word/%E3%83%A2%E3%83%A2%E3%83%B3%E3%82%AC ; ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- kurimanju: AppBank：栗まんじゅう https://www.appbank.net/2022/11/08/chiikawa/2327278.php
+- shisa: シーサーのプロフィール（まとめ記事） https://lifestyle.assist-all.co.jp/?p=30133 ; ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- ode: 電撃オンライン：コミックス5巻（オデ編） https://dengekionline.com/articles/159573/
+- yoroi_pochette: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21 ; ABEMA TIMES：アニメ「ちいかわ」声優・キャラクター一覧 https://times.abema.tv/articles/-/10144924 ; All About ニュース：大蛇からの救出（2025年1月20日の回） https://news.allabout.co.jp/articles/o/89351/
+- pajama_parties: アニメハック：パジャマパーティーズのキャストと結成のいきさつ https://anime.eiga.com/news/120659/ ; 講談社：『ちいかわ』4巻 作品紹介（パジャマパーティーズとでかい鳥） https://www.kodansha.co.jp/comic/products/0000367664 ; ABEMA TIMES：アニメ「ちいかわ」声優・キャラクター一覧 https://times.abema.tv/articles/-/10144924
+- futaba: 『映画ちいかわ 人魚の島のひみつ』公式サイト：キャラクター https://chiikawa.toho-movie.jp/atm/characters.html ; 電ファミニコゲーマー：島民ヒトハとフタバのキャスト（“強すぎる絆”） https://news.denfaminicogamer.jp/news/2607212f ; ciatr：映画ちいかわのキャラクター（島編のヒトハとフタバ） https://ciatr.jp/topics/338882
+- hitoha: 『映画ちいかわ 人魚の島のひみつ』公式サイト：キャラクター https://chiikawa.toho-movie.jp/atm/characters.html ; 電ファミニコゲーマー：島民ヒトハとフタバのキャスト（“強すぎる絆”） https://news.denfaminicogamer.jp/news/2607212f ; ciatr：映画ちいかわのキャラクター（島編のヒトハとフタバ） https://ciatr.jp/topics/338882
+- shimajiro: 『映画ちいかわ 人魚の島のひみつ』公式サイト：キャラクター（「ちいかわが森の奥で見つけた店『島二郎』の店主」） https://chiikawa.toho-movie.jp/atm/characters.html ; Real Sound：「セイレーン編」映画化で島二郎に注目（食堂、カツカレーと貝汁） https://realsound.jp/book/2025/11/post-2230266.html ; ゲーム攻略大百科：島二郎（見た目、素潜りで貝をとる、セイレーンから逃がそうとする） https://gamepedia.jp/story/?p=17164 ; コミックナタリー：島二郎役は最上嗣生 https://natalie.mu/comic/news/674342
+- taiyaki: TheTVDB：アニメ第289話「たい焼き／ハンバーガー」のあらすじ（ファン運営のデータベース） https://www.thetvdb.com/series/chiikawa/episodes/11430729 ; ちいかわぽけっと公式X：おたすけキャラクター「たい焼き」（2025年3月2日） https://x.com/chiikawa_pt_jp/status/1896032724667748776
+- muchauman: ピクシブ百科事典：むちゃうマン https://dic.pixiv.net/a/むちゃうマン ; ピクシブ百科事典：ちいかわのエピソード一覧 https://dic.pixiv.net/a/ちいかわのエピソード一覧 ; ファミ通：アニメ第137話とテーマ曲 https://www.famitsu.com/news/202401/30332706.html ; ABEMA TIMES：写真のチャンス（アニメ第139・140話） https://times.abema.tv/articles/-/10214810
+- hoshi: ABEMA TIMES：アニメ「ちいかわ」声優・キャラクター一覧 https://times.abema.tv/articles/-/10144924 ; 電撃オンライン：シーサーの《お酒の資格》編（2026年の原作） https://dengekionline.com/article/202610/90586 ; Real Sound：シーサーと“お酒の免許証”（2026年の原作） https://realsound.jp/book/2026/10/post-2552277.html
+- rakko: AppBank：ランカーのラッコ https://www.appbank.net/2022/10/28/chiikawa/2321119.php ; ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21 ; ゲーム攻略大百科：映画 人魚の島のひみつ https://gamepedia.jp/story/?p=14555
+- mushi_twolegs: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- goblin: 電撃オンライン：コミックス5巻（オデ編） https://dengekionline.com/articles/159573/ ; トイピープル：監獄ゴブリン編グッズ https://www.toy-people.com/jp/?p=92616
+- mushi_sixlegs: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- chushidesu: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- fugu: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- majyo: マンガペディア：作品紹介 https://mangapedia.com/ちいかわなんか小さくてかわいいやつ-wdigc3py5 ; ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- kimera: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21 ; ファミ通：アニメ16話「キメラ」 https://www.famitsu.com/news/202211/03279822.html ; ciatr：キメラ化とピンクのキメラ https://ciatr.jp/topics/338972
+- mushi_horned: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- kuroi_nagareboshi: 電撃オンライン：黒い流れ星編 https://dengekionline.com/article/202312/1034
+- guchokipanogitaigata: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- zou: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- chiikabu: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21 ; ABEMA TIMES：ちいかぶの擬態型（アニメ第93話） https://times.abema.tv/articles/-/10157488
+- dekai_tori: 講談社：『ちいかわ』4巻 作品紹介（パジャマパーティーズとでかい鳥） https://www.kodansha.co.jp/comic/products/0000367664 ; ABEMA TIMES：でかい鳥の討伐（アニメ第154話） https://times.abema.tv/articles/-/10232931 ; Real Sound：討伐フェアを前に原作を振り返る（でかい鳥） https://realsound.jp/book/2025/10/post-2204977.html
+- ningyo: 『映画ちいかわ 人魚の島のひみつ』公式サイト：キャラクター https://chiikawa.toho-movie.jp/atm/characters.html ; Real Sound：原作「セイレーン編」の見どころ（ネタバレあり） https://realsound.jp/book/2025/11/post-2232087.html ; Real Sound：セイレーンは被害者か、それとも加害者か（ネタバレあり） https://realsound.jp/movie/2026/08/post-2482087.html
+- yamanba: ciatr：山姥編まとめ（単行本7巻） https://ciatr.jp/topics/339082 ; AppBank：怖いエピソードまとめ（山姥編） https://www.appbank.net/2022/11/19/chiikawa/2335169.php ; TheTVDB：アニメ第306話「山姥①」のあらすじ（ファン運営のデータベース） https://www.thetvdb.com/series/chiikawa/episodes/11547188
+- seiren: 『映画ちいかわ 人魚の島のひみつ』公式サイト：キャラクター https://chiikawa.toho-movie.jp/atm/characters.html ; 『映画ちいかわ 人魚の島のひみつ』公式サイト：ストーリー https://chiikawa.toho-movie.jp/atm/index.html ; Real Sound：セイレーンは被害者か、それとも加害者か（ネタバレあり） https://realsound.jp/movie/2026/08/post-2482087.html ; ciatr：セイレーン編を結末まで解説（ネタバレ） https://ciatr.jp/topics/335647
+- dekatsuyo: ABEMA TIMES：アニメ「ちいかわ」声優・キャラクター一覧 https://times.abema.tv/articles/-/10144924 ; KAI-YOU：モモンガ https://kai-you.net/word/%E3%83%A2%E3%83%A2%E3%83%B3%E3%82%AC ; ちいかわぽけっと公式X：おたすけキャラクター「でかつよ」（2025年3月17日） https://x.com/chiikawa_pt_jp/status/1901468536045752457
+- anoko: ABEMA TIMES：アニメ「ちいかわ」声優・キャラクター一覧 https://times.abema.tv/articles/-/10144924 ; PASH! PLUS：アニメ第130話「おっきい討伐②」 https://www.pashplus.jp/anime/321823/ ; ABEMA TIMES：ひとりで戦ううさぎ（アニメ第131・132話） https://times.abema.tv/articles/-/10203568 ; ciatr：討伐対象一覧・戦績 https://ciatr.jp/topics/339017
+- yoroi_rodo: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21
+- yoroi_ramen: ちいかわぽけっと キャラクター一覧（攻略大百科） https://gamepedia.jp/chiikawa-pocket/archives/21 ; シーサーのプロフィール（まとめ記事） https://lifestyle.assist-all.co.jp/?p=30133
+- furuhonya: 『映画ちいかわ 人魚の島のひみつ』公式サイト：キャラクター https://chiikawa.toho-movie.jp/atm/characters.html ; KAI-YOU：古本屋（カニのカチューシャのいきさつ） https://kai-you.net/word/%E5%8F%A4%E6%9C%AC%E5%B1%8B
+
+## Appendix B. Glossary
+
+| Term | Meaning |
+|---|---|
+| 討伐 | Subjugation job. Paid work from the 鎧さん. Our levels |
+| 草むしり | Weed pulling. Paid work. Our in-level currency source |
+| 鎧さん | The armored adults who run jobs and shops |
+| 友好型 / 擬態型 | Canon creature classes: friendly type / mimic type |
+| 大群 | "A huge wave is approaching" moment |
+| 図鑑 | The gallery |
+| ポシェット | The shoulder pouch; our deck-slot upgrade |

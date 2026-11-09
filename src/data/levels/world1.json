@@ -1,0 +1,181 @@
+[
+  {
+    "id": "1-1",
+    "world": 1,
+    "index": 1,
+    "lanes": [2],
+    "startWeeds": 75,
+    "sprout": {"firstMs": 2500, "minMs": 6000, "maxMs": 9000, "value": 25, "lifeMs": 12000},
+    "deck": {"forced": ["usagi"]},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 24, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 48, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 70, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 90, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 114, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 3}
+      ] }
+    ],
+    "rewards": {"firstClear": 300, "replay": 50, "unlockCard": "chiikawa"}
+  },
+  {
+    "id": "1-2",
+    "world": 1,
+    "index": 2,
+    "lanes": [1, 2, 3],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 24, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 46, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 66, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 86, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 106, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 130, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 5}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "yoroi"}
+  },
+  {
+    "id": "1-3",
+    "world": 1,
+    "index": 3,
+    "lanes": [1, 2, 3],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 24, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 46, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 66, "spawns": [
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 86, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 106, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 130, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 4},
+        {"enemy": "chushidesu", "count": 2}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "hachiware"}
+  },
+  {
+    "id": "1-4",
+    "world": 1,
+    "index": 4,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 24, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 46, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 70, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 92, "spawns": [
+        {"enemy": "mushi_twolegs"},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 114, "spawns": [
+        {"enemy": "mushi_sixlegs", "hpMul": 0.7},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 136, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2},
+        {"enemy": "chushidesu"}
+      ] },
+      { "at": 160, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 5},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.7},
+        {"enemy": "chushidesu"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "kurimanju"}
+  },
+  {
+    "id": "1-5",
+    "world": 1,
+    "index": 5,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 50,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": true,
+    "waves": [
+      { "at": 24, "spawns": [
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 46, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 66, "spawns": [
+        {"enemy": "chushidesu"},
+        {"enemy": "mushi_twolegs"}
+      ] },
+      { "at": 88, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 110, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 6},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.7}
+      ] },
+      { "at": 134, "spawns": [
+        {"enemy": "chushidesu"},
+        {"enemy": "mushi_twolegs", "count": 2}
+      ] },
+      { "at": 156, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 3}
+      ] },
+      { "at": 184, "final": true, "boss": true, "spawns": [
+        {"enemy": "mushi_pink", "boss": true, "hpMul": 0.6},
+        {"enemy": "mushi_twolegs", "count": 6},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.7},
+        {"enemy": "chushidesu"}
+      ] }
+    ],
+    "rewards": {"firstClear": 600, "replay": 50, "unlockCard": "furuhonya", "unlockFeatures": ["speed"]}
+  }
+]

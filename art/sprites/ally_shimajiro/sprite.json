@@ -1,0 +1,38 @@
+{
+  "kind": "sprite",
+  "id": "ally_shimajiro",
+  "height": 215,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 213,
+      "h": 219,
+      "ax": 87,
+      "ay": 217,
+      "boxes": [
+        [2, 2, 209, 215]
+      ]
+    },
+    "damaged1": {
+      "frames": 1,
+      "w": 213,
+      "h": 219,
+      "ax": 87,
+      "ay": 217,
+      "boxes": [
+        [2, 2, 209, 215]
+      ]
+    },
+    "damaged2": {
+      "frames": 1,
+      "w": 213,
+      "h": 219,
+      "ax": 87,
+      "ay": 217,
+      "boxes": [
+        [2, 2, 209, 215]
+      ]
+    }
+  },
+  "from": "image/sprite/shimajiro"
+}

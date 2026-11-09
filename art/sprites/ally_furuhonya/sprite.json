@@ -1,0 +1,31 @@
+{
+  "kind": "sprite",
+  "id": "ally_furuhonya",
+  "height": 233,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 164,
+      "h": 237,
+      "ax": 82,
+      "ay": 235,
+      "boxes": [
+        [2, 2, 160, 233]
+      ]
+    },
+    "attack": {
+      "frames": 4,
+      "w": 195,
+      "h": 241,
+      "ax": 82,
+      "ay": 238,
+      "boxes": [
+        [2, 2, 165, 236],
+        [8, 5, 168, 234],
+        [18, 10, 175, 228],
+        [16, 6, 169, 232]
+      ]
+    }
+  },
+  "from": "image/sprite/furuhonya"
+}

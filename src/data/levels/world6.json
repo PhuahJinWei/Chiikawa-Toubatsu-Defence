@@ -1,0 +1,249 @@
+[
+  {
+    "id": "6-1",
+    "world": 6,
+    "index": 1,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 100,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": false,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "mushi_horned"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 170, "spawns": [
+        {"enemy": "yamanba"},
+        {"enemy": "goblin"},
+        {"enemy": "kimera"}
+      ] },
+      { "at": 198, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 232, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "kimera"},
+        {"enemy": "mushi_horned"},
+        {"enemy": "mushi_sixlegs"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50}
+  },
+  {
+    "id": "6-2",
+    "world": 6,
+    "index": 2,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 100,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": false,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "goblin"},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "dekai_tori"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 170, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "kuroi_nagareboshi"},
+        {"enemy": "yamanba"}
+      ] },
+      { "at": 198, "spawns": [
+        {"enemy": "goblin", "count": 2},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 232, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "yamanba"},
+        {"enemy": "kimera"},
+        {"enemy": "mushi_horned"},
+        {"enemy": "dekai_tori"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "hachiware_pajama"}
+  },
+  {
+    "id": "6-3",
+    "world": 6,
+    "index": 3,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 100,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": false,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "yamanba"},
+        {"enemy": "dekai_tori"},
+        {"enemy": "mushi_horned"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 170, "boss": true, "spawns": [
+        {"enemy": "zou", "boss": true},
+        {"enemy": "goblin", "count": 3}
+      ] },
+      { "at": 200, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 235, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "zou"},
+        {"enemy": "kimera"},
+        {"enemy": "yamanba"},
+        {"enemy": "dekai_tori"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50}
+  },
+  {
+    "id": "6-4",
+    "world": 6,
+    "index": 4,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 100,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": false,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "mushi_horned"},
+        {"enemy": "dekai_tori"},
+        {"enemy": "yamanba"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "kuroi_nagareboshi"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 170, "boss": true, "spawns": [
+        {"enemy": "guchokipanogitaigata", "boss": true},
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 200, "spawns": [
+        {"enemy": "goblin"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 230, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "dekai_tori"},
+        {"enemy": "majyo"},
+        {"enemy": "yamanba"},
+        {"enemy": "kimera"}
+      ] },
+      { "at": 268, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "kimera"},
+        {"enemy": "yamanba"},
+        {"enemy": "mushi_horned"}
+      ] }
+    ],
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "usagi_cool"}
+  },
+  {
+    "id": "6-5",
+    "world": 6,
+    "index": 5,
+    "lanes": [0, 1, 2, 3, 4],
+    "startWeeds": 100,
+    "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
+    "deck": {},
+    "terrain": [],
+    "rescues": false,
+    "waves": [
+      { "at": 30, "spawns": [
+        {"enemy": "goblin"}
+      ] },
+      { "at": 58, "spawns": [
+        {"enemy": "goblin", "count": 2}
+      ] },
+      { "at": 85, "spawns": [
+        {"enemy": "goblin"},
+        {"enemy": "majyo"}
+      ] },
+      { "at": 112, "spawns": [
+        {"enemy": "kimera"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 140, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 8},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 170, "spawns": [
+        {"enemy": "mushi_horned"},
+        {"enemy": "kuroi_nagareboshi"},
+        {"enemy": "yamanba"}
+      ] },
+      { "at": 200, "spawns": [
+        {"enemy": "majyo"},
+        {"enemy": "goblin"}
+      ] },
+      { "at": 230, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "dekai_tori"},
+        {"enemy": "yamanba"},
+        {"enemy": "kimera"}
+      ] },
+      { "at": 278, "final": true, "boss": true, "spawns": [
+        {"enemy": "dekatsuyo", "boss": true},
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "kimera"},
+        {"enemy": "yamanba"}
+      ] }
+    ],
+    "rewards": {"firstClear": 1000, "replay": 50, "unlockFeatures": ["endless"]}
+  }
+]

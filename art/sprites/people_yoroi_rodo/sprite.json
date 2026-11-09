@@ -1,0 +1,18 @@
+{
+  "kind": "sprite",
+  "id": "people_yoroi_rodo",
+  "height": 1061,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 409,
+      "h": 1066,
+      "ax": 187.5,
+      "ay": 1063,
+      "boxes": [
+        [2, 2, 405, 1062]
+      ]
+    }
+  },
+  "from": "image/sprite/yoroi_rodo"
+}

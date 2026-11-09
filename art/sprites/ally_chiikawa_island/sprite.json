@@ -1,0 +1,32 @@
+{
+  "kind": "sprite",
+  "id": "ally_chiikawa_island",
+  "height": 234,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 259,
+      "h": 238,
+      "ax": 86,
+      "ay": 236,
+      "boxes": [
+        [2, 2, 255, 234]
+      ]
+    },
+    "attack": {
+      "frames": 5,
+      "w": 336,
+      "h": 231,
+      "ax": 95,
+      "ay": 228,
+      "boxes": [
+        [13, 2, 217, 227],
+        [16, 12, 251, 217],
+        [16, 12, 318, 217],
+        [2, 3, 228, 226],
+        [13, 2, 217, 227]
+      ]
+    }
+  },
+  "from": "image/sprite/chiikawa - mermaid"
+}

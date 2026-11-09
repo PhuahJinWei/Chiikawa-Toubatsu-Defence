@@ -1,0 +1,38 @@
+{
+  "kind": "sprite",
+  "id": "ally_yoroi_erai",
+  "height": 210,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 181,
+      "h": 215,
+      "ax": 88,
+      "ay": 212,
+      "boxes": [
+        [2, 2, 177, 211]
+      ]
+    },
+    "damaged1": {
+      "frames": 1,
+      "w": 181,
+      "h": 215,
+      "ax": 88,
+      "ay": 212,
+      "boxes": [
+        [2, 2, 177, 211]
+      ]
+    },
+    "damaged2": {
+      "frames": 1,
+      "w": 181,
+      "h": 215,
+      "ax": 88,
+      "ay": 212,
+      "boxes": [
+        [2, 2, 177, 211]
+      ]
+    }
+  },
+  "from": "image/sprite/yoroi_erai"
+}

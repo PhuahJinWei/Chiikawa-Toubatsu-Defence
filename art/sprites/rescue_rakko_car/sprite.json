@@ -1,0 +1,17 @@
+{
+  "kind": "sprite",
+  "id": "rescue_rakko_car",
+  "height": 1044,
+  "anims": {
+    "idle": {
+      "frames": 1,
+      "w": 1162,
+      "h": 1045,
+      "ax": 471,
+      "ay": 1044,
+      "boxes": [
+        [0, 0, 1162, 1045]
+      ]
+    }
+  }
+}
