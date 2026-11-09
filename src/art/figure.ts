@@ -39,12 +39,16 @@ export interface Frame {
 
 /** How a preview draws one character: `k` CSS pixels per field pixel (the same for every character: this is what keeps
  *  them true to size), where its feet stand (`x`, `y`, CSS pixels from the preview's top left), and the preview's
- *  height for its width (taller for a giant). */
+ *  height for its width (taller for a giant). `spareAbove` and `spareBelow` (CSS pixels) are the stage left empty over
+ *  and under all the character does, less the air for its cut edge: what a page with writing around the preview can
+ *  close up, the character's size untouched. */
 interface FigureLayout {
   k: number;
   x: number;
   y: number;
   height: number;
+  spareAbove: number;
+  spareBelow: number;
 }
 
 /** Room kept around the biggest character (field pixels): its white cut edge, and a little air. */
@@ -120,6 +124,11 @@ export function shadowOf(id: string): { dx: number; rx: number } {
   return { dx: (rest.x0 + rest.x1) / 2, rx: Math.max(SHADOW[tier], (rest.x1 - rest.x0) * 0.3) };
 }
 
+/** How far below its feet a character reaches, its shadow included (field pixels), given all it covers. */
+function belowFeet(id: string, r: Box): number {
+  return Math.max(r.y1, shadowOf(id).rx * 0.24 - 4);
+}
+
 /** How far a character's front reaches while it stands and walks (field pixels from its feet, on the side it faces):
  *  what stays in view when it is too big for the stage. A strike may reach further, past the edge for a moment. */
 export function frontOf(id: string): number {
@@ -161,7 +170,7 @@ export function stage(): Stage {
     const sh = shadowOf(id);
     half = Math.max(half, (r.x1 - r.x0) / 2, Math.abs(sh.dx - mid) + sh.rx);
     top = Math.max(top, -r.y0);
-    below = Math.max(below, r.y1, sh.rx * 0.24 - 4);
+    below = Math.max(below, belowFeet(id, r));
   }
   const ground = Math.ceil(top + AIR);
   STAGE = { w: Math.ceil(2 * (half + AIR)), h: ground + Math.ceil(below + AIR), ground };
@@ -182,7 +191,7 @@ function figureFrame(id: string): Frame {
   if (r) {
     const sh = shadowOf(id);
     const ground = Math.max(st.ground, Math.ceil(-r.y0 + AIR));
-    const h = ground + Math.max(st.h - st.ground, Math.ceil(Math.max(r.y1, sh.rx * 0.24 - 4) + AIR));
+    const h = ground + Math.max(st.h - st.ground, Math.ceil(belowFeet(id, r) + AIR));
     const mid = (r.x0 + r.x1) / 2;
     const fits = r.x1 - r.x0 <= st.w - 2 * AIR && Math.abs(sh.dx - mid) + sh.rx <= st.w / 2 - AIR;
     const feet = fits ? st.w / 2 - mid : facingOf(id) < 0 ? AIR - frontOf(id) : st.w - AIR - frontOf(id);
@@ -197,5 +206,13 @@ function figureFrame(id: string): Frame {
 export function figureLayout(id: string, width: number): FigureLayout {
   const f = figureFrame(id);
   const k = width / stage().w;
-  return { k, x: f.feet * k, y: f.ground * k, height: f.h * k };
+  const r = reachOf(id);
+  return {
+    k,
+    x: f.feet * k,
+    y: f.ground * k,
+    height: f.h * k,
+    spareAbove: r ? (f.ground + r.y0 - AIR) * k : 0,
+    spareBelow: r ? (f.h - f.ground - belowFeet(id, r) - AIR) * k : 0,
+  };
 }

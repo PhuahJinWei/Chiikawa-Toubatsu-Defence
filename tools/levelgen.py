@@ -214,19 +214,20 @@ W5 = [
 # World 6 おっきい討伐: the big hunt. Rakko is not on it, so there is no rescue car: whatever reaches the landing spot
 # ends the job. The big ones come out of the tall grass, a mixed roster from every world, with ゾウ and 擬態型 as mid-level
 # threats and でかつよ, the toughest of all, as the boss. Clearing 6-5 opens endless mode, the 討伐ランキング. With no car to
-# catch a slip, every job starts with more 草.
+# catch a slip, every job starts with more 草. Its two friends come at once, ハチワレ（パジャマ） for clearing 6-1 and うさぎ（クール）,
+# the strongest friend of all, for 6-2; 6-3 and 6-4 bring nobody (owner's call).
 HUNT_START = 100
 
 def hunt(idx, waves, start=HUNT_START, **kw):
     return lvl(6, idx, waves, start=start, rescues=False, **kw)
 
 W6 = [
-    hunt(1, "24: gb; 46: gb*2; 68: gb*2; 90: hn; 112 big: gb*6 km; 136: ym gb; 158: km mj; 186 final: gb*7 km hn s6"),
-    hunt(2, "24: gb; 46: gb*2; 68: gb mj; 90: dt; 112 big: gb*6 ym; 136: km bs; 158: dt gb*2; 186 final: gb*7 ym km hn dt",
+    hunt(1, "24: gb; 46: gb*2; 68: gb*2; 90: hn; 112 big: gb*6 km; 136: ym gb; 158: km mj; 186 final: gb*7 km hn s6",
          unlock='hachiware_pajama'),
-    hunt(3, "24: gb; 46: gb*2; 68: hn; 90: ym dt; 112 big: gb*7 hn; 136 boss: zu! gb*3; 160: km mj; 188 final: gb*7 zu km ym dt"),
-    hunt(4, "24: gb; 46: gb*2; 68: ym mj; 90: hn dt; 112 big: gb*7 km bs; 136 boss: gt! gb*2; 160: ym km; 184 big: gb*6 dt mj; 214 final: gb*7 km ym hn",
+    hunt(2, "24: gb; 46: gb*2; 68: gb mj; 90: dt; 112 big: gb*6 ym; 136: km bs; 158: dt gb*2; 186 final: gb*7 ym km hn dt",
          unlock='usagi_cool'),
+    hunt(3, "24: gb; 46: gb*2; 68: hn; 90: ym dt; 112 big: gb*7 hn; 136 boss: zu! gb*3; 160: km mj; 188 final: gb*7 zu km ym dt"),
+    hunt(4, "24: gb; 46: gb*2; 68: ym mj; 90: hn dt; 112 big: gb*7 km bs; 136 boss: gt! gb; 160: ym km; 184 big: gb*6 dt mj; 214 final: gb*7 km ym hn"),
     hunt(5, "24: gb; 46: gb*2; 68: gb mj; 90: km gb; 112 big: gb*8 ym; 136: hn bs; 160: km mj; 184 big: gb*7 dt ym; 222 final boss: dk! gb*7 km ym",
          features=['endless'], first=1000),
 ]

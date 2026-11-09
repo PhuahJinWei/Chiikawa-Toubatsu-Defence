@@ -15,3 +15,9 @@ export const SCENES: SceneSpec[] = [LOBBY_SCENE, QUESTS_SCENE, SHOP_SCENE, BOOK_
 export function sceneSpec(id: string): SceneSpec | undefined {
   return SCENES.find((s) => s.id === id);
 }
+
+/** The picture a battle in this world is fought on: one painted for exactly these open lanes, if there is one, else the world's own. */
+export function worldScene(world: number, lanes: readonly number[]): SceneSpec {
+  const open = [...lanes].sort().join();
+  return WORLD_SCENES.find((s) => s.forLanes?.world === world && s.forLanes.open.join() === open) ?? sceneSpec(`world${world}`) ?? sceneSpec('world1')!;
+}

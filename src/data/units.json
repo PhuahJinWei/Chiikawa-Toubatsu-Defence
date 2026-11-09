@@ -28,7 +28,7 @@
     "initialCooldownMs": 0,
     "hp": 300,
     "size": "S",
-    "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 1300, "rangeTiles": 3, "fx": "fx_jab" }
+    "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 1300, "rangeTiles": 3, "fx": "fx_thrust" }
   },
   {
     "id": "hachiware_pajama",
@@ -38,7 +38,7 @@
     "initialCooldownMs": 5000,
     "hp": 300,
     "size": "S",
-    "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 2600, "rangeTiles": 3, "fx": "fx_jab", "pushTiles": 0.5 }
+    "attack": { "kind": "hitscan", "damage": 30, "intervalMs": 2600, "rangeTiles": 3, "fx": "fx_thrust", "pushTiles": 0.15 }
   },
   {
     "id": "yoroi",
@@ -148,7 +148,7 @@
     "hp": 2000,
     "size": "S",
     "rescuer": true,
-    "attack": { "kind": "hitscan", "damage": 70, "intervalMs": 1000, "rangeTiles": 1, "fx": "fx_jab", "ignoresArmor": true, "sweepLanes": 1 }
+    "attack": { "kind": "hitscan", "damage": 70, "intervalMs": 1200, "rangeTiles": 2, "fx": "fx_sweep", "ignoresArmor": true, "sweepLanes": 1 }
   },
   {
     "id": "furuhonya",

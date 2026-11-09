@@ -48,9 +48,10 @@ export function statsOf(id: string): { k: string; v: string; icon?: string }[] {
       stats.push({ k: t('stat.range'), v: lanes ? t('stat.rangeAllLanes') : reach === undefined ? t('stat.rangeLane') : reach === 0 ? t('stat.rangeTouch') : t('stat.rangeTiles', { n: reach }) });
       // A shot that goes through everyone in the lane (フタバ's shells).
       if (unit.attack.passThrough) stats.push({ k: t('stat.targets'), v: t('stat.targetsAll') });
-      // A sweep through the lanes either side too (ラッコ's sword): one enemy in each.
+      // A blow goes through everyone it reaches, in the lanes either side too for a sweep (ラッコ's sword).
       const sweep = unit.attack.sweepLanes;
       if (sweep) stats.push({ k: t('stat.targets'), v: t('stat.targetsSweep', { n: 2 * sweep + 1 }) });
+      else if (unit.attack.kind === 'hitscan') stats.push({ k: t('stat.targets'), v: t('stat.targetsReach') });
       // A missile's blast: everyone round where it lands.
       if (lanes) stats.push({ k: t('stat.targets'), v: t('stat.targetsBlast') });
       // A jab that pushes back (ハチワレ（パジャマ）).

@@ -42,7 +42,7 @@
         {"enemy": "mushi_sixlegs"}
       ] }
     ],
-    "rewards": {"firstClear": 400, "replay": 50}
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "hachiware_pajama"}
   },
   {
     "id": "6-2",
@@ -89,7 +89,7 @@
         {"enemy": "dekai_tori"}
       ] }
     ],
-    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "hachiware_pajama"}
+    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "usagi_cool"}
   },
   {
     "id": "6-3",
@@ -171,7 +171,7 @@
       ] },
       { "at": 170, "boss": true, "spawns": [
         {"enemy": "guchokipanogitaigata", "boss": true},
-        {"enemy": "goblin", "count": 2}
+        {"enemy": "goblin"}
       ] },
       { "at": 200, "spawns": [
         {"enemy": "goblin"},
@@ -191,7 +191,7 @@
         {"enemy": "mushi_horned"}
       ] }
     ],
-    "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "usagi_cool"}
+    "rewards": {"firstClear": 400, "replay": 50}
   },
   {
     "id": "6-5",

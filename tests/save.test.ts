@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { crc32, defaultSave, exportCode, FIRST_FRIEND, importCode, migrate, SAVE_VERSION } from '../src/save/save';
+import { crc32, defaultSave, exportCode, FIRST_FRIEND, importCode, initSave, migrate, SAVE_VERSION } from '../src/save/save';
 
 describe('save', () => {
   it('export → import round-trips the whole save', () => {
@@ -17,6 +17,14 @@ describe('save', () => {
     expect(back!.cards).toEqual(['usagi', 'chiikawa', 'yoroi']);
     expect(back!.cleared['1-1']).toEqual({ stars: 3, clears: 2 });
     expect(back!.settings.lang).toBe('en');
+  });
+
+  it('lets only dev mode keep the art guides on (only its settings have the switch)', () => {
+    const raw = { v: SAVE_VERSION, settings: { guides: true } };
+    expect(migrate(raw, defaultSave('ja')).settings.guides).toBe(false);
+    initSave('ja', true);
+    expect(migrate(raw, defaultSave('ja')).settings.guides).toBe(true);
+    initSave('ja', false);
   });
 
   it('rejects tampered or garbage codes', () => {

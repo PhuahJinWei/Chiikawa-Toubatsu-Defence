@@ -110,10 +110,10 @@ export function defaultDeck(level?: LevelDef): string[] {
   return CARD_ORDER.filter((id) => out.slice(0, size).includes(id));
 }
 
-/** Enemies allowed in endless mode: everything the player has met in the campaign. */
+/** Enemies allowed in endless mode: everything the player has met in the campaign, but for those that only come when called. */
 export function endlessPool(): string[] {
   const seen = new Set(save.value.gallery.seen);
-  const pool = ENEMY_LIST.filter((e) => seen.has(e.id)).map((e) => e.id);
+  const pool = ENEMY_LIST.filter((e) => seen.has(e.id) && !e.summonOnly).map((e) => e.id);
   return pool.length ? pool : ['mushi_twolegs'];
 }
 
@@ -122,7 +122,6 @@ export function starsFor(rescuesUsed: number): number {
 }
 
 export interface Reward {
-  lines: { key: string; params?: Record<string, number>; amount: number }[];
   total: number;
   firstClear: boolean;
   stars: number;
@@ -133,10 +132,8 @@ export interface Reward {
 
 export function rewardFor(end: BattleEnd): Reward {
   if (end.mode === 'endless') {
-    const amount = end.wavesCleared * SHOP.rewards.endlessPerWave;
     return {
-      lines: [{ key: 'result.endlessWaves', params: { n: end.wavesCleared }, amount }],
-      total: amount,
+      total: end.wavesCleared * SHOP.rewards.endlessPerWave,
       firstClear: false,
       stars: 0,
       features: [],
@@ -144,15 +141,12 @@ export function rewardFor(end: BattleEnd): Reward {
     };
   }
   const level = LEVELS[end.levelId ?? ''];
-  if (!level || !end.won) return { lines: [], total: 0, firstClear: false, stars: 0, features: [] };
+  if (!level || !end.won) return { total: 0, firstClear: false, stars: 0, features: [] };
   const firstClear = !isCleared(level.id);
-  const lines: Reward['lines'] = [];
-  lines.push(firstClear ? { key: 'result.firstClear', amount: level.rewards.firstClear } : { key: 'result.replay', amount: level.rewards.replay });
-  if (end.rescuesLeft > 0) lines.push({ key: 'result.rescueBonus', params: { n: end.rescuesLeft }, amount: end.rescuesLeft * SHOP.rewards.rescueLeft });
-  const total = lines.reduce((n, l) => n + l.amount, 0);
+  const total = (firstClear ? level.rewards.firstClear : level.rewards.replay) + end.rescuesLeft * SHOP.rewards.rescueLeft;
   const newCard = firstClear && level.rewards.unlockCard && !save.value.cards.includes(level.rewards.unlockCard) ? level.rewards.unlockCard : undefined;
   const features = firstClear ? (level.rewards.unlockFeatures ?? []).filter((f) => !save.value.features[f as keyof typeof save.value.features]) : [];
-  return { lines, total, firstClear, stars: starsFor(end.stats.rescuesUsed), newCard, features };
+  return { total, firstClear, stars: starsFor(end.stats.rescuesUsed), newCard, features };
 }
 
 export function applyResult(end: BattleEnd, reward: Reward): void {

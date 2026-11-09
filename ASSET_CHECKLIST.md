@@ -114,6 +114,30 @@ Slots (keep clear): `tag_ramen` 300×64 at 410, 430 · `tag_shisa` 240×64 at 80
 |---|---|---|---|---|---|---|---|
 | [x] | `art/scenes/world1/picture.png` | 3360 × 1500 | 0, 0 | 1 | left, right, top, bottom | none (backdrop) | 空と雲。地平線の丘。野原の地面（戦場もこの上）。相手が来る右の小道（戦いの前に相手がここで待つ）。守る場所：ハチワレの洞窟（入口は右＝戦場向き）。手前の草と花（下のふち）。透明部分なし（絵の全体をぬる）。<br>Sky and clouds; hills on the horizon; the meadow ground (the field lies on it); the path on the right the enemies come along (they wait on it before a battle); the protected place, Hachiware’s cave, its mouth facing right toward the field; grass and flowers along the bottom edge. No transparency: fills the whole picture. |
 
+### world1_one_lane — battle world
+
+- Picture: **3360 × 1500** (or 6720 × 3000 at 2×). Delivered art: 3360 × 1500.
+- The 5 × 9 field (1530 × 850) sits at x 900–2430, y 360–1210: keep it flat ground.
+- x 2430–3360 is the road the enemies come along: before each battle they wait there (y 360–1210) and the camera glides over to look at them, so keep its middle open ground.
+- World 1 野原、レーン1本のジョブ（1-1）の戦場の背景（3360×1500の1枚の絵。パーツに分けず、全部を1枚に描く。白いふちはつかない）。x 900〜2430・y 360〜1210 が5×9マスの戦場：大きな物は置かず、平らな地面に（マス目はゲームが重ねる）。その左のx 730〜900はラッコのくるまが止まる地面。左に守る場所：カードの列がx 400ほどまでかかるので、入口や顔はx 400より右に（x 0〜300は、カードの下やそのわきに少し見えるだけなので、かんたんな続きの絵でよい）。右のx 2430〜3360は相手が来る道：戦いの前に相手がここ（y 360〜1210）に並んで待つので、歩ける地面のままにする。上は空、下は手前の地面で、どちらも画面の形によって少し見える。
+- World 1, the meadow, for the job with one open lane (1-1): battle backdrop: one flat 3360 × 1500 picture, everything painted together, not in pieces (it gets no white edge). x 900–2430, y 360–1210 is the 5 × 9 field: keep it flat ground with nothing big on it (the game lays the grid over it). Just left of it, x 730–900 is plain ground where Rakko’s cars park. The protected place stands at the left: the card column covers up to about x 400 of it, so keep a doorway or face right of x 400 (x 0–300 only shows a little, under the cards and beside them, so a simple continuation of the picture is enough). On the right, x 2430–3360 is the road the enemies come along: before a battle they line up there (y 360–1210) to be looked at, so keep it open ground. The sky above and the near ground below show a little, depending on the screen.
+
+| ✔ | File | Size | Position | Depth | Runs off | Border | What to draw |
+|---|---|---|---|---|---|---|---|
+| [x] | `art/scenes/world1_one_lane/picture.png` | 3360 × 1500 | 0, 0 | 1 | left, right, top, bottom | none (backdrop) | World 1 の絵と同じ野原で、草があるのは開いているレーン（y 700〜870）だけ。閉じたレーンは砂地で、そのまま右の小道につづく。透明部分なし（絵の全体をぬる）。<br>The same meadow as World 1’s picture, with grass only on the open lane (y 700–870). The closed lanes are bare ground, the same sand as the road they run on into. No transparency: fills the whole picture. |
+
+### world1_three_lanes — battle world
+
+- Picture: **3360 × 1500** (or 6720 × 3000 at 2×). Delivered art: 3360 × 1500.
+- The 5 × 9 field (1530 × 850) sits at x 900–2430, y 360–1210: keep it flat ground.
+- x 2430–3360 is the road the enemies come along: before each battle they wait there (y 360–1210) and the camera glides over to look at them, so keep its middle open ground.
+- World 1 野原、レーン3本のジョブ（1-2、1-3）の戦場の背景（3360×1500の1枚の絵。パーツに分けず、全部を1枚に描く。白いふちはつかない）。x 900〜2430・y 360〜1210 が5×9マスの戦場：大きな物は置かず、平らな地面に（マス目はゲームが重ねる）。その左のx 730〜900はラッコのくるまが止まる地面。左に守る場所：カードの列がx 400ほどまでかかるので、入口や顔はx 400より右に（x 0〜300は、カードの下やそのわきに少し見えるだけなので、かんたんな続きの絵でよい）。右のx 2430〜3360は相手が来る道：戦いの前に相手がここ（y 360〜1210）に並んで待つので、歩ける地面のままにする。上は空、下は手前の地面で、どちらも画面の形によって少し見える。
+- World 1, the meadow, for the jobs with three open lanes (1-2, 1-3): battle backdrop: one flat 3360 × 1500 picture, everything painted together, not in pieces (it gets no white edge). x 900–2430, y 360–1210 is the 5 × 9 field: keep it flat ground with nothing big on it (the game lays the grid over it). Just left of it, x 730–900 is plain ground where Rakko’s cars park. The protected place stands at the left: the card column covers up to about x 400 of it, so keep a doorway or face right of x 400 (x 0–300 only shows a little, under the cards and beside them, so a simple continuation of the picture is enough). On the right, x 2430–3360 is the road the enemies come along: before a battle they line up there (y 360–1210) to be looked at, so keep it open ground. The sky above and the near ground below show a little, depending on the screen.
+
+| ✔ | File | Size | Position | Depth | Runs off | Border | What to draw |
+|---|---|---|---|---|---|---|---|
+| [x] | `art/scenes/world1_three_lanes/picture.png` | 3360 × 1500 | 0, 0 | 1 | left, right, top, bottom | none (backdrop) | World 1 の絵と同じ野原で、草があるのは開いているレーン（y 530〜1040）だけ。閉じたレーンは砂地で、そのまま右の小道につづく。透明部分なし（絵の全体をぬる）。<br>The same meadow as World 1’s picture, with grass only on the open lanes (y 530–1040). The closed lanes are bare ground, the same sand as the road they run on into. No transparency: fills the whole picture. |
+
 ### world2 — battle world
 
 - Picture: **3360 × 1500** (or 6720 × 3000 at 2×). Delivered art: 3360 × 1500.
@@ -289,7 +313,7 @@ A character needs its frames before it can appear on the field: the tests name a
 
 **ally_hitoha** — ヒトハ：島の子（映画『人魚の島のひみつ』）。いつもフタバといっしょ。小さな木のボートに乗って、水のレーンにだけ置ける。大きな巻き貝を投げて、いちばん近い1体に強く当てる。フタバがとなりにいると、投げるのが速くなる。 / ヒトハ: an islander from the film 『人魚の島のひみつ』, always with フタバ. Sits in a little wooden rowboat and goes only on the water lane. Throws a big spiral shell that hits the nearest enemy hard, faster with フタバ beside it.
 
-**ally_rakko** — ラッコ：討伐ランキング1位の「先生」。オーナーのくるまとボートの絵のとおり、クリーム色のまるい顔（ふちはツンツンした毛）、横に小さな黒い耳、額に星形の傷あと、首に白いマフラー。体も同じクリーム色。手前の前足に剣を持つ（剣で討伐するのは原作どおり）。最前線に立って剣を前にふりはらい、自分のレーンと上下のレーンの、目の前と1マス先の相手を斬る（上下のレーンまでとどくひとふりは、このゲームでの動き：ふり上げて、上から下へふりはらう）。 / Rakko, the top-ranked hunter Chiikawa and Hachiware call 先生: as in the owner’s car and boat pictures, a round cream face with a spiky furry edge, small black ears at the sides, a star-shaped scar on the forehead and a white muffler; the body the same cream. Holds his sword in his near paw (he hunts with a sword in the original). Stands at the front and sweeps it through his own lane and the lanes above and below, cutting the enemy in front of him or a tile ahead in each (a swing that reaches the lanes either side is this game’s own: it swings up, then sweeps down).
+**ally_rakko** — ラッコ：討伐ランキング1位の「先生」。オーナーのくるまとボートの絵のとおり、クリーム色のまるい顔（ふちはツンツンした毛）、横に小さな黒い耳、額に星形の傷あと、首に白いマフラー。体も同じクリーム色。手前の前足に剣を持つ（剣で討伐するのは原作どおり）。最前線に立って剣を前にふりはらい、自分のレーンと上下のレーンの、前の2マスにいる相手を斬る（上下のレーンまでとどくひとふりは、このゲームでの動き：ふり上げて、上から下へふりはらう）。 / Rakko, the top-ranked hunter Chiikawa and Hachiware call 先生: as in the owner’s car and boat pictures, a round cream face with a spiky furry edge, small black ears at the sides, a star-shaped scar on the forehead and a white muffler; the body the same cream. Holds his sword in his near paw (he hunts with a sword in the original). Stands at the front and sweeps it through his own lane and the lanes above and below, cutting every enemy within two tiles ahead of him in each (a swing that reaches the lanes either side is this game’s own: it swings up, then sweeps down).
 
 **ally_shimajiro** — 島二郎：島の森の奥の食堂「島二郎」の店主（映画『人魚の島のひみつ』）。ちいかわたちよりずっと大きなおじさんで、たくましい体に口ひげ、腰にはエプロンだけ。貝汁の貝を自分で海に潜ってとるほど泳ぎが得意なので、ボートなしで水のレーンに入って壁になる（水のレーンにだけ置ける）。攻撃しない。HPが減ると、絵が「すり傷と冷や汗（damaged1）」「ばんそうこう（damaged2）」に替わる。 / 島二郎: the owner of 「島二郎」, the diner deep in the island’s forest (the film 『人魚の島のひみつ』). A big man next to Chiikawa and friends: brawny, with a moustache and nothing but an apron at his waist. He dives for the shellfish in his 貝汁, so he swims into the water lane with no boat and holds it as a wall (he goes only on the water lane). Never attacks. As HP drops, it swaps to its scraped-and-sweating (damaged1) and plastered (damaged2) pictures.
 
@@ -394,6 +418,8 @@ their centre. Projectiles fly right (the fugu’s spit flies left).
 | [x] | `art/stickers/fx_note_3.png` | 100 × 100 | 歌の音符（5種類の3つめ。音符はこの中からばらばらに出る）。<br>A song note (3 of 5: each note that floats up is one of them, picked at random). |
 | [x] | `art/stickers/fx_note_4.png` | 100 × 100 | 歌の音符（5種類の4つめ。音符はこの中からばらばらに出る）。<br>A song note (4 of 5: each note that floats up is one of them, picked at random). |
 | [x] | `art/stickers/fx_note_5.png` | 100 × 100 | 歌の音符（5種類の5つめ。音符はこの中からばらばらに出る）。<br>A song note (5 of 5: each note that floats up is one of them, picked at random). |
+| [x] | `art/stickers/fx_sweep.png` | 420 × 1080 | ラッコの剣のひとふり：右にふくらんだ三日月形の斬撃。ゲームが、剣の先から間合いの端まで飛ばし、斬るレーンの高さまでのばして、キャラクターの下に出す。<br>Rakko’s sword sweep: a crescent slash bulging to the right. The game sends it from the sword to the end of the reach, as tall as the lanes it cuts, under the characters. |
+| [x] | `art/stickers/fx_thrust.png` | 1160 × 240 | さすまたのひと突き：右へ向かって細くとがる突きの線。ゲームが、間合いの端までのばして、キャラクターの下に出す。<br>A thrust of the さすまた: a long, slim stab coming to a point on the right. The game runs it out to the end of the reach, under the characters. |
 | [x] | `art/stickers/fx_dust.png` | 480 × 240 | ふみつけの土ぼこり（ゲームがはじけさせる）。<br>Stomp dust (the game bursts it). |
 | [x] | `art/stickers/fx_trail.png` | 480 × 240 | ラッコの車とボートが走るときに、うしろにのびる土ぼこり・けむり。右はしが車のうしろで、左へいくほど小さくなる（車とボートだけに使う）。<br>The dust and smoke trailing behind Rakko's car and boat as they drive: its right end is at the back of the car, the puffs getting smaller to the left (used for the car and the boat only). |
 | [x] | `art/stickers/fx_place.png` | 340 × 160 | 置いたときの足元のきらきら。<br>Sparkles at the feet when placed. |
@@ -503,6 +529,8 @@ cleared, the pochette sold out, a gallery entry filled in), then lifts away. Bri
 | ✔ | File | Size | What to draw |
 |---|---|---|---|
 | [x] | `art/ui/hand_stamp.png` | 540 × 566 | 判子（ハンコ）を真上から見た絵：持ち手と、下のふちに見える赤いインク。赤いスタンプが手に入った瞬間に、紙の上に押される（文字は入れない）。透明背景。<br>A hand stamp (判子) seen from straight above: its handle, with the red ink showing at the bottom rim. It presses a red stamp onto the paper the moment one is earned (no text). Transparent background. |
+| [x] | `art/ui/report_yoroi_bow.png` | 671 × 768 | 討伐報告のとなりに立つ労働の鎧さん（討伐成功）：胸に手を当てておじぎ。腰から上だけの絵で、腰の線は画面の下にかくれます。背景は透明。<br>Labour 鎧さん beside the job report when a job is done: a hand on his heart, thanking the player. From the waist up (the waist goes below the bottom of the screen). Transparent background. |
+| [x] | `art/ui/report_yoroi_concerned.png` | 671 × 768 | 討伐報告のとなりに立つ労働の鎧さん（討伐失敗）：頭をかいて心配そう。腰から上だけの絵で、腰の線は画面の下にかくれます。背景は透明。ゲームが左右反転して使います。<br>Labour 鎧さん beside the report when a job has failed: scratching his head, concerned. From the waist up (the waist goes below the bottom of the screen). Transparent background. The game mirrors it. |
 
 ## Quest board pictures
 
@@ -588,20 +616,20 @@ Each sound is synthesised until a file exists. Use `.ogg`, `.mp3`, `.m4a` or `.w
 ## Not needed as pictures
 
 Buttons (the lobby’s floating buttons too), paper panels, cards, the wave and boss bars, banners and icons are drawn by the
-game, so they need no art. The PWA icons in `public/icons/` are still the code-drawn ones from before the art arrived; replace those files directly.
+game, so they need no art. The PWA icons in `public/icons/` are made from `art/portraits/portrait_rakko.png`; to change them, replace those files directly.
 
 ## Totals
 
 | Item | Count |
 |---|---|
-| Scenes | 10 (17 pieces, plus 3 idle-loop frames) |
+| Scenes | 12 (19 pieces, plus 3 idle-loop frames) |
 | Characters | 47 of 47 delivered as frames (the fighters, パジャマパーティーズ one member at a time, and Rakko’s car and boat) |
-| Stickers | 47 |
+| Stickers | 49 |
 | Faces and logos | 45 |
 | Button icons | 4 |
 | Button pictures | 5 |
 | Shop goods | 5 |
-| Props | 1 |
+| Props | 3 |
 | Gallery book | 1 |
 | Quest board pictures | 9 |
 | Sounds | 39 |

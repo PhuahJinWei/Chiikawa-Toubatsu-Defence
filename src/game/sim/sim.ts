@@ -1002,12 +1002,33 @@ export class Sim implements WaveHost {
     return best;
   }
 
-  private targetFor(a: Ally, lane = a.lane): Enemy | null {
+  /** The stretch of a lane a friend's attack covers, as where an enemy's front (its `y`) may be. A reach of N tiles is the N
+   *  tiles ahead of the friend's own, and an enemy is in it once its hit line is, as for every other attack (by its nose
+   *  alone, one still standing a whole tile further off was being hit). The near end is the back of the friend's own tile;
+   *  a sweep (ラッコ's sword) only cuts what is in front of him, up to whoever is at his tile's front edge. */
+  private reachOf(a: Ally): { minY: number; maxY: number } {
     const top = colY(a.col);
-    const maxY = top + TILE;
-    const range = a.def.attack.rangeTiles;
-    const minY = range !== undefined ? top - range * TILE : FIELD_ENTRY_Y;
+    const { rangeTiles: range, sweepLanes } = a.def.attack;
+    return { minY: range !== undefined ? top - range * TILE + HIT_LINE : FIELD_ENTRY_Y, maxY: sweepLanes ? top + CONTACT : top + TILE };
+  }
+
+  /** What a melee friend's blow covers, for showing it: the open lanes it cuts, and the last column it reaches. */
+  private swingArea(a: Ally): { lanes: number[]; lastCol: number } {
+    const { rangeTiles: range = 0, sweepLanes: spread = 0 } = a.def.attack;
+    const lanes: number[] = [];
+    for (let lane = a.lane - spread; lane <= a.lane + spread; lane++) if (this.laneActive[lane]) lanes.push(lane);
+    return { lanes, lastCol: Math.min(COLS - 1, a.col + range) };
+  }
+
+  private targetFor(a: Ally, lane = a.lane): Enemy | null {
+    const { minY, maxY } = this.reachOf(a);
     return this.firstEnemyInLane(lane, minY, maxY);
+  }
+
+  /** Every enemy a friend's blow reaches in a lane. */
+  private enemiesInReach(a: Ally, lane: number): Enemy[] {
+    const { minY, maxY } = this.reachOf(a);
+    return this.enemies.filter((e) => this.covers(e, lane) && this.targetableEnemy(e) && e.y >= minY && e.y <= maxY);
   }
 
   private hasTarget(a: Ally): boolean {
@@ -1027,27 +1048,31 @@ export class Sim implements WaveHost {
     const muzzleY = allyFeetY(a.col) - MUZZLE;
     switch (atk.kind) {
       case 'hitscan': {
-        // One blow at the first enemy within reach, or with none at a stump within reach (a stump never stops a blow). A
-        // sweep (ラッコ's sword, `sweepLanes`) strikes the first in each lane either side too, nearest lanes first, each enemy
-        // once (a giant across them, in the nearest of its lanes).
+        // One blow through every enemy within reach (owner's call, 2026-11-09: nobody's melee is single target), or with
+        // none at a stump within reach (a stump never stops a blow). A sweep (ラッコ's sword, `sweepLanes`) does the same in
+        // each lane either side, each enemy once (a giant across them, in the nearest of its lanes).
+        // Announced first, so that whoever shows a hit knows the blow it belongs to.
+        this.events.push({ type: 'swing', ally: a, ...this.swingArea(a) });
         const spread = atk.sweepLanes ?? 0;
         const struck = new Set<Enemy>();
         for (let gap = 0; gap <= spread; gap++) {
           for (const lane of gap ? [a.lane - gap, a.lane + gap] : [a.lane]) {
             if (gap && !this.laneActive[lane]) continue;
-            const e = this.targetFor(a, lane);
-            if (!e) {
+            const inReach = this.enemiesInReach(a, lane);
+            if (!inReach.length) {
               const stump = this.stumpAhead(a, lane);
               if (stump !== null) this.hitStump(lane, stump, damage, true);
               continue;
             }
-            if (struck.has(e)) continue;
-            struck.add(e);
-            this.events.push({ type: 'jab', ally: a, enemy: e, lane });
-            this.damageEnemy(e, damage, a.def.id, atk.fx ?? 'fx_hit', !!atk.ignoresArmor, lane);
-            if (atk.pushTiles) this.push(e, atk.pushTiles * TILE);
+            for (const e of inReach) {
+              if (struck.has(e)) continue;
+              struck.add(e);
+              this.damageEnemy(e, damage, a.def.id, atk.fx ?? 'fx_hit', !!atk.ignoresArmor, lane);
+              if (atk.pushTiles) this.push(e, atk.pushTiles * TILE);
+            }
           }
         }
+        if (struck.size) this.events.push({ type: 'jab', ally: a });
         break;
       }
       case 'projectile': {

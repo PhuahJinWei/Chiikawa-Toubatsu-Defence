@@ -189,7 +189,7 @@ export function ArtKit() {
                 try {
                   await exportZip();
                 } catch (e) {
-                  toast(String(e));
+                  toast(String(e), 'bad');
                 }
                 setBusy(false);
               })}

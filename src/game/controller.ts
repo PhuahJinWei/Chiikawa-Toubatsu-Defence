@@ -9,6 +9,7 @@ import { allyFeetY, colOfY, laneX, STEP_MS } from './sim/constants';
 import { fallMsOf } from './sim/tempo';
 import { ENEMIES, summonsOf, UNITS, waterOf, WORLDS } from './sim/defs';
 import { EndlessWaves } from './sim/endless';
+import { FrameCap } from './frameCap';
 import { arrivalMs } from './render/arrival';
 import { battleArtKeys, BattleRenderer, type RenderUi, type Waiting } from './render/renderer';
 import { easeInOut } from './render/view';
@@ -113,7 +114,7 @@ function characterIdsFor(allies: Iterable<string>, enemies: Iterable<string>, wa
  *  start loading them while its 「受注」 stamp is pressed. */
 export function levelArtKeys(level: LevelDef, team: string[], wish?: string): string[] {
   const allies = team.map((id) => (UNITS[id]?.wish ? wish ?? '' : id)).filter(Boolean);
-  return battleArtKeys(level.world, characterIdsFor(allies, level.waves.flatMap((w) => w.spawns.map((s) => s.enemy)), waterOf(level).length > 0));
+  return battleArtKeys(level.world, level.lanes, characterIdsFor(allies, level.waves.flatMap((w) => w.spawns.map((s) => s.enemy)), waterOf(level).length > 0));
 }
 
 export class BattleController {
@@ -148,6 +149,9 @@ export class BattleController {
   private canvas: HTMLCanvasElement | null = null;
   private readonly flights = new WeedFlights();
   private raf = 0;
+  private readonly frameCap = new FrameCap();
+  /** The paused field is on the canvas already: nothing to draw until the pause ends or the screen changes. */
+  private stillDrawn = false;
   private lastTs = 0;
   private acc = 0;
   private hudAt = 0;
@@ -165,6 +169,8 @@ export class BattleController {
   private afterMs = 0;
   private playMs = 0;
   private lastHit = 0;
+  /** When the pause now on began, to move getting ready's clock on by its length. */
+  private pausedAt = 0;
   /** Where getting ready is, and how far the camera has glided toward the road (0-1). */
   private prep: { stage: 'wait' | 'out' | 'hold' | 'pick' | 'back' | 'cars' | 'ready'; t0: number; from: number; ms?: number; skip?: boolean } = { stage: 'wait', t0: 0, from: 0 };
   private look = 0;
@@ -213,7 +219,7 @@ export class BattleController {
 
   /** Every picture this battle draws, for loading the real art before it starts. */
   artKeys(): string[] {
-    return battleArtKeys(this.world, this.characterIds());
+    return battleArtKeys(this.world, this.sim.activeLanes, this.characterIds());
   }
 
   attach(canvas: HTMLCanvasElement): void {
@@ -273,12 +279,18 @@ export class BattleController {
   // ------------------------------------------------------------ loop
 
   private loop = (ts: number): void => {
+    // The game changes 60 times a second, so a faster screen is not asked for more pictures than that.
+    if (!this.frameCap.due(ts)) {
+      this.raf = requestAnimationFrame(this.loop);
+      return;
+    }
     const dt = this.lastTs ? Math.min(50, ts - this.lastTs) : 16;
     this.lastTs = ts;
     // A tap collects between frames, and its 草 must be in the air before the counter is next read.
     this.handleEvents();
-    if (this.phase.value !== 'battle') this.prepTick(ts);
-    else if (!this.paused.value && !this.hold.value && this.sim.status === 'playing') {
+    if (this.phase.value !== 'battle') {
+      if (!this.paused.value) this.prepTick(ts);
+    } else if (!this.paused.value && !this.hold.value && this.sim.status === 'playing') {
       this.playMs += dt;
       this.acc += dt * this.speed.value;
       let steps = 0;
@@ -290,7 +302,12 @@ export class BattleController {
       }
       if (steps >= 10) this.acc = 0;
     } else if (this.ended && this.status.value === 'won' && !this.paused.value) this.afterMs += dt * this.speed.value;
-    this.renderer?.render(this.paused.value || this.hold.value ? 0 : this.acc / STEP_MS, this.renderUi());
+    // A paused field cannot change, so it is drawn once and left alone (the testing ground's panel can still change it).
+    const still = this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox';
+    if (!still || !this.stillDrawn || this.renderer?.needsRebuild) {
+      this.renderer?.render(this.paused.value || this.hold.value ? 0 : this.acc / STEP_MS, this.renderUi());
+    }
+    this.stillDrawn = still;
     if (ts - this.hudAt > 50) {
       this.hudAt = ts;
       this.refreshHud(false);
@@ -723,6 +740,9 @@ export class BattleController {
   }
 
   setPaused(p: boolean): void {
+    // Getting ready waits too: its clock is moved on by however long the pause lasted.
+    if (p && !this.paused.value) this.pausedAt = performance.now();
+    else if (!p && this.paused.value && this.phase.value !== 'battle') this.prep.t0 += performance.now() - this.pausedAt;
     this.paused.value = p;
     if (p) {
       this.selected.value = -1;
@@ -980,7 +1000,14 @@ export class BattleController {
 
   private onKey = (ev: KeyboardEvent): void => {
     if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement || ev.target instanceof HTMLSelectElement) return;
-    if (this.phase.value !== 'battle') return;
+    if (this.phase.value !== 'battle') {
+      // Getting ready, the only thing to do is stop and get out.
+      if (ev.key === 'Escape' || ev.key === ' ') {
+        ev.preventDefault();
+        this.setPaused(!this.paused.value);
+      }
+      return;
+    }
     if (ev.key >= '1' && ev.key <= '9') {
       const i = Number(ev.key) - 1;
       if (i < this.sim.cards.length) this.selectCard(i);
@@ -1001,6 +1028,8 @@ export class BattleController {
 
   private onVisibility = (): void => {
     if (document.hidden && this.sim.status === 'playing' && this.phase.value === 'battle') this.setPaused(true);
+    // A phone may have emptied the canvas while the game was away.
+    if (!document.hidden) this.stillDrawn = false;
   };
 
   /** QA: advance by `ms` of game time and draw one frame (works even when animation frames are throttled). */

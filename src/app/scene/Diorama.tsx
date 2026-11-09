@@ -37,6 +37,9 @@ import {
  *  back from the camera so even the nearest piece stays small enough to read. */
 const EXPLODED: Camera = { ...REST_CAMERA, rx: 10, ry: 30, dolly: -1100 };
 const SPREAD = 2;
+/** How often a scene's idle drift moves (ms). It creeps, a fraction of a pixel between moves at this rate, so every other
+ *  frame of a usual screen looks the same, and a menu left open costs a phone less. */
+const DRIFT_TICK_MS = 30;
 
 /** Puts already-painted canvases into the DOM: a piece's picture, or the frames of its idle loop stacked and shown
  *  one after another every `ms`. Calm (reduced motion) holds the first frame. */
@@ -250,10 +253,16 @@ export function Diorama(p: DioramaProps) {
     const t0 = last;
     const cur = { x: 0, y: 0, amp: 0, kd: live.current.kd };
     const tick = (now: number) => {
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
       const calm = live.current.calm || calmWanted();
       const goal = calm ? { x: 0, y: 0 } : lean.current;
+      // Still catching up with a lean or a zoom: every frame. Only drifting: every other one will do.
+      const settling = Math.abs(goal.x - cur.x) + Math.abs(goal.y - cur.y) > 0.01 || Math.abs(live.current.kd - cur.kd) > 0.002;
+      if (!settling && now - last < DRIFT_TICK_MS) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
       const ease = (tau: number) => 1 - Math.exp(-dt / tau);
       cur.x += (goal.x - cur.x) * ease(0.45);
       cur.y += (goal.y - cur.y) * ease(0.45);

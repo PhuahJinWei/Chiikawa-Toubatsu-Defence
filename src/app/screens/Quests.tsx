@@ -95,7 +95,8 @@ function QuestPaper({ n, onOpen, still }: { n: number; onOpen?: () => void; stil
   const lockText = endless ? t('map.unlockAfter', { n: ENDLESS_WORLD }) : n > 1 ? t('map.lockedWorld', { world: t(`world.${n - 1}.name`) }) : '';
   const pick = () => {
     if (state === 'open') onOpen?.();
-    else toast(state === 'soon' ? t('quests.soon') : lockText);
+    else if (state === 'soon') toast(t('quests.soon'));
+    else toast(lockText, 'bad');
   };
   return (
     <article class={`quest-paper ${state}${endless ? ' endless' : ''}${still ? ' still' : ''}`}>
@@ -423,8 +424,8 @@ function TeamPage({ job }: { job: Job }) {
   const team = choose ? owned : deck;
   const toggle = (id: string) => {
     if (deck.includes(id)) job.deck.value = deck.filter((x) => x !== id);
-    else if (!fitsJob(id, level)) toast(t(homeReason(id, level)!));
-    else if (deck.length >= size) toast(t('prep.choose', { n: size }));
+    else if (!fitsJob(id, level)) toast(t(homeReason(id, level)!), 'bad');
+    else if (deck.length >= size) toast(t('prep.choose', { n: size }), 'bad');
     else if (isWishCard(id)) {
       askWish(
         wish,

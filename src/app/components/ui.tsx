@@ -11,22 +11,41 @@ import { PlatePaper } from './Plate';
 
 // ---------------------------------------------------------------- toast
 
-const toastMsg = signal<{ key: number; text: string } | null>(null);
+/** What a notice says about what just happened: `bad`, it could not be done (a red !); `ok`, it was (a green tick). Plain
+ *  news has neither. */
+export type NoticeTone = 'bad' | 'ok';
+
+const toastMsg = signal<{ key: number; text: string; tone?: NoticeTone } | null>(null);
 let toastTimer = 0;
 
-export function toast(text: string): void {
-  toastMsg.value = { key: Date.now(), text };
+export function toast(text: string, tone?: NoticeTone): void {
+  toastMsg.value = { key: Date.now(), text, tone };
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => (toastMsg.value = null), 1800);
 }
 
+/** A short notice on a small name plate, the same on every screen and in battle. */
+export function Notice({ text, tone }: { text: string; tone?: NoticeTone }) {
+  return (
+    <div class="toast ink-plate" role="status">
+      <PlatePaper />
+      {tone === 'bad' ? (
+        <span class="toast-mark bad" aria-hidden="true">
+          !
+        </span>
+      ) : tone === 'ok' ? (
+        <span class="toast-mark ok" aria-hidden="true">
+          <Icon name="check" size={12} />
+        </span>
+      ) : null}
+      {text}
+    </div>
+  );
+}
+
 export function Toast() {
   const m = toastMsg.value;
-  return m ? (
-    <div class="toast" key={m.key} role="status">
-      {m.text}
-    </div>
-  ) : null;
+  return m ? <Notice key={m.key} text={m.text} tone={m.tone} /> : null;
 }
 
 // ---------------------------------------------------------------- buttons
@@ -83,6 +102,8 @@ export function Sheet({
   label,
   title,
   tone,
+  aside,
+  class: extra,
 }: {
   onClose?: () => void;
   children: ComponentChildren;
@@ -90,21 +111,34 @@ export function Sheet({
   label?: string;
   title?: string;
   tone?: string;
+  /** Someone standing beside the panel (see .sheet-stage). */
+  aside?: ComponentChildren;
+  class?: string;
 }) {
+  const sheet = (
+    <div class={`${title ? 'sheet titled' : 'sheet'}${extra ? ` ${extra}` : ''}`} role="dialog" aria-modal="true" aria-label={label ?? title}>
+      {title ? (
+        <div class="ink-plate sheet-plate" style={tone ? { '--plate': tone } : undefined}>
+          <PlatePaper />
+          {title}
+        </div>
+      ) : null}
+      <div class="grip" />
+      <div class="sheet-body">{children}</div>
+      {actions ? <div class="sheet-actions">{actions}</div> : null}
+    </div>
+  );
   return (
     <>
       <div class="backdrop" onClick={onClose} />
-      <div class={title ? 'sheet titled' : 'sheet'} role="dialog" aria-modal="true" aria-label={label ?? title}>
-        {title ? (
-          <div class="ink-plate sheet-plate" style={tone ? { '--plate': tone } : undefined}>
-            <PlatePaper />
-            {title}
-          </div>
-        ) : null}
-        <div class="grip" />
-        <div class="sheet-body">{children}</div>
-        {actions ? <div class="sheet-actions">{actions}</div> : null}
-      </div>
+      {aside ? (
+        <div class="sheet-stage">
+          {aside}
+          {sheet}
+        </div>
+      ) : (
+        sheet
+      )}
     </>
   );
 }

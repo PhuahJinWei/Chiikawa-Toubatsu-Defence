@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { CARD_LOOKS } from '../../art/spec';
+import { spriteFor } from '../../art/sprite';
+import { CARD_LOOKS, spriteIdFor } from '../../art/spec';
 import { art } from '../../art/store';
 import { audio } from '../../audio/audio';
 import { BattleController, type BattleEnd, type CardView } from '../../game/controller';
-import { ENEMIES, enemiesInLevel, LEVELS, nextLevelId, UNITS, waterOf } from '../../game/sim/defs';
+import { enemiesInLevel, LEVELS, nextLevelId, UNITS, waterOf } from '../../game/sim/defs';
 import { nameOf, t } from '../../i18n/i18n';
 import { save, updateSave } from '../../save/save';
+import { CutOut, warmCutOut } from '../components/CutOut';
+import { showDetails } from '../components/Details';
+import { callOff, pressNow } from '../components/HandStamp';
 import { Icon } from '../components/Icon';
 import { LoadingScreen } from '../components/LoadingScreen';
-import { BackButton, confirm, Sheet, Switch, tap, toast } from '../components/ui';
+import { StarMark } from '../components/PaperMarks';
+import { PlatePaper } from '../components/Plate';
+import { BackButton, confirm, Notice, Sheet, Switch, tap, toast } from '../components/ui';
 import { SANDBOX_RULES, SandboxPanel, sandboxWish } from '../components/SandboxPanel';
 import { askWish } from '../components/Wish';
 import { sandboxTeam, worldHasCars } from '../../game/sim/sandbox';
@@ -242,6 +248,11 @@ export function Battle({ r }: { r: BattleRoute }) {
     if (status !== 'playing') audio.stopMusic(false);
   }, [status]);
 
+  // 鎧さん is cut out while the last moments of the battle play, so he is there as soon as the report is.
+  useEffect(() => {
+    if (status !== 'playing') void warmCutOut(yoroiPicture(status === 'lost' && r.mode !== 'endless'), yoroiPx());
+  }, [status]);
+
   const levelName =
     r.mode === 'sandbox'
       ? `${t('sandbox.title')} · ${t(`world.${r.world ?? 1}.name`)}`
@@ -256,7 +267,7 @@ export function Battle({ r }: { r: BattleRoute }) {
   };
   const toggle = (id: string) => {
     if (deck.includes(id)) setDeck(deck.filter((x) => x !== id));
-    else if (deck.length >= plan.size) toast(t('prep.choose', { n: plan.size }));
+    else if (deck.length >= plan.size) toast(t('prep.choose', { n: plan.size }), 'bad');
     // 星 joins with a wish: the friend it turns into is picked first.
     else if (isWishCard(id)) {
       askWish(
@@ -283,15 +294,13 @@ export function Battle({ r }: { r: BattleRoute }) {
       <div class="field" ref={fieldRef}>
         <canvas ref={canvasRef} aria-label={levelName} />
         {ctl.banner.value ? (
-          <div key={ctl.banner.value.key} class={`banner ${ctl.banner.value.kind}`} role="status">
+          <div key={ctl.banner.value.key} class={`banner ink-plate ${ctl.banner.value.kind}`} role="status">
+            <PlatePaper />
             {ctl.banner.value.text}
           </div>
         ) : null}
-        {ctl.toast.value ? (
-          <div class="toast" key={ctl.toast.value.key}>
-            {ctl.toast.value.text}
-          </div>
-        ) : null}
+        {/* All the field ever says is why something could not be done. */}
+        {ctl.toast.value ? <Notice key={ctl.toast.value.key} text={ctl.toast.value.text} tone="bad" /> : null}
         {!ready ? <LoadingScreen /> : null}
       </div>
       <TopHud ctl={ctl} label={levelName} endless={r.mode === 'endless'} sandbox={r.mode === 'sandbox'} />
@@ -364,7 +373,8 @@ function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label
           </div>
         )}
       </div>
-      {/* In their place but hidden until the battle starts, so the row does not shift when they appear. */}
+      {/* The shovel and speed wait out of sight until the battle starts, in their places so the row does not shift when they
+          appear. Pause is there from the first moment: it is the way out. */}
       <div class={`hud-actions ${ctl.phase.value === 'battle' ? '' : 'waiting'}`}>
         <button
           class={`hud-btn shovel-btn ${ctl.shovel.value ? 'on' : ''}`}
@@ -577,6 +587,8 @@ function PauseSheet({ ctl, r }: { ctl: BattleController; r: BattleRoute }) {
   // The testing ground starts over as a fresh field, and is left for the lobby.
   const sandbox = r.mode === 'sandbox';
   const quit = t(sandbox ? 'sandbox.leave' : 'battle.quit');
+  // Before the battle has started there is nothing to lose, so nothing to ask.
+  const sure: typeof confirm = (text, onYes, opts) => (ctl.phase.value === 'battle' ? confirm(text, onYes, opts) : onYes());
   return (
     <Sheet onClose={tap(resume)} title={t('battle.paused')} tone={PAUSE_TONE}>
       <div class="stack" style={{ gap: '14px' }}>
@@ -588,14 +600,14 @@ function PauseSheet({ ctl, r }: { ctl: BattleController; r: BattleRoute }) {
             class="btn"
             onClick={tap(() =>
               // The same team again; a ramen ticket is only used when the player chooses it again on the notice.
-              confirm(t(sandbox ? 'sandbox.confirmRestart' : 'battle.confirmRestart'), () => go({ ...r, ramen: false, nonce: Date.now() }, { replace: true }), {
+              sure(t(sandbox ? 'sandbox.confirmRestart' : 'battle.confirmRestart'), () => go({ ...r, ramen: false, nonce: Date.now() }, { replace: true }), {
                 title: t('battle.restart'),
               }),
             )}
           >
             <Icon name="restart" /> {t('battle.restart')}
           </button>
-          <button class="btn" onClick={tap(() => confirm(t(sandbox ? 'sandbox.confirmLeave' : 'battle.confirmQuit'), () => leave(r), { title: quit }))}>
+          <button class="btn" onClick={tap(() => sure(t(sandbox ? 'sandbox.confirmLeave' : 'battle.confirmQuit'), () => leave(r), { title: quit }))}>
             <Icon name="back" /> {quit}
           </button>
         </div>
@@ -665,12 +677,80 @@ function hintFor(levelId?: string): string {
   return save.value.cards.includes('yoroi') ? t('result.hints.wall') : t('result.hints.economy');
 }
 
+/** 「討伐完了」, stamped on the report of a job done. */
+const DONE_STAMP = '討伐\n完了';
+/** How long the report is up before the hand stamp comes for it (ms): the stars have popped in by then. */
+const STAMP_AFTER_MS = 900;
+/** How tall a friend who has just joined stands on the report (CSS px). */
+const NEW_FRIEND_PX = 106;
+
+/** 労働の鎧さん beside the report: thanking the player, or scratching his head over a job that went wrong. */
+const yoroiPicture = (sad: boolean) => art.imageUrl(sad ? 'ui/report_yoroi_concerned' : 'ui/report_yoroi_bow');
+/** How many pixels tall he is cut. His box is in the styles: this only decides how sharp he is. */
+const yoroiPx = () => Math.min(760, Math.round(window.innerHeight * 0.86));
+
+/** 鎧さん himself, beside the report. He comes up from below the screen (his pictures end at the waist), stands breathing,
+ *  and dips in a bow (`bowed`) as the stamp lands. */
+function ReportYoroi({ sad, bowed }: { sad: boolean; bowed: boolean }) {
+  return (
+    <div class={`report-yoroi${sad ? ' sad' : ''}`}>
+      <div class={`report-yoroi-bow${bowed ? ' now' : ''}`}>
+        <div class="report-yoroi-pic">
+          <CutOut src={yoroiPicture(sad)} px={yoroiPx()} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Who has just joined: standing as they do in battle (the team of four, who have no one picture, by their card's face),
+ *  their name and what they do. A long description is cut short here; a tap opens all of it. */
+function NewFriend({ id }: { id: string }) {
+  const sprite = spriteFor(spriteIdFor('ally', id));
+  const idle = sprite?.anims.idle;
+  const src = sprite && idle ? art.imageUrl(`sprites/${sprite.id}/idle_1`) : art.portraitUrl(id);
+  const ratio = idle ? idle.w / idle.h : 1;
+  return (
+    <button type="button" class="report-friend" onClick={tap(() => showDetails(id))}>
+      <span class="ink-plate report-tag">
+        <PlatePaper />
+        {t('result.newCard')}
+      </span>
+      <span class="report-friend-pic" style={{ width: `${Math.round(NEW_FRIEND_PX * ratio)}px`, height: `${NEW_FRIEND_PX}px` }}>
+        <CutOut src={src} px={Math.round(NEW_FRIEND_PX * Math.max(1, ratio))} />
+      </span>
+      <span class="report-name">{nameOf(id)}</span>
+      <span class="report-does">{t(`card.${id}.ability`)}</span>
+    </button>
+  );
+}
+
+/** 「討伐完了」, pressed onto the report by the hand stamp once the stars are in; `onInk` runs as it lands. */
+function ReportStamp({ onInk }: { onInk: () => void }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    void art.load(['ui/hand_stamp']);
+    const timer = window.setTimeout(() => pressNow(el, onInk), STAMP_AFTER_MS);
+    return () => {
+      window.clearTimeout(timer);
+      callOff(el);
+    };
+  }, []);
+  return (
+    <span ref={ref} class="red-stamp report-stamp unstamped" role="img" aria-label={t('banner.win')}>
+      {DONE_STAMP}
+    </span>
+  );
+}
+
 function ResultSheet({ r, end, reward }: { r: BattleRoute; end: BattleEnd; reward: Reward }) {
+  const [bowed, setBowed] = useState(false);
   const level = r.levelId ? LEVELS[r.levelId] : undefined;
   const nextId = level ? nextLevelId(level.id) : null;
   const canNext = end.won && nextId && levelUnlocked(nextId);
   const retry = () => go({ ...r, ramen: false, nonce: Date.now() }, { replace: true });
-  const newFoes = Object.keys(end.stats.defeated).filter((id) => ENEMIES[id]);
   const actions = (
     <>
       <button class="btn grow" onClick={tap(() => leave(r))}>
@@ -687,17 +767,23 @@ function ResultSheet({ r, end, reward }: { r: BattleRoute; end: BattleEnd; rewar
       )}
     </>
   );
+  const levelName = level ? `${level.id} ${t(`world.${level.world}.name`)}` : '';
+  const pay = (
+    <span class="report-amount">
+      {t('result.pay')} <Icon name="coin" size={16} /> +{reward.total}
+    </span>
+  );
 
   if (end.mode === 'endless') {
     return (
-      <Sheet actions={actions} label={t('endless.title')}>
-        <div class="result-card">
-          <h2 style={{ fontSize: '24px', fontWeight: 900 }}>{t('endless.title')}</h2>
-          <p class="bold" style={{ fontSize: '18px' }}>
-            {t('result.waveReached', { n: end.wavesCleared })}
-          </p>
-          {reward.bestEndless ? <span class="chip yellow">{t('result.best')}</span> : null}
-          <PayList reward={reward} />
+      <Sheet class="report solo" title={t('endless.title')} tone="var(--yellow)" actions={actions} aside={<ReportYoroi sad={false} bowed={false} />}>
+        <div class="report-sum">
+          <p class="report-wave">{t('result.waveReached', { n: end.wavesCleared })}</p>
+          {reward.bestEndless ? <span class="chip yellow report-best">{t('result.best')}</span> : null}
+          <div class="report-pay">
+            <span />
+            {pay}
+          </div>
         </div>
       </Sheet>
     );
@@ -705,99 +791,51 @@ function ResultSheet({ r, end, reward }: { r: BattleRoute; end: BattleEnd; rewar
 
   if (!end.won) {
     return (
-      <Sheet actions={actions} label={t('result.lose')}>
-        <div class="result-card">
-          <h2 style={{ fontSize: '24px', fontWeight: 900 }}>{t('result.lose')}</h2>
-          <p class="muted">{t('result.loseLine')}</p>
-          <div class="panel pad row" style={{ textAlign: 'left', width: '100%' }}>
-            <span class="bulb" style={{ color: 'var(--yellow-d)' }}>
-              <Icon name="bulb" />
-            </span>
-            <div class="grow">
-              <div class="tiny bold faint">{t('result.hintTitle')}</div>
-              <div class="small bold">{hintFor(level?.id)}</div>
-            </div>
+      <Sheet class="report solo" title={t('result.lose')} tone="#e9dfd6" actions={actions} aside={<ReportYoroi sad bowed={false} />}>
+        <div class="report-sum">
+          <div class="report-level">{levelName}</div>
+          <p class="report-sad">{t('result.loseLine')}</p>
+          <div class="report-hint">
+            <Icon name="bulb" size={20} /> {t('result.hintTitle')}
           </div>
+          <p class="report-note">{hintFor(level?.id)}</p>
         </div>
       </Sheet>
     );
   }
 
+  // What each star is for, in the order they are earned (see starsFor): where there are no cars, a clear earns all three.
+  const cars = !!level?.rescues;
+  const goals = cars ? ['goalDone', 'goalOneCar', 'goalNoCars'] : ['goalDone', 'goalNobody', 'goalHeld'];
   return (
-    <Sheet actions={actions} label={t('result.win')}>
-      <div class="result-card">
-        <div class="npc" style={{ alignItems: 'center' }}>
-          <div class="avatar">
-            <img src={art.portraitUrl('yoroi_rodo')} alt="" />
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div class="tiny bold faint">{t('job.from')}</div>
-            <h2 style={{ fontSize: '22px', fontWeight: 900 }}>{t('result.win')}</h2>
-          </div>
-        </div>
-        <div class="result-stars" aria-label={`${reward.stars}/3`}>
-          {[0, 1, 2].map((i) => (
-            <span key={i} class={i < reward.stars ? '' : 'off'}>
-              ★
-            </span>
-          ))}
-        </div>
-        <PayList reward={reward} />
-        {reward.newCard ? (
-          <div class="unlock-card">
-            <div class="avatar" style={{ background: '#fff' }}>
-              <img src={art.portraitUrl(reward.newCard)} alt="" />
-            </div>
-            <div class="grow">
-              <div class="tiny bold" style={{ color: 'var(--pink-d)' }}>
-                {t('result.newCard')}
+    <Sheet class={reward.newCard ? 'report' : 'report solo'} title={t('result.win')} tone="var(--green)" actions={actions} aside={<ReportYoroi sad={false} bowed={bowed} />}>
+      <div class="report-grid">
+        {reward.newCard ? <NewFriend id={reward.newCard} /> : null}
+        <div class="report-sum">
+          <div class="report-level">{levelName}</div>
+          <div class="report-goals" aria-label={`${reward.stars}/3`}>
+            {goals.map((g, i) => (
+              <div key={g} class={i < reward.stars ? 'report-goal' : 'report-goal off'} style={{ '--i': i }}>
+                <StarMark on={i < reward.stars} />
+                <span>{t(`result.${g}`)}</span>
               </div>
-              <div class="bold" style={{ fontSize: '17px' }}>
-                {nameOf(reward.newCard)}
-              </div>
-              <div class="small muted">{t(`card.${reward.newCard}.ability`)}</div>
-            </div>
+            ))}
           </div>
-        ) : null}
-        {reward.features.length ? (
-          <div class="panel pad" style={{ width: '100%' }}>
-            <div class="bold">{t('result.unlocks')}</div>
-            <div class="small muted">
+          {reward.features.length ? (
+            <div class="report-unlocks">
+              <span class="bold">{t('result.unlocks')}</span>{' '}
               {[reward.features.includes('endless') ? t('map.endlessTitle') : '', reward.features.includes('speed') ? t('result.unlockSpeed') : '']
                 .filter(Boolean)
                 .join(' · ')}
             </div>
+          ) : null}
+          <div class="report-pay">
+            <span class="report-used">{cars ? t('result.carsUsed', { n: end.stats.rescuesUsed }) : ''}</span>
+            {pay}
           </div>
-        ) : null}
-        {newFoes.length ? (
-          <p class="tiny muted">
-            {t('result.book')}: {newFoes.map((id) => nameOf(id)).join('・')}
-          </p>
-        ) : null}
+          <ReportStamp onInk={() => setBowed(true)} />
+        </div>
       </div>
     </Sheet>
-  );
-}
-
-function PayList({ reward }: { reward: Reward }) {
-  if (!reward.lines.length) return null;
-  return (
-    <div class="pay-list">
-      <div class="tiny bold faint" style={{ textAlign: 'left' }}>
-        {t('result.pay')}
-      </div>
-      {reward.lines.map((l, i) => (
-        <div key={i} class="pay-line">
-          <span>{t(l.key, l.params)}</span>
-          <span class="bold">+{l.amount}</span>
-        </div>
-      ))}
-      <div class="pay-line total">
-        <span>{t('result.total')}</span>
-        <span>
-          <Icon name="coin" size={16} /> +{reward.total}
-        </span>
-      </div>
-    </div>
   );
 }

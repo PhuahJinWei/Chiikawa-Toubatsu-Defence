@@ -9,6 +9,7 @@ import { drawSpriteFrame, frameOf, jumpFrameAt, jumpHop, motionKeys, spriteFor, 
 import { characterSpec } from '../../art/spec';
 import { StickerCache } from '../../art/sticker';
 import { art } from '../../art/store';
+import { FrameCap } from '../../game/frameCap';
 import { ALLY_ATTACK_MS } from '../../game/sim/constants';
 import { ENEMIES, UNITS } from '../../game/sim/defs';
 import { clawsOf, deathMsOf, fallMsOf, healPauseOf, type JumpParts, jumpAt, jumpMsOf, moveSpeedMulOf, spawnMsOf, swingOf, tempoOf } from '../../game/sim/tempo';
@@ -171,7 +172,12 @@ export function Figure({ id, anim, width, bleed, fill, shape, class: extra }: { 
                       ? pace.spawnMs + 600
                       : 0;
       const place = (cc: CanvasRenderingContext2D) => cc.setTransform(k * dpr, 0, 0, k * dpr, x * dpr, y * dpr);
+      const cap = new FrameCap();
       const tick = (now: number) => {
+        if (!cap.due(now)) {
+          raf = requestAnimationFrame(tick);
+          return;
+        }
         const period = once || (PERIOD[anim] ?? 0);
         const tt = period ? (now - t0) % period : now - t0;
         ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -762,21 +762,57 @@ p {
   color: #6aa84f;
 }
 
-.toast {
+/* A short notice: a small name plate (.ink-plate), cream on any background, with a round mark when something could not
+   be done (!) or was (a tick). (Both classes, to win over .ink-plate, which comes later.) */
+.toast.ink-plate {
+  --rim: 2.5px;
+  --drop: 3px;
+  --plate: #fff8ea;
   position: absolute;
   left: 50%;
   bottom: calc(var(--safe-b) + 20px);
   transform: translateX(-50%);
-  background: rgba(74, 42, 18, 0.92);
-  color: var(--surface);
-  padding: 10px 18px;
-  border-radius: var(--r-pill);
-  font-weight: 700;
-  font-size: 14px;
+  rotate: -1deg;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 4px 16px 5px;
+  font-size: 15px;
+  font-weight: 400;
+  white-space: normal;
   z-index: 60;
   pointer-events: none;
-  white-space: nowrap;
   animation: toast-in 0.2s ease-out both;
+}
+.toast:has(> .toast-mark) {
+  padding-left: 11px;
+}
+.toast-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--outline);
+  border-radius: 50%;
+  background: #f6a596;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1;
+}
+.toast-mark.ok {
+  background: var(--green);
+}
+.toast-mark .icon {
+  display: block;
+  width: 12px;
+  height: 12px;
+  color: var(--ink);
+}
+.toast-mark .icon path {
+  stroke-width: 4;
 }
 @keyframes toast-in {
   from {
@@ -2437,7 +2473,6 @@ input[type='range'] {
   bottom: calc(var(--safe-b) + 10px);
   width: min(296px, calc(100% - var(--rail-w) - 20px));
   max-height: calc(100% - var(--hud-h) - 20px - var(--safe-b));
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2452,6 +2487,7 @@ input[type='range'] {
   animation: panel-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
 }
 .tt-head {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2460,11 +2496,21 @@ input[type='range'] {
   margin: 0;
   font-size: 16px;
 }
+/* Only the cards scroll, so もどる and 出発 are always in view however many friends there are. They fade out at the foot
+   like the game's other scroll areas, and reach past the tray's padding so the marks on the cards' corners aren't cut. */
 .tt-cards {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   grid-template-columns: repeat(4, 56px);
+  align-content: start;
   gap: 8px 8px;
-  padding-top: 4px;
+  margin: -4px -8px -8px;
+  padding: 8px 8px 14px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
 }
 /* A card the player can take, drawn like the cards on the rail. */
 .tt-card {
@@ -2533,6 +2579,7 @@ input[type='range'] {
   place-items: center;
 }
 .tt-ramen {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2542,6 +2589,7 @@ input[type='range'] {
   font-size: 12px;
 }
 .tt-actions {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2601,17 +2649,18 @@ input[type='range'] {
   padding: var(--safe-t) calc(var(--safe-r) + 6px) 0 calc(var(--safe-l) + 6px);
   /* No bar: each piece floats over the scenery on its own. The strip itself lets taps through. */
   pointer-events: none;
-  transition:
-    translate 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
-    opacity 0.2s;
 }
-/* While the camera shows the world and the enemies, nothing is over the picture. The row comes in on the way back. */
-.hud-top.offstage {
+/* While the camera shows the world and the enemies, nothing is over the picture but the pause button, which is the way
+   out at any moment. The row comes in on the way back. */
+.hud-top.offstage > :not(.hud-actions) {
   translate: 0 calc(-110% * var(--ui));
   opacity: 0;
 }
 .hud-top > * {
   pointer-events: auto;
+  transition:
+    translate 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    opacity 0.2s;
 }
 /* The 草 counter: the weed on a round badge as big as the buttons' faces, in line with the card column, overlapping the
    end of a slim bar with a big number. */
@@ -2669,7 +2718,7 @@ input[type='range'] {
   align-items: center;
   gap: 6px;
 }
-.hud-actions.waiting {
+.hud-actions.waiting > :not(.pause-btn) {
   visibility: hidden;
 }
 .hud-btn {
@@ -2866,26 +2915,30 @@ input[type='range'] {
   top: auto;
   bottom: calc(var(--safe-b) + 12px);
   left: var(--field-mid);
+  /* Centred right of the middle, it has this much room before the edge of the screen. */
+  max-width: calc(70% - 28px);
 }
+/* An announcement across the field: the game's name plate (.ink-plate), pastel by what it says, in dark ink on all. */
 .banner {
+  --rim: 3.5px;
+  --drop: 4px;
+  --plate: #fff8ea;
   position: absolute;
   left: var(--field-mid);
   top: calc(var(--hud-h) + (100% - var(--hud-h)) * 0.45);
   transform: translate(-50%, -50%);
+  rotate: -1.5deg;
   z-index: 5;
   pointer-events: none;
   width: max-content;
   max-width: calc(70% - 28px);
-  padding: 8px 22px;
-  border-radius: 26px;
-  background: rgba(255, 250, 240, 0.96);
-  border: 3px solid var(--ink);
+  padding: 5px 26px 8px;
   font-size: clamp(18px, 3.2vw, 28px);
   font-weight: 900;
   line-height: 1.3;
   text-align: center;
+  white-space: normal;
   text-wrap: balance;
-  box-shadow: 0 5px 0 rgba(74, 42, 18, 0.3);
   animation: banner-in 2.2s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 /* 「よーい…」: as long as the controller holds it (READY_MS). */
@@ -2894,25 +2947,17 @@ input[type='range'] {
 }
 .banner.big,
 .banner.final {
-  background: #fff1c2;
-  color: #a2600a;
-  border-color: var(--outline);
+  --plate: var(--yellow);
 }
 .banner.boss {
-  background: #ffe1e6;
-  color: #b2354f;
-  border-color: var(--outline);
+  --plate: #f9c2ce;
 }
 .banner.win {
-  background: #e3f6d9;
-  color: #3f7f30;
-  border-color: var(--outline);
+  --plate: var(--green);
   animation-duration: 4.4s;
 }
 .banner.lose {
-  background: #f1e9e4;
-  color: var(--ink-2);
-  border-color: var(--outline);
+  --plate: #e9dfd6;
   animation-duration: 4.4s;
 }
 @keyframes banner-in {
@@ -3353,59 +3398,314 @@ input[type='range'] {
     grid-column: 1 / -1;
   }
 }
-.result-card {
+/* The job report at the end of a job, with 労働の鎧さん himself beside it. He stands on the left with his waist below the
+   bottom of the screen (his pictures end there), and the paper overlaps his shoulder. */
+.sheet-stage {
+  --yh: min(86vh, 335px, 40vw);
+  position: absolute;
+  inset: 0;
+  z-index: 41;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-right: calc(var(--safe-r) + 10px);
+  pointer-events: none;
+}
+.report-yoroi {
+  flex: none;
+  width: calc(var(--yh) * 671 / 768);
+  height: var(--yh);
+  margin-bottom: calc(var(--yh) * -0.08);
+  margin-right: calc(var(--yh) * -0.13);
+  animation: yoroi-rise 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.12) backwards;
+}
+.report-yoroi-bow,
+.report-yoroi-pic {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 100%;
+}
+.report-yoroi-bow.now {
+  animation: yoroi-bow 0.7s ease-in-out;
+}
+.report-yoroi-pic {
+  animation: report-breathe 1.6s ease-in-out infinite alternate;
+}
+/* Scratching his head, mirrored: he looks at the report, with his raised arm on the outside. */
+.report-yoroi.sad .report-yoroi-pic {
+  transform: scaleX(-1);
+}
+@keyframes yoroi-rise {
+  from {
+    translate: 0 105%;
+  }
+}
+@keyframes yoroi-bow {
+  35% {
+    translate: 0 3.5%;
+    scale: 1 0.975;
+  }
+}
+@keyframes report-breathe {
+  to {
+    scale: 1 1.015;
+  }
+}
+.sheet-stage .sheet {
+  position: relative;
+  left: auto;
+  top: auto;
+  translate: none;
+  flex: 0 1 590px;
+  width: auto;
+  min-width: 0;
+  align-self: center;
+  z-index: 1;
+  pointer-events: auto;
+}
+.sheet-stage .sheet.solo {
+  flex-basis: 470px;
+}
+.sheet.report > .sheet-plate {
+  font-size: 21px;
+}
+.sheet.report .sheet-body {
+  padding: 26px 22px 0;
+}
+.sheet.report .sheet-actions {
+  padding: 6px 22px 14px;
+}
+.report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+  gap: 20px;
+  align-items: center;
+}
+.sheet.report.solo .report-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.report-friend {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 1px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: center;
+  touch-action: manipulation;
+}
+.report-tag {
+  --plate: #f9c2ce;
+  z-index: 1;
+  margin-bottom: -4px;
+  padding: 0.08em 0.8em 0.12em;
+  font-size: 14px;
+  rotate: -3deg;
+}
+.report-friend-pic {
+  position: relative;
+  display: block;
+  animation: report-friend-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3) 0.15s backwards;
+}
+.report-friend-pic .cut-out {
+  transform-origin: 50% 100%;
+  animation: report-breathe 1.1s ease-in-out infinite alternate;
+}
+@keyframes report-friend-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+.report-name {
+  margin-top: 4px;
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.report-does {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+.report-sum {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.report-level {
+  margin-bottom: 3px;
+  font-size: 19px;
+  font-weight: 900;
+}
+/* Each star over what it is for. */
+.report-goals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 4px 0 6px;
+}
+.report-goal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.2;
   text-align: center;
 }
-.result-stars {
-  font-size: 34px;
-  letter-spacing: 4px;
-  color: #f2b33d;
-  text-shadow: 0 2px 0 rgba(74, 42, 18, 0.55);
+.report-goal .star-mark {
+  margin-bottom: 2px;
+  font-size: 42px;
 }
-.result-stars .off {
-  color: var(--line-2);
-  text-shadow: 0 3px 0 #d8c7b1;
+.report-goal .star-mark.on {
+  animation: report-star 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.4) calc(0.25s + 0.22s * var(--i)) backwards;
 }
-.pay-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
+.report-goal.off {
+  color: var(--ink-2);
 }
-.pay-line {
+@keyframes report-star {
+  from {
+    scale: 0;
+    rotate: -30deg;
+  }
+}
+.report-unlocks {
+  font-size: 13px;
+  text-align: center;
+}
+.report-pay {
   display: flex;
   justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: var(--surface);
-  border: 1.5px solid rgba(74, 42, 18, 0.45);
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1.5px solid rgba(74, 42, 18, 0.17);
+  font-size: 15px;
 }
-.pay-line.total {
-  background: var(--yellow);
-  border-color: var(--outline);
+.report-used {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.report-amount {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+}
+.report-stamp {
+  --s: 58px;
+  right: -4px;
+  top: -16px;
+  rotate: -13deg;
+  font-size: 15px;
   font-weight: 900;
-  font-size: 16px;
 }
-.unlock-card {
-  width: 100%;
+.report-sad {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.report-hint {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 18px;
-  background: var(--yellow-l);
-  border: 2.5px solid var(--outline);
-  text-align: left;
-  animation: pop-glow 1.8s ease-in-out infinite;
+  gap: 6px;
+  margin-bottom: 2px;
+  font-size: 15px;
+  font-weight: 900;
 }
-@keyframes pop-glow {
-  50% {
-    box-shadow: 0 0 0 6px rgba(255, 214, 107, 0.35);
+.report-hint .icon {
+  color: var(--yellow-d);
+}
+/* The hint, on ruled lines like the job notice's note. */
+.report-note {
+  --lh: 1.65em;
+  margin: 0;
+  font-size: 15px;
+  line-height: var(--lh);
+  color: var(--ink);
+  background: linear-gradient(to bottom, transparent calc(var(--lh) - 1.5px), rgba(74, 42, 18, 0.17) calc(var(--lh) - 1.5px)) 0 0 / 100% var(--lh);
+}
+.report-wave {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 900;
+  text-align: center;
+}
+.report-best {
+  align-self: center;
+  margin-bottom: 6px;
+}
+/* On a short phone the new friend's description gets shorter, then goes (their card is a tap away), and on the shortest
+   so does the count of cars (the stars say it), so the stars and the pay are always in view without scrolling. */
+@media (max-height: 379px) {
+  .report-friend-pic {
+    zoom: 0.9;
+  }
+  .report-does {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .report-goal .star-mark {
+    font-size: 38px;
+  }
+}
+@media (max-height: 351px) {
+  .sheet.report {
+    max-height: calc(100% - 44px - var(--safe-t) - var(--safe-b));
+  }
+  .sheet.report .sheet-body {
+    padding-top: 22px;
+  }
+  .report-friend-pic {
+    zoom: 0.75;
+  }
+  .report-does,
+  .report-used {
+    display: none;
+  }
+  .report-goals {
+    margin: 2px 0 3px;
+  }
+  .report-goal .star-mark {
+    font-size: 32px;
+  }
+  .report-pay {
+    justify-content: flex-end;
+  }
+}
+/* Bigger on tall screens, in step with the HUD. */
+@media (min-height: 600px) {
+  .sheet-stage {
+    --yh: min(86vh, 470px, 40vw);
+  }
+  .sheet.report {
+    zoom: 1.3;
+  }
+}
+@media (min-width: 1900px) and (min-height: 850px) {
+  .sheet-stage {
+    --yh: min(86vh, 640px, 40vw);
+  }
+  .sheet.report {
+    zoom: 1.7;
+  }
+}
+@media (min-width: 2500px) and (min-height: 1150px) {
+  .sheet-stage {
+    --yh: min(86vh, 860px, 40vw);
+  }
+  .sheet.report {
+    zoom: 2.2;
   }
 }
 
@@ -3869,6 +4169,14 @@ input[type='range'] {
 .settings-dialog {
   width: min(calc(100% - 32px), 780px);
 }
+/* A panel opened from the pop-up (export, import, delete, about) shares its layer, so it has to rise above it for its
+   shade to dim the pop-up as well as the lobby. */
+.settings-dialog ~ .backdrop {
+  z-index: 42;
+}
+.settings-dialog ~ .sheet {
+  z-index: 43;
+}
 
 /* ------------------------------------------------------------------ gallery */
 /* 古本屋's table (the scene) with the open gallery book on the right: bookmark tabs along its top, the list on the
@@ -3884,6 +4192,9 @@ input[type='range'] {
      scene grows with the height (45% of it). The book may run off the bottom of the screen, by at most a fifth of its
      height; the bookmarks and the page contents always stay in view. */
   --bh: min(calc(min(69.4vw, calc(96.5vw - 45.16vh)) / 1.405), calc((100vh - var(--safe-t) - 44px) / 0.8));
+  /* What the book's writing is sized from: the book's height up to a comfortable size, where it rests (a bigger screen
+     has room for more on a page, not a need for bigger words), and past a 1080p screen it grows with the book again. */
+  --bh-text: max(min(var(--bh), 660px), calc(var(--bh) * 0.7));
   /* In the middle of the screen when it fits, else just low enough for the bookmarks above it. */
   --bt: max(calc(var(--safe-t) + 8px + var(--bh) * 0.095), calc(52vh - var(--bh) * 0.5));
   position: absolute;
@@ -3945,7 +4256,7 @@ input[type='range'] {
   border: 0;
   background: none;
   color: var(--ink);
-  font-size: clamp(11px, calc(var(--bh) * 0.043), 18px);
+  font-size: max(11px, calc(var(--bh-text) * 0.043));
   white-space: nowrap;
   rotate: var(--r, 0deg);
   transition: height 0.18s cubic-bezier(0.3, 1.4, 0.5, 1);
@@ -4026,7 +4337,9 @@ input[type='range'] {
   padding-right: calc(var(--bh) * 0.0738);
 }
 .gb-page.right .more-below {
-  font-size: clamp(16px, calc(var(--bh) * 0.05), 26px);
+  /* At the right edge of the notes, out of the way of their words: in the middle it sat on the first label. */
+  left: calc(100% - var(--bh) * 0.0738 + 0.3em);
+  font-size: max(16px, calc(var(--bh-text) * 0.05));
 }
 /* The pages scroll like paper, with no bar: they fade out at the foot instead. */
 .gb-scroll {
@@ -4058,12 +4371,12 @@ input[type='range'] {
   --acc: #cee4f4;
 }
 .gb-head h1 {
-  font-size: clamp(17px, calc(var(--bh) * 0.068), 32px);
+  font-size: max(17px, calc(var(--bh-text) * 0.068));
   line-height: 1.25;
 }
 .gb-spark {
   color: #e8b93c;
-  font-size: clamp(11px, calc(var(--bh) * 0.04), 18px);
+  font-size: max(11px, calc(var(--bh-text) * 0.04));
   rotate: -12deg;
 }
 .gb-count {
@@ -4071,7 +4384,7 @@ input[type='range'] {
   border-radius: var(--r-pill);
   border: 1.5px solid rgba(74, 42, 18, 0.45);
   background: #fffaf0;
-  font-size: clamp(9px, calc(var(--bh) * 0.03), 13px);
+  font-size: max(9px, calc(var(--bh-text) * 0.03));
   color: var(--ink-2);
   rotate: 3deg;
 }
@@ -4156,7 +4469,7 @@ input[type='range'] {
      shortNameOf); --w is the widest line a name is set to have, in ems (Gallery's PinName): the whole name when it
      can stay on one line, else its widest word, wrapping between words or at a Japanese name's break point, never
      inside a word. The font is the full size, or less if that line would not fit. */
-  --fs: clamp(9.5px, calc(var(--bh) * 0.034), 15px);
+  --fs: max(9.5px, calc(var(--bh-text) * 0.034));
   width: max-content;
   max-width: 104%;
   font-size: min(var(--fs), calc(100cqi / var(--w, 1)));
@@ -4179,7 +4492,7 @@ input[type='range'] {
 .gb-name {
   /* Room on the right for the stamp. */
   padding: 0 calc(var(--bh) * 0.085) 0 calc(var(--bh) * 0.03);
-  font-size: clamp(17px, calc(var(--bh) * 0.07), 32px);
+  font-size: max(17px, calc(var(--bh-text) * 0.07));
   line-height: 1.25;
   text-align: center;
   text-wrap: balance;
@@ -4188,7 +4501,7 @@ input[type='range'] {
   overflow-wrap: anywhere;
 }
 .gb-name.long {
-  font-size: clamp(15px, calc(var(--bh) * 0.056), 27px);
+  font-size: max(15px, calc(var(--bh-text) * 0.056));
 }
 /* The chosen one standing on the page, cut out like the rest of the game (its own shadow under it, no spot of colour:
    owner's call), with room around it so no move is cut off. */
@@ -4218,6 +4531,10 @@ input[type='range'] {
 .gb-figure.stage {
   width: 100%;
   aspect-ratio: var(--stage);
+  /* The stage left empty above and below this character is closed up, so the notes come right after it (--spare-t,
+     --spare-b: shares of the figure's width, which is what a percentage margin measures). */
+  margin-top: calc(var(--bh) * 0.01 - var(--spare-t) * 100%);
+  margin-bottom: calc(var(--bh) * 0.03 - var(--spare-b) * 100%);
 }
 .gb-figure.stage .gb-model {
   top: 0;
@@ -4236,6 +4553,8 @@ input[type='range'] {
 /* A red rubber stamp: how well this entry's facts are sourced. */
 .gb-stamp {
   position: absolute;
+  /* Above the see-through top of the figure's stage, which now reaches up beside the name. */
+  z-index: 1;
   top: calc(var(--bh) * -0.005);
   right: 0;
   width: calc(var(--bh) * 0.085);
@@ -4246,7 +4565,8 @@ input[type='range'] {
   border: 2.5px solid #d4483d;
   box-shadow: inset 0 0 0 2px #fffdf8, inset 0 0 0 3.5px #d4483d;
   color: #d4483d;
-  font-size: clamp(8px, calc(var(--bh) * 0.027), 12px);
+  /* It grows with its circle. */
+  font-size: max(8px, calc(var(--bh) * 0.027));
   line-height: 1.1;
   text-align: center;
   white-space: pre-line;
@@ -4266,7 +4586,7 @@ input[type='range'] {
 }
 .gb-hint {
   margin: 0;
-  font-size: clamp(11px, calc(var(--bh) * 0.036), 15px);
+  font-size: max(11px, calc(var(--bh-text) * 0.036));
   color: var(--ink-2);
   text-align: center;
 }
@@ -4277,7 +4597,7 @@ input[type='range'] {
   flex-direction: column;
   align-items: flex-start;
   gap: calc(var(--bh) * 0.016);
-  font-size: clamp(11px, calc(var(--bh) * 0.036), 15.5px);
+  font-size: max(11px, calc(var(--bh-text) * 0.036));
 }
 .gb-lore,
 .gb-ability {
@@ -4496,7 +4816,13 @@ input[type='range'] {
   .hand-stamp,
   .inking,
   .d-art.snap,
-  .more-below {
+  .more-below,
+  .report-yoroi,
+  .report-yoroi-bow,
+  .report-yoroi-pic,
+  .report-friend-pic,
+  .report-friend-pic .cut-out,
+  .report-goal .star-mark.on {
     animation: none;
   }
   .qf-slot,

@@ -31,8 +31,9 @@ interface AllyAttackDef {
   passThrough?: boolean;
   /** Its blows go straight through armour (ラッコ, who once beat the horned bug Chiikawa could not, v2). */
   ignoresArmor?: boolean;
-  /** A hitscan sweep (ラッコ's sword, owner's call 2026-11-07): each blow also strikes the first enemy within reach in
-   *  this many lanes either side of its own, each enemy once; it swings when any of those lanes has one. */
+  /** A hitscan sweep (ラッコ's sword, owner's call 2026-11-07): each blow also strikes every enemy within reach in this
+   *  many lanes either side of its own, each enemy once; it swings when any of those lanes has one. Only what is in front
+   *  of him (owner's call 2026-11-09): the tile ahead, and whoever is at his tile's front edge, never anyone level with him. */
   sweepLanes?: number;
   /** Shots in each attack, one after another a moment apart (古本屋, owner's call 2026-11-08: two at a time). */
   volley?: number;
@@ -191,6 +192,8 @@ export interface EnemyDef {
   id: string;
   scope: 1 | 2;
   size: SizeTier;
+  /** Only ever called up by another enemy (セイレーン's two-legged mermaids): in no job's waves, and never sent out in endless mode. */
+  summonOnly?: boolean;
   /** Size of the revealed form, for disguised enemies. */
   trueSize?: SizeTier;
   speed: SpeedTier;
@@ -505,8 +508,10 @@ export type SimEvent =
   | { type: 'place'; ally: Ally }
   | { type: 'remove'; ally: Ally }
   | { type: 'allyAttack'; ally: Ally }
-  /** A friend's blow landing (a jab, a punch, ラッコ's sword), in `lane` (a giant is hit in any of its lanes). */
-  | { type: 'jab'; ally: Ally; enemy: Enemy; lane: number }
+  /** A friend's blow landing on at least one enemy (a jab, a punch, ラッコ's sword). */
+  | { type: 'jab'; ally: Ally }
+  /** A melee friend's blow, whatever it landed on: the open lanes it cuts and the last column it reaches. */
+  | { type: 'swing'; ally: Ally; lanes: number[]; lastCol: number }
   | { type: 'shoot'; ally: Ally; projectile: Projectile }
   /** `lane`: where the blow landed (a giant is hit in any of its lanes). */
   | { type: 'hit'; enemy: Enemy; damage: number; armored: boolean; source: string; fx: string; lane: number }

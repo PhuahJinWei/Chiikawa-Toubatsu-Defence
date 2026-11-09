@@ -11,7 +11,7 @@ export * from './types';
 export { GALLERY_IMAGES, LOGOS, PORTRAIT_SUBJECTS, PORTRAITS, fighterId, QUEST_IMAGES, QUEST_PLACES, SHOP_ITEMS, UI_BUTTONS, UI_ICONS, UI_PROPS } from './images';
 export { ALLY_CHARACTERS, ENEMY_CHARACTERS, VEHICLES, PAJAMA_MEMBERS, PEOPLE_SIZE, CHARACTERS, characterSpec, sizeSpec, spriteIdFor, teamSpec } from './characters';
 export { CARD_LOOKS, type CardLook } from './cards';
-export { BOOK_SCENE, LOBBY_SCENE, QUESTS_SCENE, SCENES, sceneSpec, SHOP_SCENE, WORLD_FIELD, WORLD_H, WORLD_SCENES, WORLD_W } from './scenes';
+export { BOOK_SCENE, LOBBY_SCENE, QUESTS_SCENE, SCENES, sceneSpec, SHOP_SCENE, WORLD_FIELD, WORLD_H, WORLD_SCENES, WORLD_W, worldScene } from './scenes';
 export { SOUNDS } from './sounds';
 export { GALLERY_MOTIONS, SPRITE_LOOP_MS, SPRITE_MOTIONS, type SpriteMotionName, spriteNeeds, STAR_SPRITE } from './sprites';
 export { STICKER_DETAIL, STICKER_VARIANTS, STICKERS, stickerSpec } from './stickers';

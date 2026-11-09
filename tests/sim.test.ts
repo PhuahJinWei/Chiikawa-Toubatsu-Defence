@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, RESCUE_BOSS_DAMAGE, STEP_MS, STUMP_HP, stumpStage, TILE } from '../src/game/sim/constants';
+import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, HIT_LINE, RESCUE_BOSS_DAMAGE, STEP_MS, STUMP_HP, stumpStage, TILE } from '../src/game/sim/constants';
 import { ENEMIES, UNITS } from '../src/game/sim/defs';
 import { abilityBusyMs, abilityCycleMs, HEAL_PULSE_MS, healPauseOf, spawnMsOf } from '../src/game/sim/tempo';
 import { Rng } from '../src/game/sim/rng';
@@ -157,7 +157,7 @@ describe('combat', () => {
     }
     expect(e.hp).toBe(hp);
     for (let i = 0; i < 200; i++) {
-      e.y = colY(3) + 20;
+      e.y = colY(3) + HIT_LINE + 20;
       sim.step(STEP_MS);
     }
     expect(e.hp).toBeLessThan(hp);
@@ -732,7 +732,7 @@ describe('Rakko (v2 friend)', () => {
   it('hits hard up close and a tile ahead, straight through armour, and no further', () => {
     const sim = makeSim(['rakko']);
     put(sim, 0, 2, 3);
-    // A horned bug (armoured) held a tile ahead: every blow lands in full. Then a goblin two tiles ahead: out of reach.
+    // A horned bug (armoured) held a tile ahead: every blow lands in full. Then a goblin three tiles ahead: out of reach.
     sim.spawnEnemy(ENEMIES['mushi_horned'], 2, colY(4) + TILE / 2, { waveIndex: 0 });
     const bug = sim.enemies[0];
     bug.hp = bug.maxHp = 1e6;
@@ -750,11 +750,11 @@ describe('Rakko (v2 friend)', () => {
     }
     const far = makeSim(['rakko']);
     put(far, 0, 2, 3);
-    far.spawnEnemy(ENEMIES['goblin'], 2, colY(5) + TILE / 2, { waveIndex: 0 });
+    far.spawnEnemy(ENEMIES['goblin'], 2, colY(6) + TILE / 2, { waveIndex: 0 });
     const g = far.enemies[0];
     let hit = false;
     for (let i = 0; i < 2000 / STEP_MS; i++) {
-      g.y = g.prevY = colY(5) + TILE / 2;
+      g.y = g.prevY = colY(6) + TILE / 2;
       far.step(STEP_MS);
       if (far.events.some((ev) => ev.type === 'hit')) hit = true;
       far.events.length = 0;
@@ -762,7 +762,7 @@ describe('Rakko (v2 friend)', () => {
     expect(hit).toBe(false);
   });
 
-  it('sweeps his sword through his lane and the lanes either side: the first within reach in each, each once', () => {
+  it('sweeps his sword through his lane and the lanes either side: everyone within two tiles in front of him, each once', () => {
     // Enemies held still (the testing ground's freeze): how often each is struck, and the most any is struck in a step.
     const sweep = (spawns: [string, number, number][]) => {
       const sim = makeSim(['rakko'], { dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
@@ -787,11 +787,13 @@ describe('Rakko (v2 friend)', () => {
       }
       return { list, got, most };
     };
-    const near = colY(3) + TILE / 2;
+    const near = colY(3) + CONTACT;
     const ahead = colY(4) + TILE / 2;
-    const far = colY(5) + TILE / 2;
-    // A tile ahead in the lane above, up close in the lane below, and two in his own lane (only the nearer is cut);
-    // none two lanes off, nor two tiles ahead.
+    const second = colY(5) + TILE / 2;
+    const far = colY(6) + TILE / 2;
+    const level = colY(3) + TILE / 2;
+    // A tile ahead in the lane above, up close in the lane below, two in his own lane and two tiles ahead in the lane above
+    // (all cut); none two lanes off, nor three tiles ahead, nor level with him in the lanes either side.
     const r = sweep([
       ['mushi_twolegs', 1, ahead],
       ['mushi_twolegs', 3, near],
@@ -800,11 +802,14 @@ describe('Rakko (v2 friend)', () => {
       ['mushi_twolegs', 0, ahead],
       ['mushi_twolegs', 4, near],
       ['mushi_twolegs', 3, far],
+      ['mushi_twolegs', 1, level],
+      ['mushi_twolegs', 3, level],
+      ['mushi_twolegs', 1, second],
     ]);
-    const [above, below, mine, behindMine, twoUp, twoDown, belowFar] = r.list;
-    for (const e of [above, below, mine]) expect(r.got.get(e.uid) ?? 0).toBeGreaterThan(1);
+    const [above, below, mine, alsoMine, twoUp, twoDown, belowFar, besideUp, besideDown, aboveSecond] = r.list;
+    for (const e of [above, below, mine, alsoMine, aboveSecond]) expect(r.got.get(e.uid) ?? 0).toBeGreaterThan(1);
     expect(r.got.get(above.uid)).toBe(r.got.get(mine.uid));
-    for (const e of [behindMine, twoUp, twoDown, belowFar]) expect(r.got.get(e.uid) ?? 0).toBe(0);
+    for (const e of [twoUp, twoDown, belowFar, besideUp, besideDown]) expect(r.got.get(e.uid) ?? 0).toBe(0);
     // He swings for an enemy in a lane beside his, with his own lane empty.
     const side = sweep([['mushi_twolegs', 3, ahead]]);
     expect(side.got.get(side.list[0].uid) ?? 0).toBeGreaterThan(0);
@@ -1211,7 +1216,7 @@ describe('v2 friends', () => {
     expect(wall.hp).toBeLessThan(hp0);
   });
 
-  it('ハチワレ（パジャマ） jabs up to 3 tiles ahead and pushes the enemy back half a tile; never a boss, and never off the field', () => {
+  it('ハチワレ（パジャマ） jabs up to 3 tiles ahead and pushes everyone it hits back a little; never a boss, and never off the field', () => {
     const sim = makeSim(['hachiware_pajama'], { dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
     put(sim, 0, 2, 0);
     put(sim, 0, 3, 0);
@@ -1222,14 +1227,101 @@ describe('v2 friends', () => {
       return e;
     };
     const bug = spawn('kimera', 2, colY(2) + 40);
+    const behind = spawn('kimera', 2, colY(3) + HIT_LINE + 10);
     const boss = spawn('mushi_pink', 3, colY(2) + 40);
-    const edge = spawn('kimera', 4, FIELD_ENTRY_Y + 30);
-    const y0 = { bug: bug.y, boss: boss.y };
+    const edge = spawn('kimera', 4, FIELD_ENTRY_Y + 10);
+    const y0 = { bug: bug.y, behind: behind.y, boss: boss.y };
     runUntil(sim, () => bug.hp < bug.maxHp && boss.hp < boss.maxHp && edge.hp < edge.maxHp, 5000);
     run(sim, 400);
     expect(y0.bug - bug.y).toBeCloseTo(UNITS.hachiware_pajama.attack.pushTiles! * TILE, 5);
+    expect(y0.behind - behind.y).toBeCloseTo(UNITS.hachiware_pajama.attack.pushTiles! * TILE, 5);
     expect(boss.y).toBe(y0.boss);
     expect(edge.y).toBe(FIELD_ENTRY_Y);
+  });
+
+  it('ハチワレ（パジャマ）’s push only delays: even the slowest enemy in his reach keeps getting closer', () => {
+    const sim = makeSim(['hachiware_pajama']);
+    put(sim, 0, 2, 0);
+    const e = sim.spawnEnemy(ENEMIES['mushi_horned'], 2, colY(3) + 10, { waveIndex: 0 });
+    e.hp = e.maxHp = 1e6;
+    const y0 = e.y;
+    run(sim, 26000);
+    expect(e.y).toBeGreaterThan(y0 + TILE / 2);
+  });
+
+  it('ハチワレ jabs every enemy within her reach at once, and nobody past it', () => {
+    const sim = makeSim(['hachiware'], { dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
+    put(sim, 0, 2, 0);
+    const spawn = (y: number) => {
+      const e = sim.spawnEnemy(ENEMIES['kimera'], 2, y, { waveIndex: 0 });
+      e.hp = e.maxHp = 1e6;
+      return e;
+    };
+    const near = spawn(colY(1) + 40);
+    const mid = spawn(colY(2) + 40);
+    const last = spawn(colY(3) + HIT_LINE + 10);
+    const past = spawn(colY(3) + HIT_LINE - 10);
+    runUntil(sim, () => near.hp < near.maxHp, 4000);
+    expect(mid.hp).toBe(near.hp);
+    expect(last.hp).toBe(near.hp);
+    expect(past.hp).toBe(past.maxHp);
+  });
+
+  it('reaches an enemy with a melee blow once its hit line is in reach, as a shot would, not just its nose', () => {
+    for (const id of ['hachiware', 'hachiware_pajama', 'rakko'] as const) {
+      const sim = makeSim([id], { dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
+      put(sim, 0, 2, 1);
+      const end = colY(1) - UNITS[id].attack.rangeTiles! * TILE;
+      const spawn = (y: number) => {
+        const e = sim.spawnEnemy(ENEMIES['kimera'], 2, y, { waveIndex: 0 });
+        e.hp = e.maxHp = 1e6;
+        return e;
+      };
+      const nose = spawn(end + HIT_LINE - 1);
+      const body = spawn(end + HIT_LINE + 1);
+      runUntil(sim, () => body.hp < body.maxHp, 4000);
+      expect(body.hp, id).toBeLessThan(body.maxHp);
+      expect(nose.hp, id).toBe(nose.maxHp);
+    }
+  });
+
+  it('does not start a melee swing for an enemy with only its nose in reach', () => {
+    const sim = makeSim(['rakko'], { dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
+    const a = put(sim, 0, 2, 3);
+    const e = sim.spawnEnemy(ENEMIES['kimera'], 2, colY(3) - UNITS['rakko'].attack.rangeTiles! * TILE + HIT_LINE - 1, { waveIndex: 0 });
+    e.hp = e.maxHp = 1e6;
+    run(sim, 3000);
+    expect(a.anim).not.toBe('attack');
+    expect(e.hp).toBe(e.maxHp);
+  });
+
+  it('says what a melee blow covers: its reach ahead, only open lanes, only on the field', () => {
+    const swing = (id: string, lane: number, col: number, lanes = [0, 1, 2, 3, 4]) => {
+      const sim = makeSim([id], { lanes, dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
+      const a = put(sim, 0, lane, col);
+      const e = sim.spawnEnemy(ENEMIES['kimera'], lane, colY(col) - TILE / 2, { waveIndex: 0 });
+      e.hp = e.maxHp = 1e6;
+      let seen: { lanes: number[]; lastCol: number } | undefined;
+      for (let i = 0; i < 4000 / STEP_MS && !seen; i++) {
+        sim.step(STEP_MS);
+        for (const [at, ev] of sim.events.entries()) {
+          if (ev.type !== 'swing') continue;
+          expect(ev.ally).toBe(a);
+          // Before its hits, so whoever shows a hit knows the blow it belongs to.
+          expect(sim.events.slice(0, at).some((x) => x.type === 'hit')).toBe(false);
+          seen = { lanes: ev.lanes, lastCol: ev.lastCol };
+        }
+        sim.events.length = 0;
+      }
+      return seen;
+    };
+    // Down her lane, three tiles ahead; only as far as the field goes.
+    expect(swing('hachiware', 2, 1)).toEqual({ lanes: [2], lastCol: 4 });
+    expect(swing('hachiware', 2, 7)).toEqual({ lanes: [2], lastCol: 8 });
+    // His sweep: two tiles ahead, in three lanes; at the edge of the field, and beside closed lanes, only the lanes there are.
+    expect(swing('rakko', 2, 3)).toEqual({ lanes: [1, 2, 3], lastCol: 5 });
+    expect(swing('rakko', 0, 3)).toEqual({ lanes: [0, 1], lastCol: 5 });
+    expect(swing('rakko', 2, 3, [2])).toEqual({ lanes: [2], lastCol: 5 });
   });
 
   it('うさぎ（クール） only poses; with nobody on the field no missile falls, then one falls on each lane with an enemy and blows up everyone round where it lands', () => {

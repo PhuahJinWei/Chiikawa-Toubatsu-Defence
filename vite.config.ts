@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
+import { gameCharacters, trimFontFaces } from './tools/lib/fonts';
 
 /**
  * Pictures in /art stay as the artist delivered them (lossless PNG); the production build ships them as WebP,
@@ -35,6 +37,23 @@ function artToWebp(): Plugin {
   };
 }
 
+/** The fonts' stylesheets shrink to the pieces the game's own text can reach (see tools/lib/fonts.ts); a piece no longer
+ *  declared is not emitted either. Builds only: the dev server keeps every piece. */
+function trimFonts(): Plugin {
+  let used: Set<number>;
+  return {
+    name: 'trim-fonts',
+    apply: 'build',
+    enforce: 'pre',
+    buildStart() {
+      used = gameCharacters(fileURLToPath(new URL('.', import.meta.url)));
+    },
+    transform(css, id) {
+      return /\/@fontsource\/[^/]+\/[^/]+\.css$/.test(id) ? trimFontFaces(css, used) : null;
+    },
+  };
+}
+
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string };
 
 export default defineConfig({
@@ -50,6 +69,7 @@ export default defineConfig({
   server: { host: true, port: 5173 },
   plugins: [
     artToWebp(),
+    trimFonts(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,

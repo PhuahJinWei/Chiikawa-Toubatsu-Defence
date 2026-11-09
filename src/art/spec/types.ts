@@ -147,6 +147,10 @@ export interface SceneSpec {
   closedLane?: string;
   /** Battle worlds: the picture has the world's water lanes painted in (without this the game lays a plain band of water over them). */
   paintedWater?: boolean;
+  /** Battle worlds: the colour of the stitched lines between the field's tiles, to show on this world's ground (dark ink without one). */
+  fieldLine?: string;
+  /** Battle worlds: a picture painted for the jobs of `world` with only the lanes `open` open (see worldScene). */
+  forLanes?: { world: number; open: number[] };
   /** Far to near. */
   layers: SceneLayer[];
   slots: SceneSlot[];

@@ -136,8 +136,8 @@ export const ALLY_CHARACTERS: CharacterSpec[] = [
     'rakko',
     'S',
     {
-      ja: 'ラッコ：討伐ランキング1位の「先生」。オーナーのくるまとボートの絵のとおり、クリーム色のまるい顔（ふちはツンツンした毛）、横に小さな黒い耳、額に星形の傷あと、首に白いマフラー。体も同じクリーム色。手前の前足に剣を持つ（剣で討伐するのは原作どおり）。最前線に立って剣を前にふりはらい、自分のレーンと上下のレーンの、目の前と1マス先の相手を斬る（上下のレーンまでとどくひとふりは、このゲームでの動き：ふり上げて、上から下へふりはらう）。',
-      en: 'Rakko, the top-ranked hunter Chiikawa and Hachiware call 先生: as in the owner’s car and boat pictures, a round cream face with a spiky furry edge, small black ears at the sides, a star-shaped scar on the forehead and a white muffler; the body the same cream. Holds his sword in his near paw (he hunts with a sword in the original). Stands at the front and sweeps it through his own lane and the lanes above and below, cutting the enemy in front of him or a tile ahead in each (a swing that reaches the lanes either side is this game’s own: it swings up, then sweeps down).',
+      ja: 'ラッコ：討伐ランキング1位の「先生」。オーナーのくるまとボートの絵のとおり、クリーム色のまるい顔（ふちはツンツンした毛）、横に小さな黒い耳、額に星形の傷あと、首に白いマフラー。体も同じクリーム色。手前の前足に剣を持つ（剣で討伐するのは原作どおり）。最前線に立って剣を前にふりはらい、自分のレーンと上下のレーンの、前の2マスにいる相手を斬る（上下のレーンまでとどくひとふりは、このゲームでの動き：ふり上げて、上から下へふりはらう）。',
+      en: 'Rakko, the top-ranked hunter Chiikawa and Hachiware call 先生: as in the owner’s car and boat pictures, a round cream face with a spiky furry edge, small black ears at the sides, a star-shaped scar on the forehead and a white muffler; the body the same cream. Holds his sword in his near paw (he hunts with a sword in the original). Stands at the front and sweeps it through his own lane and the lanes above and below, cutting every enemy within two tiles ahead of him in each (a swing that reaches the lanes either side is this game’s own: it swings up, then sweeps down).',
     },
   ),
   ally(

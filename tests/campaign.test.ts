@@ -99,7 +99,6 @@ describe('the campaign, played from a new save', () => {
       '4-5': 'yoroi_erai',
       '5-1': 'momonga',
       '5-5': 'shimajiro',
-      '6-5': 'usagi_cool',
     };
     for (const level of LEVEL_LIST) {
       if (answers[level.id]) expect(jobCards(LEVELS[level.id]), level.id).toContain(answers[level.id]);

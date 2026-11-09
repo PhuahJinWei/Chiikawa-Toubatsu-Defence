@@ -180,6 +180,9 @@ export function migrate(raw: Json, fallback: SaveData): SaveData {
   // うさぎ is everyone's first friend (she was ハチワレ until 2026-11-08: a save from before keeps him too).
   if (!Array.isArray(merged.cards) || !merged.cards.includes(FIRST_FRIEND)) merged.cards = [FIRST_FRIEND, ...(merged.cards ?? [])];
   merged.money = Math.max(0, Math.floor(Number(merged.money) || 0));
+  // The art guides are a tool for making the game, switched in dev mode only: a player who had them on is not left with
+  // them and no way to turn them off.
+  if (slot !== DEV_SAVE_KEY) merged.settings.guides = false;
   return merged;
 }
 

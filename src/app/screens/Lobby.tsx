@@ -39,7 +39,8 @@ export function Lobby() {
   }, [turning]);
   // The owner's Japanese title, in every language (there is no English logo).
   const logoKey = 'ui/logo_ja';
-  const showInstall = clearedCount() > 0 && !s.installDismissed && installState.value !== 'installed';
+  // Offered only where there is a way to do it: the browser's own prompt, or the steps to follow on iOS.
+  const showInstall = clearedCount() > 0 && !s.installDismissed && (installState.value === 'available' || installState.value === 'ios');
   const open = (name: 'book' | 'shop') => tap(() => go({ name }));
   return (
     <div class={`screen lobby-screen${turning ? ' turning' : ''}`}>

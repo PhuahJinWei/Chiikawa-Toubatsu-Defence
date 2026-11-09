@@ -346,10 +346,11 @@ function EntryPage({ e }: { e: Entry }) {
         </span>
       ) : null}
       {/* A figure stands on the stage every character shares, as wide as the page, so each is true to its size beside
-          the others; a giant is too big for it and runs off the page, its preview taller so its head stays in. A face
-          keeps its square. */}
+          the others; a giant is too big for it and runs off the page, its preview taller so its head stays in. The stage
+          left empty above and below whoever stands here is closed up, so the notes come right after them. A face keeps
+          its square. */}
       {/* No spot of colour under it (owner's call, 2026-11-07): the character's own sticker shadow is its ground. */}
-      <div class={`gb-figure${moving ? ' stage' : ''}`} style={moving ? { '--stage': `${FIGURE_WIDTH} / ${figure!.height}`, '--bleed-l': BLEED.left, '--bleed-r': BLEED.right } : undefined}>
+      <div class={`gb-figure${moving ? ' stage' : ''}`} style={moving ? { '--stage': `${FIGURE_WIDTH} / ${figure!.height}`, '--bleed-l': BLEED.left, '--bleed-r': BLEED.right, '--spare-t': figure!.spareAbove / FIGURE_WIDTH, '--spare-b': figure!.spareBelow / FIGURE_WIDTH } : undefined}>
         {moving && motions.length > 1 ? (
           <button type="button" class="gb-model" aria-label={t('gallery.nextMotion')} onClick={tap(() => setStep(step + 1))}>
             {model}

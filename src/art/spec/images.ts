@@ -198,7 +198,7 @@ export const UI_ICONS: ImageSpec[] = [
 ];
 
 /** Things the game shows for a moment: the hand stamp (判子) seen from above, which presses a red stamp onto the paper
- *  the moment one is earned (and is then taken away). */
+ *  the moment one is earned (and is then taken away), and 労働の鎧さん standing beside the report at the end of a job. */
 export const UI_PROPS: ImageSpec[] = [
   {
     key: 'ui/hand_stamp',
@@ -208,6 +208,26 @@ export const UI_PROPS: ImageSpec[] = [
     note: {
       ja: '判子（ハンコ）を真上から見た絵：持ち手と、下のふちに見える赤いインク。赤いスタンプが手に入った瞬間に、紙の上に押される（文字は入れない）。透明背景。',
       en: 'A hand stamp (判子) seen from straight above: its handle, with the red ink showing at the bottom rim. It presses a red stamp onto the paper the moment one is earned (no text). Transparent background.',
+    },
+  },
+  {
+    key: 'ui/report_yoroi_bow',
+    kind: 'icon',
+    w: 671,
+    h: 768,
+    note: {
+      ja: '討伐報告のとなりに立つ労働の鎧さん（討伐成功）：胸に手を当てておじぎ。腰から上だけの絵で、腰の線は画面の下にかくれます。背景は透明。',
+      en: 'Labour 鎧さん beside the job report when a job is done: a hand on his heart, thanking the player. From the waist up (the waist goes below the bottom of the screen). Transparent background.',
+    },
+  },
+  {
+    key: 'ui/report_yoroi_concerned',
+    kind: 'icon',
+    w: 671,
+    h: 768,
+    note: {
+      ja: '討伐報告のとなりに立つ労働の鎧さん（討伐失敗）：頭をかいて心配そう。腰から上だけの絵で、腰の線は画面の下にかくれます。背景は透明。ゲームが左右反転して使います。',
+      en: 'Labour 鎧さん beside the report when a job has failed: scratching his head, concerned. From the waist up (the waist goes below the bottom of the screen). Transparent background. The game mirrors it.',
     },
   },
 ];

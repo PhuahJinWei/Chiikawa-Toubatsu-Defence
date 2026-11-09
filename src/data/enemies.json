@@ -150,6 +150,7 @@
   },
   {
     "id": "mermaid_twolegs",
+    "summonOnly": true,
     "scope": 2,
     "size": "S",
     "speed": "normal",
@@ -174,7 +175,7 @@
     "size": "M",
     "speed": "normal",
     "hp": 1200,
-    "attack": { "kind": "none" },
+    "attack": { "kind": "none", "swingMs": 320 },
     "abilities": [{ "kind": "flier", "hoverMs": 2500 }],
     "weight": 5
   },

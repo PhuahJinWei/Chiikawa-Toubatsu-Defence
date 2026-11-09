@@ -91,6 +91,31 @@ describe('previews: every character true to its size', () => {
     }
   });
 
+  it('can close up the empty stage around anyone, with all they do still inside what is left', () => {
+    const w = 300;
+    const eps = 1e-6;
+    for (const id of figureIds()) {
+      const l = figureLayout(id, w);
+      expect(l.spareAbove, id).toBeGreaterThanOrEqual(0);
+      expect(l.spareBelow, id).toBeGreaterThanOrEqual(0);
+      for (const { what, b } of drawn(id)) {
+        expect(l.y + b.y0 * l.k, `${id} ${what} top`).toBeGreaterThanOrEqual(l.spareAbove - eps);
+        expect(l.y + b.y1 * l.k, `${id} ${what} bottom`).toBeLessThanOrEqual(l.height - l.spareBelow + eps);
+      }
+    }
+  });
+
+  it('closes up the most over the smallest and next to nothing over the biggest', () => {
+    const w = 300;
+    const above = (id: string) => figureLayout(id, w).spareAbove;
+    const chiikawa = spriteIdFor('ally', 'chiikawa');
+    const usagi = spriteIdFor('ally', 'usagi');
+    expect(above(chiikawa)).toBeGreaterThan(above(usagi));
+    expect(above(usagi)).toBeGreaterThan(above('enemy_zou'));
+    expect(above(chiikawa)).toBeGreaterThan(0.4 * w);
+    for (const id of ['enemy_zou', 'enemy_dekatsuyo', 'enemy_anoko']) expect(above(id), id).toBeLessThan(0.02 * w);
+  });
+
   it('lets the giants run off the back of the preview, their heads and fronts in view', () => {
     const w = 300;
     const eps = 1e-6;

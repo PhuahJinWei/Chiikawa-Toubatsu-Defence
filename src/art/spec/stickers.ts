@@ -3,7 +3,9 @@
 
 import type { StickerSpec } from './types';
 
-const s = (id: string, group: StickerSpec['group'], w: number, h: number, anchor: StickerSpec['anchor'], ja: string, en: string, edge = true): StickerSpec => ({
+/** Paper or ink: whatever you could pick up gets the white cut edge and its shadow; energy and motion (every effect, and the
+ *  shots that are fire or spit, which say so) are just inked, so an effect never lays a white backing over whoever it lands on. */
+const s = (id: string, group: StickerSpec['group'], w: number, h: number, anchor: StickerSpec['anchor'], ja: string, en: string, edge = group !== 'effect'): StickerSpec => ({
   id,
   group,
   w,
@@ -25,7 +27,7 @@ export const STICKER_VARIANTS: Record<string, string[]> = {
 
 export const STICKERS: StickerSpec[] = [
   // Projectiles: drawn flying to the right (allies' shots) or to the left (the fugu's spit).
-  s('fx_blast', 'projectile', 90, 90, 'center', 'うさぎの爆風弾。右へ飛ぶ。', "Usagi's blast shot, flying right."),
+  s('fx_blast', 'projectile', 90, 90, 'center', 'うさぎの爆風弾。右へ飛ぶ。', "Usagi's blast shot, flying right.", false),
   s('fx_acorn', 'projectile', 50, 50, 'center', 'モモンガのどんぐり。', "Momonga's acorn."),
   s('fx_can', 'projectile', 64, 64, 'center', '栗まんじゅうのカップ酒の缶（ゲームが回す）。', "Kurimanju's cup-sake can (the game spins it)."),
   s('fx_goya', 'projectile', 70, 70, 'center', 'シーサーのゴーヤ（ゲームが回す）。', "Shisa's ゴーヤ (the game spins it)."),
@@ -51,6 +53,7 @@ export const STICKERS: StickerSpec[] = [
     'center',
     'ちいかわ（人魚の島）のたいまつから飛ぶ炎。右へ飛ぶ、ひとつの大きな火の玉（燃えうつらない）。',
     'The flame from ちいかわ（人魚の島）’s torch: one big fireball flying right (nothing catches fire).',
+    false,
   ),
   s(
     'fx_missile',
@@ -61,7 +64,7 @@ export const STICKERS: StickerSpec[] = [
     'うさぎ（クール）のミサイル。空から先を下にして落ちてくる（ゲームが落とす）。',
     'うさぎ（クール）’s missile, falling nose first out of the sky (the game drops it).',
   ),
-  s('fx_spit', 'projectile', 50, 50, 'center', 'フグの吐き出し弾。左へ飛ぶ。', "Fugu's spit, flying left."),
+  s('fx_spit', 'projectile', 50, 50, 'center', 'フグの吐き出し弾。左へ飛ぶ。', "Fugu's spit, flying left.", false),
   // Effects: the game pops, grows and fades them. Hit sparks and armour clinks come in three versions each, one picked
   // at random every time.
   ...STICKER_VARIANTS.fx_hit.map((id, i) =>
@@ -111,7 +114,6 @@ export const STICKERS: StickerSpec[] = [
     'center',
     '回復したしるし：「＋HP」と、下から立ちのぼる緑の光。回復したなかま（と、黒い星に回復された相手）ひとりひとりの上に一瞬だけ出る。光がすけているので白いふちは付けない。',
     'The healed mark: “+HP” with green light rising. It shows for a moment over each one healed (friends, and the enemies the Black Star heals). Its light is see-through, so the game adds no white edge.',
-    false,
   ),
   // The heal pulse: frames played in order (1, 2, 3), and a black one from 黒い星 when it heals the enemies round it.
   // The frames spread and fade on their own, so they are drawn as painted, with no white edge. Since 2026-11-08 no
@@ -125,7 +127,6 @@ export const STICKERS: StickerSpec[] = [
       'center',
       `回復の波紋（3コマの${n}つめ）。なかまが回復したところで 1→2→3 の順に出る。広がって消えていく絵なので、白いふちは付けない。`,
       `Healing pulse (frame ${n} of 3), played 1→2→3 where friends are healed. It spreads and fades in its frames, so the game adds no white edge.`,
-      false,
     ),
   ),
   ...[1, 2, 3].map((n) =>
@@ -137,7 +138,6 @@ export const STICKERS: StickerSpec[] = [
       'center',
       `黒い星の回復の波紋（黒、3コマの${n}つめ）。黒い星がまわりの相手を回復するとき、1→2→3 の順に出る。白いふちは付けない。`,
       `The Black Star's healing pulse (black, frame ${n} of 3), played 1→2→3 when it heals the enemies round it. No white edge.`,
-      false,
     ),
   ),
   s('fx_spell', 'effect', 170, 170, 'center', '山姥の呪文と、ちいかぶの変身のときに出る光（ゲームがはじけさせる）。', "A burst of light for 山姥's spell and ちいかぶ's transformation (the game bursts it)."),
@@ -152,6 +152,26 @@ export const STICKERS: StickerSpec[] = [
   ),
   // Song notes: five different ones, each floating note picked at random.
   ...[1, 2, 3, 4, 5].map((n) => s(`fx_note_${n}`, 'effect', 50, 50, 'center', `歌の音符（5種類の${n}つめ。音符はこの中からばらばらに出る）。`, `A song note (${n} of 5: each note that floats up is one of them, picked at random).`)),
+  // A melee blow, one picture for each way of striking. The game sends it out to the end of the friend's reach, so one
+  // drawing does for any reach, and draws it under the characters, so it never hides them.
+  s(
+    'fx_sweep',
+    'effect',
+    210,
+    540,
+    'center',
+    'ラッコの剣のひとふり：右にふくらんだ三日月形の斬撃。ゲームが、剣の先から間合いの端まで飛ばし、斬るレーンの高さまでのばして、キャラクターの下に出す。',
+    'Rakko’s sword sweep: a crescent slash bulging to the right. The game sends it from the sword to the end of the reach, as tall as the lanes it cuts, under the characters.',
+  ),
+  s(
+    'fx_thrust',
+    'effect',
+    580,
+    120,
+    'center',
+    'さすまたのひと突き：右へ向かって細くとがる突きの線。ゲームが、間合いの端までのばして、キャラクターの下に出す。',
+    'A thrust of the さすまた: a long, slim stab coming to a point on the right. The game runs it out to the end of the reach, under the characters.',
+  ),
   s('fx_dust', 'effect', 240, 120, 'center', 'ふみつけの土ぼこり（ゲームがはじけさせる）。', 'Stomp dust (the game bursts it).'),
   s(
     'fx_trail',

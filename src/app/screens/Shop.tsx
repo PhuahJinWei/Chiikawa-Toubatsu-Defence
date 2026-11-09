@@ -104,11 +104,11 @@ export function Shop({ r }: { r: Extract<Route, { name: 'shop' }> }) {
 
   const buy = (item: Good, price: number) => {
     if (waits(item)) {
-      toast(t('shop.after'));
+      toast(t('shop.after'), 'bad');
       return;
     }
     if (save.value.money < price) {
-      toast(t('shop.notEnough'));
+      toast(t('shop.notEnough'), 'bad');
       return;
     }
     const who = spot;
@@ -127,7 +127,7 @@ export function Shop({ r }: { r: Extract<Route, { name: 'shop' }> }) {
         else if (item.id === 'buta') d.items.buta++;
       });
       audio.sfx(card ? 'sfx_unlock' : 'sfx_coin');
-      toast(card ? t('shop.joined', { name }) : t('shop.bought'));
+      toast(card ? t('shop.joined', { name }) : t('shop.bought'), 'ok');
       setCheer(who);
     }, { title: name });
   };

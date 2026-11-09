@@ -5,10 +5,10 @@ import en from '../src/i18n/en.json';
 import ja from '../src/i18n/ja.json';
 import { WORLD_BLEED, worldBleed } from '../src/art/bleed';
 import { mergeScene, type SceneLayout } from '../src/art/layout';
-import { ALL_IMAGES, LOBBY_SCENE, pieceFiles, QUEST_IMAGES, type SceneLayer, SCENES, type SceneSpec, SHOP_ITEMS, SHOP_SCENE, SOUNDS, STICKER_DETAIL, STICKER_VARIANTS, STICKERS, UI_BUTTONS, UI_ICONS, UI_PROPS, WORLD_SCENES } from '../src/art/spec';
-import { LEVEL_LIST, WORLDS } from '../src/game/sim/defs';
+import { ALL_IMAGES, LOBBY_SCENE, pieceFiles, QUEST_IMAGES, type SceneLayer, SCENES, type SceneSpec, SHOP_ITEMS, SHOP_SCENE, SOUNDS, STICKER_DETAIL, STICKER_VARIANTS, STICKERS, UI_BUTTONS, UI_ICONS, UI_PROPS, WORLD_SCENES, worldScene } from '../src/art/spec';
+import { LEVEL_LIST, UNITS, WORLDS } from '../src/game/sim/defs';
 import { FIELD_H, FIELD_W, TILE } from '../src/game/sim/constants';
-import { lineupSpots, lineupSpotsWet } from '../src/game/render/lineup';
+import { byFeet, lineupLayout, lineupSpots, lineupSpotsWet } from '../src/game/render/lineup';
 import { battleView, SEEN_LEFT } from '../src/game/render/view';
 import { resolveScene } from '../src/art/store';
 import {
@@ -147,8 +147,8 @@ describe('scene specs', () => {
     }
   });
 
-  it('plans the hand stamp that presses each red stamp, with its sound', () => {
-    expect(UI_PROPS.map((i) => i.key)).toEqual(['ui/hand_stamp']);
+  it('plans the hand stamp that presses each red stamp, with its sound, and 鎧さん beside the job report', () => {
+    expect(UI_PROPS.map((i) => i.key)).toEqual(['ui/hand_stamp', 'ui/report_yoroi_bow', 'ui/report_yoroi_concerned']);
     for (const i of UI_PROPS) expect(ALL_IMAGES.some((x) => x.key === i.key)).toBe(true);
     expect(SOUNDS.some((s) => s.id === 'sfx_stamp')).toBe(true);
   });
@@ -197,6 +197,22 @@ describe('scene specs', () => {
       // The game draws a sticker into its planned box, so a picture of another shape would come out stretched.
       expect(Math.abs(w / h - s.w / s.h), png).toBeLessThan(0.01);
       expect(w, png).toBeGreaterThanOrEqual(s.w * STICKER_DETAIL);
+    }
+  });
+
+  it('cuts out what you could pick up, and leaves energy and effects as ink', () => {
+    const energy = ['fx_blast', 'fx_flame', 'fx_spit'];
+    for (const s of STICKERS) expect(s.edge, s.id).toBe(s.group !== 'effect' && !energy.includes(s.id));
+    // The rest of the shots are things thrown.
+    for (const id of ['fx_acorn', 'fx_can', 'fx_goya', 'fx_shell', 'fx_conch', 'fx_missile', 'fx_book_1']) expect(STICKERS.find((s) => s.id === id)?.edge, id).toBe(true);
+  });
+
+  it('has a picture for the blow of every melee friend: a sweep across lanes, a thrust down one', () => {
+    const melee = Object.values(UNITS).filter((u) => u.attack?.kind === 'hitscan');
+    expect(melee.map((u) => u.id).sort()).toEqual(['hachiware', 'hachiware_pajama', 'rakko']);
+    for (const u of melee) {
+      expect(STICKERS.some((s) => s.id === u.attack.fx), u.id).toBe(true);
+      expect(u.attack.fx, u.id).toBe(u.attack.sweepLanes ? 'fx_sweep' : 'fx_thrust');
     }
   });
 
@@ -434,6 +450,22 @@ describe('battle worlds', () => {
     }
   });
 
+  it('fight every job with closed lanes on a picture painted for those lanes, with nothing laid over them', () => {
+    const closed = LEVEL_LIST.filter((l) => l.lanes.length < 5);
+    expect(closed.map((l) => l.id)).toEqual(['1-1', '1-2', '1-3']);
+    for (const l of closed) {
+      const sc = worldScene(l.world, l.lanes);
+      expect(sc.forLanes?.open, l.id).toEqual(l.lanes);
+      expect(sc.closedLane, l.id).toBe('transparent');
+      expect(existsSync(`art/scenes/${sc.id}/picture.png`), sc.id).toBe(true);
+    }
+    expect(worldScene(1, [2]).id).toBe('world1_one_lane');
+    expect(worldScene(1, [3, 1, 2]).id).toBe('world1_three_lanes');
+    // All five lanes open, in any world: its own picture. A layout nobody painted: the world's, with its closed lanes covered.
+    for (const w of [1, 2, 3, 4, 5, 6]) expect(worldScene(w, [0, 1, 2, 3, 4]).id).toBe(`world${w}`);
+    expect(worldScene(1, [1, 2]).id).toBe('world1');
+  });
+
   // The battle camera on the HUD's real sizes: W, H and the phone's notch inset. The card column is 72 px wide on phones
   // and 86 on tall screens (past the notch), the top strip 44 and 52.
   const CAMERA_SCREENS = [
@@ -513,6 +545,45 @@ describe('battle worlds', () => {
     spots.forEach((s, i) => expect(Math.floor(s.y / TILE) === 2).toBe(swims[i]));
     // Without water it is the usual crowd.
     expect(lineupSpotsWet(swims, 2460, [])).toEqual(lineupSpots(swims.length, 2460));
+  });
+
+  it('have the others stand clear of a lone giant, and draw everyone by where their feet are', () => {
+    // As in 6-5: seven others, then the giant. でかつよ is the widest there is.
+    const who = Array.from({ length: 8 }, (_, i) => ({ swims: false, giant: i === 7 }));
+    const spots = lineupLayout(who, 2460, []);
+    const giant = spots[7];
+    const idle = JSON.parse(readFileSync('art/sprites/enemy_dekatsuyo/sprite.json', 'utf8')).anims.idle;
+    const reach = (idle.w * (480 / idle.h)) / 2;
+    expect(new Set(spots.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`)).size).toBe(8);
+    expect(Math.floor(giant.y / TILE)).toBe(3);
+    // The first five are a column, the smallest at the back; a shorter line stands in the middle of the road.
+    expect(spots.slice(0, 5).map((s) => Math.floor(s.y / TILE))).toEqual([0, 1, 2, 3, 4]);
+    const few = lineupLayout(Array.from({ length: 4 }, (_, i) => ({ swims: false, giant: i === 3 })), 2460, []);
+    expect(few.slice(0, 3).map((s) => Math.floor(s.y / TILE))).toEqual([1, 2, 3]);
+    for (const s of spots.slice(0, 7)) {
+      // On the road, and out from behind it: within its reach, only in the two lanes its body doesn't fill.
+      expect(s.x).toBeGreaterThan(FIELD_W);
+      const lane = Math.floor(s.y / TILE);
+      if (lane >= 1 && lane <= 3) expect(s.x).toBeLessThan(giant.x - reach);
+    }
+    // Whoever is further back goes first and whoever is nearer goes after it, the giant among them.
+    const drawn = [...spots].sort(byFeet);
+    const turn = drawn.indexOf(giant);
+    drawn.forEach((s, i) => {
+      if (s.y < giant.y) expect(i).toBeLessThan(turn);
+      if (s.y > giant.y) expect(i).toBeGreaterThan(turn);
+    });
+  });
+
+  it('leave a crowd too big to stand clear of its giants as it is, and a job without one as usual', () => {
+    const who = Array.from({ length: 20 }, (_, i) => ({ swims: false, giant: i >= 18 }));
+    const spots = lineupLayout(who, 2460, []);
+    const crowd = lineupSpots(20, 2460);
+    expect(spots.slice(0, 18)).toEqual(crowd.slice(0, 18));
+    expect(spots.slice(18).map((s) => s.x)).toEqual(crowd.slice(18).map((s) => s.x));
+    expect(spots.slice(18).map((s) => Math.floor(s.y / TILE))).toEqual([3, 3]);
+    const plain = Array.from({ length: 6 }, () => ({ swims: false, giant: false }));
+    expect(lineupLayout(plain, 2460, [])).toEqual(lineupSpots(6, 2460));
   });
 
   it('leave a road right of the field wide enough for the enemies waiting before a battle', () => {

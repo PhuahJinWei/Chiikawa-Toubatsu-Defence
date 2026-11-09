@@ -285,7 +285,7 @@ push(
   '## Not needed as pictures',
   '',
   'Buttons (the lobby’s floating buttons too), paper panels, cards, the wave and boss bars, banners and icons are drawn by the',
-  'game, so they need no art. The PWA icons in `public/icons/` are still the code-drawn ones from before the art arrived; replace those files directly.',
+  'game, so they need no art. The PWA icons in `public/icons/` are made from `art/portraits/portrait_rakko.png`; to change them, replace those files directly.',
   '',
   '## Totals',
   '',

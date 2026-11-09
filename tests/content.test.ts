@@ -58,8 +58,8 @@ describe('content', () => {
       '5-2': 'hitoha',
       '5-3': 'shimajiro',
       '5-5': 'chiikawa_island',
-      '6-2': 'hachiware_pajama',
-      '6-4': 'usagi_cool',
+      '6-1': 'hachiware_pajama',
+      '6-2': 'usagi_cool',
     });
   });
 
@@ -88,11 +88,11 @@ describe('content', () => {
     });
   });
 
-  it('gives a friend on every job of World 1, and after that never on two jobs running but for the islanders', () => {
+  it('gives a friend on every job of World 1, and then never on two jobs running until World 5 (Worlds 5 and 6 bring theirs early)', () => {
     const gives = (world: number, index: number) => !!LEVELS[`${world}-${index}`]?.rewards.unlockCard;
     for (const l of LEVEL_LIST) {
       if (l.world === 1) expect(gives(1, l.index), l.id).toBe(true);
-      else if (l.world !== 5) expect(gives(l.world, l.index) && gives(l.world, l.index - 1), l.id).toBe(false);
+      else if (l.world < 5) expect(gives(l.world, l.index) && gives(l.world, l.index - 1), l.id).toBe(false);
     }
   });
 
@@ -213,8 +213,8 @@ describe('World 6 (the big hunt)', () => {
     expect(last.final && last.boss).toBe(true);
     expect(last.spawns.filter((s) => s.boss).map((s) => s.enemy)).toEqual(['dekatsuyo']);
     expect(hunt.filter((l) => l.rewards.unlockCard).map((l) => [l.id, l.rewards.unlockCard])).toEqual([
-      ['6-2', 'hachiware_pajama'],
-      ['6-4', 'usagi_cool'],
+      ['6-1', 'hachiware_pajama'],
+      ['6-2', 'usagi_cool'],
     ]);
   });
 

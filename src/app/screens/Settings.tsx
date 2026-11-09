@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
+import { DEV_MODE } from '../../dev';
 import { lang, setLang, t } from '../../i18n/i18n';
 import { applyImported, exportCode, importCode, resetSave, save, storageOk, updateSave } from '../../save/save';
 import { Icon } from '../components/Icon';
@@ -105,29 +106,32 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
               </div>
             </section>
 
-            <section class="group">
-              <h2 class="section-title">{t('settings.art')}</h2>
-              <div class="list">
-                <div class="list-item">
-                  <div class="label">
-                    {t('settings.guides')}
-                    <div class="desc">{t('settings.guidesDesc')}</div>
+            {/* The art tools are for making the game, so only dev mode (?dev) shows them. */}
+            {DEV_MODE ? (
+              <section class="group">
+                <h2 class="section-title">{t('settings.art')}</h2>
+                <div class="list">
+                  <div class="list-item">
+                    <div class="label">
+                      {t('settings.guides')}
+                      <div class="desc">{t('settings.guidesDesc')}</div>
+                    </div>
+                    <Switch on={s.guides} onChange={(v) => set((d) => (d.guides = v))} label={t('settings.guides')} />
                   </div>
-                  <Switch on={s.guides} onChange={(v) => set((d) => (d.guides = v))} label={t('settings.guides')} />
+                  <button
+                    class="list-item"
+                    onClick={tap(() => go({ name: 'artkit' }))}
+                  >
+                    <Icon name="image" />
+                    <div class="label">
+                      {t('settings.artkit')}
+                      <div class="desc">{t('settings.artkitDesc')}</div>
+                    </div>
+                    <Icon name="next" size={18} />
+                  </button>
                 </div>
-                <button
-                  class="list-item"
-                  onClick={tap(() => go({ name: 'artkit' }))}
-                >
-                  <Icon name="image" />
-                  <div class="label">
-                    {t('settings.artkit')}
-                    <div class="desc">{t('settings.artkitDesc')}</div>
-                  </div>
-                  <Icon name="next" size={18} />
-                </button>
-              </div>
-            </section>
+              </section>
+            ) : null}
 
             <section class="group">
               <h2 class="section-title">{t('settings.save')}</h2>
@@ -189,7 +193,7 @@ function ExportSheet({ onClose }: { onClose: () => void }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(code);
-      toast(t('common.copied'));
+      toast(t('common.copied'), 'ok');
     } catch {
       toast(code.slice(0, 24) + '…');
     }
@@ -218,12 +222,12 @@ function ImportSheet({ onClose }: { onClose: () => void }) {
   const apply = () => {
     const d = importCode(code, lang.value);
     if (!d) {
-      toast(t('settings.importBad'));
+      toast(t('settings.importBad'), 'bad');
       return;
     }
     applyImported(d);
     setLang(d.settings.lang);
-    toast(t('settings.importOk'));
+    toast(t('settings.importOk'), 'ok');
     onClose();
   };
   return (
@@ -258,7 +262,7 @@ function ResetSheet({ onClose }: { onClose: () => void }) {
           disabled={!ok}
           onClick={tap(() => {
             resetSave();
-            toast(t('settings.resetDone'));
+            toast(t('settings.resetDone'), 'ok');
             onClose();
             closeSettings();
           })}
