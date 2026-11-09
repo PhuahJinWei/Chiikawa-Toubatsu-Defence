@@ -1,5 +1,5 @@
-// Regenerates ASSET_CHECKLIST.md from src/art/spec (the same spec the game, the placeholders and the art kit
-// use), so the checklist can never drift from the code. Delivered files are ticked.
+// Regenerates ASSET_CHECKLIST.md from src/art/spec (the same spec the game and the Art Kit use), so the checklist
+// can never drift from the code. Delivered files are ticked.
 //   npm run checklist
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -50,9 +50,8 @@ push(
   '> Generated from `src/art/spec` by `npm run checklist`. Do not edit by hand; change the spec instead.',
   '',
   'Every picture and sound the game uses. The whole game is stacked paper cut-outs: flat pictures that the game layers,',
-  'borders, shades and moves. Until a file exists the game draws a placeholder in its place. In the game, **設定 → アートキット**',
-  'shows the same list with live previews (characters move) and a ZIP of every placeholder; `npm run art:kit` writes them',
-  'to `art-kit/` with contact sheets.',
+  'borders, shades and moves. Until a file exists the game shows a plain card with the picture name and size in its place.',
+  'In the game, **設定 → アートキット** shows the same list with live previews (characters move) and a ZIP of size templates.',
   '',
   '## Rules for every picture',
   '',
@@ -286,7 +285,7 @@ push(
   '## Not needed as pictures',
   '',
   'Buttons (the lobby’s floating buttons too), paper panels, cards, the wave and boss bars, banners and icons are drawn by the',
-  'game, so they need no art. The PWA icons in `public/icons/` are generated placeholders (`npm run icons`); replace those files directly.',
+  'game, so they need no art. The PWA icons in `public/icons/` are still the code-drawn ones from before the art arrived; replace those files directly.',
   '',
   '## Totals',
   '',

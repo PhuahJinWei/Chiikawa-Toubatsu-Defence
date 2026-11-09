@@ -125,6 +125,7 @@ def lvl(world, idx, waves, lanes=ALL, start=50, sprout=None, night=False, forced
 # order: a new friend on every job of World 1, then one every two jobs, each joining just before what it answers. World 5
 # brings only フタバ, ヒトハ, 島二郎 and ちいかわ（人魚の島）, World 6 only ハチワレ（パジャマ） and うさぎ（クール）. うさぎ is
 # everyone's first friend; シーサー and 星 stay at her なかま屋 (src/data/shop.json). tests/content.test.ts pins the plan.
+# The lanes open once, in World 1 (one, then three, then all five), and never close again.
 
 W1 = [
     lvl(1, 1, "24: t2; 48: t2; 70: t2; 90: t2*2; 114 final: t2*3",
@@ -152,7 +153,7 @@ W2 = [
     # The first bushes stand well up the field, so whoever hides in one comes out before reaching anyone.
     lvl(2, 3, "24: gb; 46: mj; 66: gb fg; 86: mj gb; 106 big: gb*5 mj*2; 130: s6 fg; 152: cd mj gb*2; 180 final: gb*6 mj*2 s6 cd fg",
         terrain=[(1, 6, BU), (3, 6, BU), (0, 6, ST), (4, 1, ST), (2, 7, BU)]),
-    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*7 s6*2 bs*2 mj fg",
+    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*7 s6 bs*2 mj fg",
         terrain=[(0, 5, BU), (4, 5, BU), (2, 1, ST), (1, 7, ST), (3, 3, ST)], unlock='momonga'),
     lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*6 s6 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt! gb*5 s6 mj",
         terrain=[(0, 4, ST), (4, 4, ST), (2, 6, BU)], first=600),
@@ -191,17 +192,16 @@ W4 = [
 
 # World 5 島: the bottom lane is the sea along the shore (worlds.json `water`). 人魚 (in threes) and the boss セイレーン come
 # down it and nobody else does; only the islanders can stand on it: フタバ and ヒトハ throwing from their boats, and
-# 島二郎, who swims, as its wall. Friends in the lane above help from the land (モモンガ's throw reaches it). 5-1 is three
-# lanes with no water friend yet: the land defends the water. The islanders come one job after another, since nobody
-# else can stand on the water, and ちいかわ（人魚の島） joins for beating セイレーン.
-ISLE = [2, 3, 4]
+# 島二郎, who swims, as its wall. Friends in the lane above help from the land (モモンガ's throw reaches it). 5-1 has no
+# water friend yet: the land defends the water. The islanders come one job after another, since nobody else can stand
+# on the water, and ちいかわ（人魚の島） joins for beating セイレーン.
 
 def isle(idx, waves, **kw):
     return lvl(5, idx, waves, **kw)
 
 W5 = [
     isle(1, "24: t2; 46: fg; 68: t2*2; 90: nm t2; 112 big: t2*5 fg*2; 136: fg t2*2; 160: nm; 186 final: t2*6 fg*3 nm",
-         lanes=ISLE, unlock='futaba'),
+         unlock='futaba'),
     isle(2, "24: t2; 46: nm; 66: fg t2; 88: nm t2; 110 big: t2*6 fg*2 nm; 134: s6 nm; 156: fg*2 t2; 182 final: t2*7 s6 fg*2 nm*2",
          unlock='hitoha'),
     isle(3, "24: t2; 46: mj; 66: nm fg; 88: mj t2*2; 110 big: t2*6 mj*2 nm; 134: nm s6; 156: fg*2 mj; 184 final: t2*7 mj*3 fg*2 nm*2",

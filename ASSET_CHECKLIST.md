@@ -3,9 +3,8 @@
 > Generated from `src/art/spec` by `npm run checklist`. Do not edit by hand; change the spec instead.
 
 Every picture and sound the game uses. The whole game is stacked paper cut-outs: flat pictures that the game layers,
-borders, shades and moves. Until a file exists the game draws a placeholder in its place. In the game, **設定 → アートキット**
-shows the same list with live previews (characters move) and a ZIP of every placeholder; `npm run art:kit` writes them
-to `art-kit/` with contact sheets.
+borders, shades and moves. Until a file exists the game shows a plain card with the picture name and size in its place.
+In the game, **設定 → アートキット** shows the same list with live previews (characters move) and a ZIP of size templates.
 
 ## Rules for every picture
 
@@ -400,7 +399,9 @@ their centre. Projectiles fly right (the fugu’s spit flies left).
 | [x] | `art/stickers/fx_place.png` | 340 × 160 | 置いたときの足元のきらきら。<br>Sparkles at the feet when placed. |
 | [x] | `art/stickers/pickup_weed.png` | 240 × 240 | 草のアイコン。草の数と、カードやなかまのコストに出る。集めた草はこの絵になって草の数へ飛んでいく。<br>The 草 icon: shown by the 草 count and every cost. A collected weed flies to the count as this picture. |
 | [x] | `art/stickers/pickup_drop.png` | 240 × 240 | 戦場に生えてくる草（タップで集める）。ちいかわが見つけた草もこの絵で出てきて、自動で集まる。生える・ゆれる・抜ける・しおれるはゲームが動かす。<br>The weed that grows on the field (tap to collect). The weeds ちいかわ finds come up as this picture too, and collect themselves. The game makes it sprout, wobble, pop out and wilt. |
-| [x] | `art/stickers/terrain_stump.png` | 340 × 340 | 切り株。このマスには置けない。投げたものはここで止まる（山なりの缶は越える）。<br>Stump. Nothing can be placed on this tile, and shots stop at it (a lobbed can flies over). |
+| [x] | `art/stickers/terrain_stump_1.png` | 340 × 340 | 切り株（3段階の1つめ：無傷）。このマスには置けない。まっすぐ飛ぶものはここで止まって、切り株を傷つける（山なりの缶とミサイルは越える）。こわれるとマスがあく。<br>Stump (1 of 3: whole). Nothing can be placed on this tile. Whatever flies straight along the lane stops at it and hurts it (a lobbed can and a missile go over). When it breaks the tile is free. |
+| [x] | `art/stickers/terrain_stump_2.png` | 340 × 340 | 切り株（3段階の2つめ：ひびが入った）。このマスには置けない。まっすぐ飛ぶものはここで止まって、切り株を傷つける（山なりの缶とミサイルは越える）。こわれるとマスがあく。<br>Stump (2 of 3: cracked). Nothing can be placed on this tile. Whatever flies straight along the lane stops at it and hurts it (a lobbed can and a missile go over). When it breaks the tile is free. |
+| [x] | `art/stickers/terrain_stump_3.png` | 340 × 340 | 切り株（3段階の3つめ：大きく割れた）。このマスには置けない。まっすぐ飛ぶものはここで止まって、切り株を傷つける（山なりの缶とミサイルは越える）。こわれるとマスがあく。<br>Stump (3 of 3: split). Nothing can be placed on this tile. Whatever flies straight along the lane stops at it and hurts it (a lobbed can and a missile go over). When it breaks the tile is free. |
 | [x] | `art/stickers/terrain_bush.png` | 340 × 340 | 茂み。このマスには置けない。中に入った相手はこの絵のうしろに隠れて、ねらわれない。<br>Bush. Nothing can be placed on this tile. An enemy walking into it hides behind this picture and cannot be aimed at. |
 
 ## Faces and logos
@@ -587,7 +588,7 @@ Each sound is synthesised until a file exists. Use `.ogg`, `.mp3`, `.m4a` or `.w
 ## Not needed as pictures
 
 Buttons (the lobby’s floating buttons too), paper panels, cards, the wave and boss bars, banners and icons are drawn by the
-game, so they need no art. The PWA icons in `public/icons/` are generated placeholders (`npm run icons`); replace those files directly.
+game, so they need no art. The PWA icons in `public/icons/` are still the code-drawn ones from before the art arrived; replace those files directly.
 
 ## Totals
 
@@ -595,7 +596,7 @@ game, so they need no art. The PWA icons in `public/icons/` are generated placeh
 |---|---|
 | Scenes | 10 (17 pieces, plus 3 idle-loop frames) |
 | Characters | 47 of 47 delivered as frames (the fighters, パジャマパーティーズ one member at a time, and Rakko’s car and boat) |
-| Stickers | 45 |
+| Stickers | 47 |
 | Faces and logos | 45 |
 | Button icons | 4 |
 | Button pictures | 5 |

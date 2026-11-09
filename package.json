@@ -11,8 +11,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "balance": "tsx tools/balance.ts",
-    "art:kit": "tsx tools/art-kit.ts",
-    "icons": "tsx tools/gen-icons.ts",
     "checklist": "tsx tools/checklist.ts",
     "levels": "python tools/levelgen.py .",
     "art:import": "tsx tools/import-art.ts",

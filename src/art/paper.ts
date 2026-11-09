@@ -2,7 +2,7 @@
 // a shared paper-grain texture, and torn-paper outlines for panels. The game applies all of it,
 // so artists paint flat pieces with nothing around them.
 
-import { seeded } from './placeholders/kit';
+import { seeded } from './kit';
 
 /** The sticker look, in the units of the piece being cut out (stage pixels for scenes, field pixels in battle). */
 export interface StickerLook {
@@ -21,7 +21,6 @@ export const SCENE_LOOK: StickerLook = { border: 10, bridge: 9, pad: 48, shadow:
 /** Things on the battlefield: thinner, so small characters stay readable (field pixels). */
 export const FIELD_LOOK: StickerLook = { border: 4.5, bridge: 3, pad: 16, shadow: 0.35 };
 /** Space around a processed scene piece for its sticker border and shadow, in stage pixels. */
-export const PAPER_PAD = SCENE_LOOK.pad;
 const BORDER = '#FFFDF7';
 
 function canvas(w: number, h: number): HTMLCanvasElement {
@@ -169,15 +168,4 @@ export function paperGrainUrl(): string {
   }
   grain = c.toDataURL('image/png');
   return grain;
-}
-
-/** A torn-paper outline as a CSS clip-path polygon, the same every time for one seed. */
-export function deckle(seed: number, jitter = 0.9, steps = 22): string {
-  const rnd = seeded(seed);
-  const pts: [number, number][] = [];
-  for (let i = 0; i <= steps; i++) pts.push([(i / steps) * 100, rnd() * jitter]);
-  for (let i = 1; i <= steps; i++) pts.push([100 - rnd() * jitter * 0.6, (i / steps) * 100]);
-  for (let i = steps - 1; i >= 0; i--) pts.push([(i / steps) * 100, 100 - rnd() * jitter]);
-  for (let i = steps - 1; i >= 1; i--) pts.push([rnd() * jitter * 0.6, (i / steps) * 100]);
-  return `polygon(${pts.map(([x, y]) => `${x.toFixed(2)}% ${y.toFixed(2)}%`).join(', ')})`;
 }

@@ -1,7 +1,8 @@
 # /art — real art goes here
 
 The whole game is stacked paper cut-outs: flat pictures that the game layers, borders, shades and moves.
-Anything not delivered here stays a generated placeholder, so art can arrive piece by piece.
+A picture missing here shows in the game as a plain card with its name and size, so a gap is easy to spot; sounds
+stay synthesised until theirs arrive.
 
 ```
 art/
@@ -131,5 +132,5 @@ A button, an icon, a logo, a face or a sticker is one picture: run `npm run art:
 here under that name. Saving a file of the right name straight into this folder works too, just at full size.
 
 Everything to draw, with sizes, positions and depths: `ASSET_CHECKLIST.md` (regenerate with
-`npm run checklist`), 設定 → アートキット in the game (characters move there), or `npm run art:kit` for every
-placeholder and contact sheet in `art-kit/`.
+`npm run checklist`), or 設定 → アートキット in the game (characters move there; its ZIP holds a size template for
+every picture).

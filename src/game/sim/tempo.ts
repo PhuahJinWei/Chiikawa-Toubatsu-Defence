@@ -71,7 +71,7 @@ export function moveSpeedMulOf(e: { def: EnemyDef; form?: string }): number {
 /** A boss falls this many times slower again (owner's call, 2026-11-06): its fall is the end of the job. */
 export const BOSS_FALL = 2;
 /** A small enemy's fall (ms): its death frames play over this, while it fades. */
-export const DEATH_MS = 560;
+const DEATH_MS = 560;
 
 /** How long an enemy takes to fall and fade away before it is gone (ms). */
 export function fallMsOf(def: { size: SizeTier; giant?: boolean }, form?: string, boss = false): number {

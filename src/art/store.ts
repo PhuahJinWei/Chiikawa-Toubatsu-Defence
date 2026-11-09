@@ -1,10 +1,10 @@
-// Runtime art: real files from /art when present, generated placeholders otherwise.
+// Runtime art: real files from /art when present, a plain stand-in (fallback.ts) otherwise.
 // Vite resolves the globs at build time, so dropping a picture into /art and rebuilding (or saving while
 // `npm run dev` runs) is all it takes to replace a placeholder. Pictures load when a screen needs them, not
 // up front; the production build turns them into WebP (see vite.config.ts).
 
 import { mergeScene, type SceneLayout } from './layout';
-import { drawImage } from './placeholders/render';
+import { drawImage } from './fallback';
 import { ALL_IMAGES, imageSpec, PORTRAITS, type SceneSpec } from './spec';
 
 const IMAGE_URLS = import.meta.glob('/art/**/*.{png,webp,jpg,jpeg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
@@ -13,12 +13,12 @@ const LAYOUTS = import.meta.glob('/art/scenes/*/layout.json', { eager: true, imp
 export type Picture = HTMLCanvasElement | HTMLImageElement;
 
 /** URL of the real file for a picture key ('scenes/shop/shop_wall'), if one was delivered. */
-export function realUrl(key: string): string | undefined {
+function realUrl(key: string): string | undefined {
   const base = `/art/${key}`;
   return IMAGE_URLS[`${base}.webp`] ?? IMAGE_URLS[`${base}.png`] ?? IMAGE_URLS[`${base}.jpg`] ?? IMAGE_URLS[`${base}.jpeg`];
 }
 
-export function sceneLayout(id: string): SceneLayout | undefined {
+function sceneLayout(id: string): SceneLayout | undefined {
   const l = LAYOUTS[`/art/scenes/${id}/layout.json`];
   return l?.kind === 'scene' ? l : undefined;
 }

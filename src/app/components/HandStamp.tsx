@@ -89,7 +89,7 @@ function press(el: HTMLElement, id: string): void {
 
 /** Press the red stamp in `ref` with the hand stamp the first time it is well in view (once per `id`). Until then it
  *  is hidden: the ink is not on the paper yet. */
-export function useHandStamp(ref: RefObject<HTMLElement>, id: string | null): void {
+function useHandStamp(ref: RefObject<HTMLElement>, id: string | null): void {
   // Before the first paint, so an unpressed stamp never flashes up.
   useLayoutEffect(() => {
     const el = ref.current;

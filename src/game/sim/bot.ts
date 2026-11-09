@@ -258,9 +258,7 @@ export class Bot {
         continue;
       }
       if (attackers >= needA) continue;
-      // Straight shots stop at a stump, so a lane with one gets 栗まんじゅう, who throws over it, as its second attacker.
-      const overStump = needA === 2 && this.sim.terrain[lane].includes('stump') && this.has('kurimanju');
-      const id = this.pickAttacker(lane, overStump ? ['kurimanju', ...(slot.prefer ?? [])] : slot.prefer ?? ['hachiware']);
+      const id = this.pickAttacker(lane, slot.prefer ?? ['hachiware']);
       if (!id) continue;
       const cols = this.freeRows(lane, slot.cols, true);
       if (cols.length) return { id, cols };
@@ -377,7 +375,7 @@ export class Bot {
   }
 }
 
-export interface BotResult {
+interface BotResult {
   levelId: string;
   won: boolean;
   timeS: number;

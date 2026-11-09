@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { applyResult, jobCards, levelUnlocked, nextLevel, rewardFor, worldUnlocked } from '../src/app/progress';
+import { applyResult, galleryKnown, jobCards, levelUnlocked, nextLevel, rewardFor, worldUnlocked } from '../src/app/progress';
+import gallery from '../src/data/gallery.json';
 import type { BattleEnd } from '../src/game/controller';
 import { enemiesInLevel, LEVEL_LIST, LEVELS, summonsOf, UNIT_LIST } from '../src/game/sim/defs';
 import { simForLevel } from '../src/game/sim/sim';
-import { defaultSave, save } from '../src/save/save';
+import { defaultSave, FIRST_FRIEND, save } from '../src/save/save';
 
 /** Clear a job, the way the result screen does. */
 function clear(levelId: string) {
@@ -20,6 +21,45 @@ function clear(levelId: string) {
   applyResult(end, reward);
   return reward;
 }
+
+describe("the gallery book's friends", () => {
+  const friends = gallery.entries.filter((e) => e.tab === 'allies').map((e) => e.id);
+
+  beforeEach(() => {
+    save.value = defaultSave('ja');
+  });
+
+  it('are all a 「？」 on a new save, the one already on the team too', () => {
+    expect(save.value.cards).toContain(FIRST_FRIEND);
+    for (const id of friends) expect(galleryKnown(id), id).toBe('none');
+  });
+
+  it('are a dark shape once met somewhere, until they join', () => {
+    for (const id of friends.filter((f) => f !== FIRST_FRIEND)) {
+      save.value = defaultSave('ja');
+      save.value.gallery.met.push(id);
+      expect(galleryKnown(id), id).toBe('seen');
+      save.value.cards.push(id);
+      expect(galleryKnown(id), id).toBe('full');
+    }
+  });
+
+  it('are known in full as soon as a job brings them in', () => {
+    clear('1-1');
+    expect(galleryKnown('chiikawa')).toBe('full');
+  });
+
+  it('count the friend everyone starts with from their first battle', () => {
+    save.value.gallery.met.push(FIRST_FRIEND);
+    expect(galleryKnown(FIRST_FRIEND)).toBe('full');
+  });
+
+  it('leave the people known from the first meeting', () => {
+    expect(galleryKnown('yoroi_rodo')).toBe('none');
+    save.value.gallery.met.push('yoroi_rodo');
+    expect(galleryKnown('yoroi_rodo')).toBe('full');
+  });
+});
 
 describe('the campaign, played from a new save', () => {
   beforeEach(() => {

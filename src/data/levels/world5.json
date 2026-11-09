@@ -3,7 +3,7 @@
     "id": "5-1",
     "world": 5,
     "index": 1,
-    "lanes": [2, 3, 4],
+    "lanes": [0, 1, 2, 3, 4],
     "startWeeds": 50,
     "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
     "deck": {},

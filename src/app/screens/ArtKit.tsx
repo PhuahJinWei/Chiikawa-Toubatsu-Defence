@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { strToU8, zipSync } from 'fflate';
-import { drawImage } from '../../art/placeholders/render';
+import { drawImage } from '../../art/fallback';
 import { spriteFor, type SpriteMotion } from '../../art/sprite';
 import {
   ALL_IMAGES,
@@ -65,7 +65,7 @@ function canvasPng(draw: (ctx: CanvasRenderingContext2D) => void, w: number, h: 
 async function exportZip(): Promise<void> {
   const files: Record<string, Uint8Array | [Uint8Array, { level: 0 }]> = {};
   for (const spec of ALL_IMAGES) {
-    // Each placeholder at the size to draw it (twice the planned size for a sticker).
+    // Each template at the size to draw it (twice the planned size for a sticker).
     const size = pictureSize(spec);
     const png = await canvasPng(
       (ctx) => {
@@ -79,19 +79,19 @@ async function exportZip(): Promise<void> {
   }
   files['README.txt'] = strToU8(
     [
-      'Chiikawa Tobatsu Defense — placeholder art kit',
+      'Chiikawa Tobatsu Defense — art kit (size templates)',
       '',
       'Everything is flat paper pieces. Paint each scene as one picture, split it into the listed pieces, and run',
       '`npm run art:import <folder>` with a composited preview beside the layers. Characters are frames, brought in',
       'with `npm run art:sprites <folder>`.',
       'Single stickers (stickers/, portraits/, ui/) go straight into the matching folder under /art.',
-      `Every placeholder here is at the size to draw it: stickers are ${STICKER_DETAIL}x the size they show on the field.`,
+      `Every template here is at the size to draw it: stickers are ${STICKER_DETAIL}x the size they show on the field.`,
       'No white border, shadow or glow: the game adds them. ASSET_CHECKLIST.md has every size and position.',
       '',
       'シーンは1枚の絵として描き、表にあるパーツに分けて、合成プレビューといっしょに',
       '`npm run art:import <フォルダ>` を実行してください。キャラクターはコマの絵を `npm run art:sprites <フォルダ>` で。',
       'ステッカー・顔・ロゴは /art の同じフォルダへ。',
-      `どの仮の絵も、描くときの大きさです。ステッカーは戦場に出る大きさの${STICKER_DETAIL}倍。`,
+      `どのテンプレートも、描くときの大きさです。ステッカーは戦場に出る大きさの${STICKER_DETAIL}倍。`,
     ].join('\n'),
   );
   const zip = zipSync(files);

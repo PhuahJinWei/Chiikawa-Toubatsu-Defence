@@ -125,7 +125,6 @@ export function Battle({ r }: { r: BattleRoute }) {
       pool: plan.choose ? plan.owned : plan.deck,
       lineup: plan.lineup,
       picking: !fromNotice && (plan.choose || plan.tickets > 0),
-      quick: fromNotice,
       autoCollect: s.settings.autoCollect,
       attempt: level ? recordAttemptStart(level.id) : 0,
       endlessPool: r.mode === 'endless' ? endlessPool() : undefined,
@@ -202,8 +201,13 @@ export function Battle({ r }: { r: BattleRoute }) {
     if (r.mode === 'endless') noteMet('rakko');
   }, []);
 
-  // Set off from a job notice: once the battle really starts, remember the team and use up the ramen ticket.
   const started = ctl.phase.value === 'battle';
+  // The team has been seen in a battle now, which is what puts the friend everyone starts with in the gallery book.
+  useEffect(() => {
+    if (started && r.mode !== 'sandbox') for (const id of deck) noteMet(id);
+  }, [started]);
+
+  // Set off from a job notice: once the battle really starts, remember the team and use up the ramen ticket.
   useEffect(() => {
     if (!started || !fromNotice || spent.current) return;
     spent.current = true;

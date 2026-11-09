@@ -9,7 +9,9 @@ export const SAVE_KEY = 'chiikawa-td.save';
 export const DEV_SAVE_KEY = 'chiikawa-td.save.dev';
 /** The save in use: the player's, or dev mode's. */
 let slot = SAVE_KEY;
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
+/** The friend every new save starts with. */
+export const FIRST_FRIEND = 'usagi';
 
 export interface Settings {
   lang: 'ja' | 'en';
@@ -56,7 +58,7 @@ export function defaultSave(lang: 'ja' | 'en' = 'ja'): SaveData {
     updatedAt: now,
     cleared: {},
     attempts: {},
-    cards: ['usagi'],
+    cards: [FIRST_FRIEND],
     features: { endless: false, speed: false },
     gallery: { seen: [], defeated: [], met: [] },
     money: 0,
@@ -155,6 +157,15 @@ const MIGRATIONS: Record<number, (d: Json) => Json> = {
     if (cleared['6-5']) features.endless = true;
     return { ...d, cleared, attempts: left(d.attempts), features, v: 7 };
   },
+  // 7 → 8: the gallery book now counts the friend everyone starts with from their first battle (see galleryKnown), and
+  // anyone who has already played has had that.
+  7: (d) => {
+    const gallery = { ...((d.gallery as Json) ?? {}) };
+    const met = Array.isArray(gallery.met) ? (gallery.met as unknown[]) : [];
+    const played =
+      Object.keys((d.cleared as Json) ?? {}).length > 0 || Object.keys((d.attempts as Json) ?? {}).length > 0 || (Array.isArray(gallery.seen) && gallery.seen.length > 0);
+    return { ...d, gallery: { ...gallery, met: played && !met.includes(FIRST_FRIEND) ? [...met, FIRST_FRIEND] : met }, v: 8 };
+  },
 };
 
 export function migrate(raw: Json, fallback: SaveData): SaveData {
@@ -167,7 +178,7 @@ export function migrate(raw: Json, fallback: SaveData): SaveData {
   const merged = mergeDefaults(d, fallback);
   merged.v = SAVE_VERSION;
   // うさぎ is everyone's first friend (she was ハチワレ until 2026-11-08: a save from before keeps him too).
-  if (!Array.isArray(merged.cards) || !merged.cards.includes('usagi')) merged.cards = ['usagi', ...(merged.cards ?? [])];
+  if (!Array.isArray(merged.cards) || !merged.cards.includes(FIRST_FRIEND)) merged.cards = [FIRST_FRIEND, ...(merged.cards ?? [])];
   merged.money = Math.max(0, Math.floor(Number(merged.money) || 0));
   return merged;
 }

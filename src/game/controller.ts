@@ -42,7 +42,7 @@ export interface BattleEnd {
   timeMs: number;
 }
 
-export interface BattleConfig {
+interface BattleConfig {
   /** `sandbox`: dev mode's testing ground (see sim/sandbox.ts), set by `sandbox` with `devRules`. */
   mode: 'level' | 'endless' | 'sandbox';
   level?: LevelDef;
@@ -68,26 +68,22 @@ export interface BattleConfig {
   lineup: Waiting[];
   /** Stop on the road view for the team tray (cards to choose, or a ramen ticket to use). */
   picking: boolean;
-  /** The team was picked on the job notice: only a quick glance at the enemies before the start. */
-  quick?: boolean;
 }
 
 /** Getting ready, then the battle: `look` rests on the field and glides over to the waiting enemies, `pick` waits on the
  *  team tray, `go` glides back to the field, brings Rakko's cars and counts down, `battle` runs the sim. */
-export type BattlePhase = 'look' | 'pick' | 'go' | 'battle';
+type BattlePhase = 'look' | 'pick' | 'go' | 'battle';
 
-export interface Banner {
+interface Banner {
   key: number;
   text: string;
   kind: 'ready' | 'start' | 'big' | 'final' | 'boss' | 'win' | 'lose' | 'info';
 }
 
 const BANNER_MS = 2200;
-/** Getting ready (ms): a moment on the field, the glide to the road, a look at the enemies when there is nothing to
- *  pick, and the glide back. */
-const PREP = { wait: 600, out: 1100, hold: 1500, back: 850 };
-/** The same, quicker, when the team was already picked on the job notice: a glance at who is coming, then go. */
-const PREP_QUICK = { wait: 500, out: 850, hold: 600, back: 700 };
+/** Getting ready (ms): a moment on the field, the glide to the road, a good look at the enemies when there is nothing
+ *  to pick, and the glide back (owner's call, 2026-11-09: there was too little time to see them). A tap cuts it short. */
+const PREP = { wait: 600, out: 1800, hold: 3000, back: 1400 };
 /** The glide back after a tap on the road, as a share of the usual one. */
 const SKIP_BACK = 0.5;
 /** How long 「よーい…」 shows before the battle starts (ms). The banner's animation in global.css lasts as long. */
@@ -400,8 +396,9 @@ export class BattleController {
       case 'shoot':
         audio.sfx(e.projectile.fx === 'fx_blast' ? 'sfx_blast' : 'sfx_throw', { gap: 0.06 });
         break;
-      case 'blocked':
-        audio.sfx('sfx_clink', { gap: 0.08 });
+      case 'stumpHit':
+        // A dull knock on wood, lower than a hit on someone; the same pop as an enemy falling when it breaks.
+        audio.sfx(e.broken ? 'sfx_collapse_enemy' : 'sfx_hit', { gap: 0.05, pitch: e.broken ? 0.8 : 0.65 });
         break;
       case 'hit':
         if (e.armored && e.source !== 'rakko_car') audio.sfx('sfx_clink', { gap: 0.08 });
@@ -563,21 +560,16 @@ export class BattleController {
 
   // ------------------------------------------------------------ getting ready
 
-  private get prepMs(): typeof PREP {
-    return this.cfg.quick ? PREP_QUICK : PREP;
-  }
-
   private prepTick(now: number): void {
     const p = this.prep;
-    const PREP_MS = this.prepMs;
     const calm = this.cfg.settings().reducedMotion;
     const along = (ms: number) => (calm || ms <= 0 ? 1 : Math.min(1, (now - p.t0) / ms));
     switch (p.stage) {
       case 'wait':
-        if (now - p.t0 >= PREP_MS.wait) this.prep = { stage: 'out', t0: now, from: this.look };
+        if (now - p.t0 >= PREP.wait) this.prep = { stage: 'out', t0: now, from: this.look };
         break;
       case 'out': {
-        const k = along(PREP_MS.out);
+        const k = along(PREP.out);
         this.look = p.from + (1 - p.from) * easeInOut(k);
         if (k >= 1) {
           if (this.cfg.picking) this.toPick(now);
@@ -586,12 +578,12 @@ export class BattleController {
         break;
       }
       case 'hold':
-        if (now - p.t0 >= PREP_MS.hold) this.toBack(now);
+        if (now - p.t0 >= PREP.hold) this.toBack(now);
         break;
       case 'pick':
         break;
       case 'back': {
-        const k = along(p.ms ?? PREP_MS.back);
+        const k = along(p.ms ?? PREP.back);
         this.look = p.from * (1 - easeInOut(k));
         this.renderer?.setLineupAlpha(1 - k);
         if (k >= 1) {
@@ -618,7 +610,7 @@ export class BattleController {
 
   /** Back to the field. `skip`: a tap asked for it, so quicker, with the cars already parked and no countdown. */
   private toBack(now: number, skip = false): void {
-    this.prep = { stage: 'back', t0: now, from: this.look, ms: this.prepMs.back * (skip ? SKIP_BACK : 1), skip };
+    this.prep = { stage: 'back', t0: now, from: this.look, ms: PREP.back * (skip ? SKIP_BACK : 1), skip };
     if (skip) this.renderer?.setCars(null);
     this.phase.value = 'go';
   }

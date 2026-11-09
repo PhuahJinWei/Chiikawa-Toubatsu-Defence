@@ -73,7 +73,7 @@ function snapStyle(l: SceneLayer, b: BuiltPiece): Record<string, string> | undef
   };
 }
 
-export interface DioramaProps {
+interface DioramaProps {
   /** The scene as specified; delivered art's layout is applied here. */
   scene: SceneSpec;
   /** Piece id of the character in focus, or null for the whole scene. */

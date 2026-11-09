@@ -15,9 +15,13 @@ export class StickerCache {
   /** Device pixels per field pixel. */
   private device = 1;
 
-  setDeviceScale(k: number): void {
-    if (Math.abs(k - this.device) / this.device > 0.12) this.cache.clear();
+  /** The screen's scale changed: stickers cut for the old one are dropped when it differs enough to show. True when
+   *  they were, so whoever cuts ahead of time (the battle renderer) can start again. */
+  setDeviceScale(k: number): boolean {
+    const changed = Math.abs(k - this.device) / this.device > 0.12;
+    if (changed) this.cache.clear();
     this.device = k;
+    return changed;
   }
 
   /**

@@ -6,7 +6,7 @@ import { easeInOut } from './view';
 /** How long a picked weed is tugged at on the ground before it flies (ms of game time). */
 export const WEED_TUG_MS = 110;
 /** How long it flies (ms). */
-export const WEED_FLIGHT_MS = 420;
+const WEED_FLIGHT_MS = 420;
 /** How far the flight bows upward, as a share of its length. */
 const ARC = 0.06;
 const STEPS = 16;
@@ -16,7 +16,7 @@ interface Pt {
   y: number;
 }
 
-export interface FlightFrame extends Pt {
+interface FlightFrame extends Pt {
   /** How wide it is there. */
   size: number;
 }

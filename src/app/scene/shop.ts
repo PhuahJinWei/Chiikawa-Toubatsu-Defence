@@ -1,6 +1,6 @@
 // Who is who in the 郎 shop scene: tapping a character opens that seller's goods.
 
-export interface ShopSpot {
+interface ShopSpot {
   /** Seller id in src/data/shop.json. */
   seller: string;
   /** Character speaking, for the name on the goods panel. */

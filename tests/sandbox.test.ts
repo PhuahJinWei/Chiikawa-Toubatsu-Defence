@@ -146,8 +146,10 @@ describe('the testing ground (dev mode)', () => {
     const { sim, card, run, spawn } = ground({}, { cars: true });
     sim.devCycleTerrain(0, 5);
     expect(sim.terrain[0][5]).toBe('stump');
+    expect(sim.stumpHp[0][5]).toBeGreaterThan(0);
     sim.devCycleTerrain(0, 5);
     expect(sim.terrain[0][5]).toBe('bush');
+    expect(sim.stumpHp[0][5]).toBe(0);
     sim.devCycleTerrain(0, 5);
     expect(sim.terrain[0][5]).toBeNull();
 

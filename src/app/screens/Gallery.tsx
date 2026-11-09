@@ -5,7 +5,7 @@
 // character on one stage at one scale: art/figure.ts), a stamp saying how well its facts are
 // sourced, and notes on ruled lines: what the stories say, what it does in this game, and where that comes from.
 
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import galleryJson from '../../data/gallery.json';
 import { figureLayout } from '../../art/figure';
 import { spriteFor } from '../../art/sprite';
@@ -14,7 +14,7 @@ import { art } from '../../art/store';
 import shopJson from '../../data/shop.json';
 import { ENEMIES, LEVEL_LIST, UNITS } from '../../game/sim/defs';
 import { headingNameOf, nameOf, shortNameOf, t } from '../../i18n/i18n';
-import { save } from '../../save/save';
+import { FIRST_FRIEND, save } from '../../save/save';
 import { CutOut, warmCutOut } from '../components/CutOut';
 import { Icon } from '../components/Icon';
 import { DARK_SHAPE, MoreBelow, PenLoop } from '../components/PaperMarks';
@@ -22,7 +22,7 @@ import { Figure, releaseFigures, warmFigure } from '../components/Figure';
 import { StatChips } from '../components/Stats';
 import { BackButton, tap } from '../components/ui';
 import { whenIdle } from '../idle';
-import { galleryKnown, noteMet } from '../progress';
+import { flushGallery, galleryKnown, noteMet } from '../progress';
 import { up } from '../router';
 import { Diorama } from '../scene/Diorama';
 
@@ -112,7 +112,7 @@ const STAMP = { high: ['原作', '確認'], medium: ['資料', '確認'], origin
 /** Enemies that come in some job, and friends who can join: from a job, from the shop, or from the start (うさぎ). */
 const IN_JOBS = new Set(LEVEL_LIST.flatMap((l) => l.waves.flatMap((w) => w.spawns.map((s) => s.enemy))));
 const JOINABLE = new Set([
-  'usagi',
+  FIRST_FRIEND,
   ...LEVEL_LIST.map((l) => l.rewards.unlockCard).filter((c): c is string => !!c),
   ...(shopJson as unknown as { sellers: { items: { card?: string }[] }[] }).sellers.flatMap((s) => s.items.map((i) => i.card)).filter((c): c is string => !!c),
 ]);
@@ -181,7 +181,12 @@ function PinName({ text }: { text: string }) {
 export function Gallery() {
   const [tab, setTab] = useState<Tab>('allies');
   const [chosen, setChosen] = useState<Record<Tab, string>>(() => ({ allies: firstOf('allies'), enemies: firstOf('enemies'), people: firstOf('people') }));
-  useEffect(() => noteMet('furuhonya'), []);
+  // 古本屋 is there at the table, so opening the book is meeting them: written down before the page is first drawn, so
+  // their spot does not change from 「？」 to a dark shape in front of the player.
+  useLayoutEffect(() => {
+    noteMet('furuhonya');
+    flushGallery();
+  }, []);
   const book = G.entries.filter(inBook);
   const entries = book.filter((e) => e.tab === tab);
   const open = book.find((e) => e.id === chosen[tab]) ?? entries[0];
@@ -313,7 +318,8 @@ function EntryPage({ e }: { e: Entry }) {
   const k = galleryKnown(e.id);
   const full = k === 'full';
   const who = figureOf(e);
-  const motions = who ? motionsOf(who) : [];
+  // Only someone known in full shows their other moves: a dark shape just stands there.
+  const motions = !who ? [] : full ? motionsOf(who) : ['idle'];
   const [step, setStep] = useState(0);
   const motion = motions.length ? motions[step % motions.length] : null;
   const unit = UNITS[e.id];
@@ -360,14 +366,6 @@ function EntryPage({ e }: { e: Entry }) {
           </span>
         )}
       </div>
-      {moving || k === 'none' ? (
-        <p class="gb-caption">
-          {moving ? t(`gallery.motion.${motion}`) : t('gallery.unseen')}
-          {moving && motions.length > 1 ? <Icon name="restart" size={12} /> : null}
-        </p>
-      ) : (
-        <span class="gb-gap" aria-hidden="true" />
-      )}
       {k === 'seen' ? <p class="gb-hint">{t(unit ? 'gallery.metOnly' : 'gallery.seenOnly')}</p> : null}
       {full ? (
         <div class="gb-notes">

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import gallery from '../src/data/gallery.json';
 import { ENEMY_LIST, LEVEL_LIST, UNIT_LIST } from '../src/game/sim/defs';
-import { GALLERY_MOTIONS } from '../src/art/spec';
 import { headingNameOf, keysOf, lang, nameOf, t } from '../src/i18n/i18n';
 
 describe('i18n', () => {
@@ -54,13 +53,6 @@ describe('i18n', () => {
     for (const e of g.entries) {
       expect(t(`lore.${e.id}`)).not.toContain('lore.');
       expect(e.sources).toBeUndefined();
-    }
-  });
-
-  it('names every move the gallery can show, in both languages', () => {
-    for (const l of ['ja', 'en'] as const) {
-      const keys = new Set(keysOf(l));
-      for (const m of GALLERY_MOTIONS) expect(keys.has(`gallery.motion.${m}`), `${l}: ${m}`).toBe(true);
     }
   });
 

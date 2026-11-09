@@ -61,7 +61,7 @@ export class LanePicker {
 
 /** The lanes an enemy can come down: with water about, a swimmer (人魚, セイレーン) only the water lanes and everyone
  *  else only the land; without, any active lane. */
-export function lanesFor(def: EnemyDef, lanes: number[], water: number[]): number[] {
+function lanesFor(def: EnemyDef, lanes: number[], water: number[]): number[] {
   if (!water.length) return lanes;
   const wet = lanes.filter((l) => water.includes(l));
   const dry = lanes.filter((l) => !water.includes(l));

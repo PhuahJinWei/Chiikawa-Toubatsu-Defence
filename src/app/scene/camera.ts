@@ -19,7 +19,7 @@ import type { SceneLayer, SceneSpec, Side } from '../../art/spec';
 /** The depth that keeps its drawn size when the camera turns (the pivot of the resting camera). */
 export const Z_REF = 3;
 /** Stage pixels between depth 3 and depth 4. */
-export const UNIT = 340;
+const UNIT = 340;
 /** Camera distance from the Z_REF plane, in stage pixels. */
 export const PERSPECTIVE = Z_REF * UNIT;
 
@@ -45,7 +45,7 @@ export interface Camera {
 }
 
 /** How far the viewpoint has drifted from straight on, in stage pixels. */
-export interface Eye {
+interface Eye {
   x: number;
   y: number;
 }

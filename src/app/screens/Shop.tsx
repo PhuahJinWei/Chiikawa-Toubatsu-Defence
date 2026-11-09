@@ -71,6 +71,11 @@ export function Shop({ r }: { r: Extract<Route, { name: 'shop' }> }) {
   useEffect(() => {
     for (const s of SHOP.sellers) noteMet(s.npc);
   }, []);
+  // The friends on sale have been seen once their seller's goods are open: a dark shape in the book until they join.
+  useEffect(() => {
+    if (!spot) return;
+    for (const item of SHOP.sellers.find((s) => s.id === SHOP_SPOTS[spot].seller)?.items ?? []) if (item.card) noteMet(item.card);
+  }, [spot]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close();

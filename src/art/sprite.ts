@@ -116,7 +116,7 @@ const MACHINE: Record<string, true> = { parked: true, drive: true };
 export const WALK_FRAME_MS = { slow: 190, normal: 150, fast: 110 } as const;
 /** How high 六足の虫 jumps over a friend (field px). Its jump frames are drawn on the spot, so the game lifts it
  *  (and carries it forward); its shadow stays on the ground. */
-export const JUMP_ARC = 120;
+const JUMP_ARC = 120;
 /** How high the jumper is `k` of the way through its time in the air (up and down in one arc). */
 export function jumpHop(k: number): number {
   return JUMP_ARC * Math.sin(Math.PI * Math.min(1, Math.max(0, k)));

@@ -23,7 +23,7 @@ export const STEP_MS = 1000 / 60;
 /** How far into an ally's tile (from the tile's enemy-side edge) an enemy's feet go before it stops to attack. */
 export const CONTACT = Math.round(TILE * 0.1);
 /** Ally feet position along the travel axis, measured from its tile's enemy-side edge (centred). */
-export const ALLY_FEET = Math.round(TILE * 0.5);
+const ALLY_FEET = Math.round(TILE * 0.5);
 /** How far ahead of an enemy's feet (toward the allies) projectiles connect. */
 export const HIT_LINE = Math.round(TILE * 0.3);
 /** How far ahead of an ally's feet (toward the enemies) projectiles appear. */
@@ -37,6 +37,11 @@ export const SPAWN_Y = -80;
 export const FIELD_ENTRY_Y = 20;
 /** Crossing this line in a lane triggers that lane's rescue, or loses the level. */
 export const BASE_Y = LANE_LEN + Math.round(TILE * 0.15);
+
+/** What a stump (切り株) can take before it breaks: 15 of うさぎ's shots, or 5 of フグ's spits. */
+export const STUMP_HP = 300;
+/** Which of a stump's three pictures shows at this much HP: whole, cracked (two thirds left), split (one third left). */
+export const stumpStage = (hp: number): 1 | 2 | 3 => (hp > (STUMP_HP * 2) / 3 ? 1 : hp > STUMP_HP / 3 ? 2 : 3);
 
 export const SPEED_PX_PER_S = {
   slow: TILE / 9,

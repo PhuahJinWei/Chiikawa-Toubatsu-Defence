@@ -102,7 +102,7 @@ export interface SceneLayer {
 }
 
 /** A place in a scene where the game puts live content: a button, a sign's text, a name tag, a level node. */
-export interface SceneSlot {
+interface SceneSlot {
   id: string;
   /** Centre of the slot, in stage pixels. */
   x: number;

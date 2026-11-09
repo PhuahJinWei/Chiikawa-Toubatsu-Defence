@@ -5,7 +5,7 @@ import shopJson from '../data/shop.json';
 import type { BattleEnd } from '../game/controller';
 import { ENEMIES, ENEMY_LIST, fitsJob, LEVEL_LIST, LEVELS, levelsOfWorld, UNIT_LIST, UNITS, waterOf } from '../game/sim/defs';
 import type { LevelDef } from '../game/sim/types';
-import { save, updateSave } from '../save/save';
+import { FIRST_FRIEND, save, updateSave } from '../save/save';
 
 export const SHOP = shopJson as {
   slotsBase: number;
@@ -238,12 +238,15 @@ export function galleryKnown(id: string): 'none' | 'seen' | 'full' {
   const g = save.value.gallery;
   const entryIsEnemy = !!ENEMIES[id];
   if (entryIsEnemy) return g.defeated.includes(id) ? 'full' : g.seen.includes(id) ? 'seen' : 'none';
-  // A friend's page says how they become known. A card is known once they join; one met at the shop who has not
-  // joined yet (シーサー, ポシェットの鎧さん) is shown as a dark shape with their name, like an enemy only sighted.
-  // Anyone else (the people; ラッコ and 古本屋, met before they can join) is known once met.
+  // A friend is a 「？」 until they have been seen, a dark shape with their name once they have been met somewhere but
+  // have not joined (シーサー at the shop, 古本屋 in the book's room, ラッコ on a rescue), and known in full once they join.
+  // The friend everyone starts with has no moment of joining, so a battle with them on the team is what counts.
+  // The people (the ひと pages) are known once met.
   const unlock = GALLERY_UNLOCK.get(id) ?? (CARD_ORDER.includes(id) ? 'card' : 'met');
-  if (unlock === 'card') return save.value.cards.includes(id) ? 'full' : g.met.includes(id) ? 'seen' : 'none';
-  return g.met.includes(id) ? 'full' : 'none';
+  const met = g.met.includes(id);
+  if (unlock !== 'card') return met ? 'full' : 'none';
+  if (save.value.cards.includes(id) && (id !== FIRST_FRIEND || met)) return 'full';
+  return met ? 'seen' : 'none';
 }
 
 /** How each gallery page's subject becomes known (`card`, `met` or `seen`), from data/gallery.json. */

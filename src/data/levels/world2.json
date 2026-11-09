@@ -202,7 +202,7 @@
       ] },
       { "at": 205, "final": true, "spawns": [
         {"enemy": "goblin", "count": 7},
-        {"enemy": "mushi_sixlegs", "count": 2},
+        {"enemy": "mushi_sixlegs"},
         {"enemy": "kuroi_nagareboshi", "count": 2},
         {"enemy": "majyo"},
         {"enemy": "fugu"}

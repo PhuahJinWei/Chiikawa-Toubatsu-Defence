@@ -25,7 +25,7 @@ export function pieceFiles(l: SceneLayer): string[] {
   return [l.id, ...Array.from({ length: n - 1 }, (_, i) => `${l.id}_${i + 2}`)];
 }
 
-export const SCENE_IMAGES: ImageSpec[] = SCENES.flatMap((sc) =>
+const SCENE_IMAGES: ImageSpec[] = SCENES.flatMap((sc) =>
   sc.layers.flatMap((l) =>
     pieceFiles(l).map((file, i) => ({
       key: `scenes/${sc.id}/${file}`,
@@ -37,7 +37,7 @@ export const SCENE_IMAGES: ImageSpec[] = SCENES.flatMap((sc) =>
   ),
 );
 
-export const STICKER_IMAGES: ImageSpec[] = STICKERS.map((s) => ({ key: `stickers/${s.id}`, kind: 'sticker' as const, w: s.w, h: s.h, note: s.note }));
+const STICKER_IMAGES: ImageSpec[] = STICKERS.map((s) => ({ key: `stickers/${s.id}`, kind: 'sticker' as const, w: s.w, h: s.h, note: s.note }));
 
 export const ALL_IMAGES: ImageSpec[] = [...SCENE_IMAGES, ...STICKER_IMAGES, ...PORTRAITS, ...LOGOS, ...UI_ICONS, ...UI_BUTTONS, ...UI_PROPS, ...SHOP_ITEMS, ...QUEST_IMAGES, ...GALLERY_IMAGES];
 

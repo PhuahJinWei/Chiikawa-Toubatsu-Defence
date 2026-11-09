@@ -11,6 +11,15 @@ describe('content', () => {
     for (const world of [1, 2, 3, 4, 5, 6]) expect(LEVEL_LIST.filter((l) => l.world === world).map((l) => l.index)).toEqual([1, 2, 3, 4, 5]);
   });
 
+  it('opens the lanes once, in World 1: none that has opened ever closes again', () => {
+    let open: number[] = [];
+    for (const l of LEVEL_LIST) {
+      for (const lane of open) expect(l.lanes, `${l.id} closes lane ${lane}`).toContain(lane);
+      open = l.lanes;
+      if (l.world > 1) expect(l.lanes, l.id).toEqual([0, 1, 2, 3, 4]);
+    }
+  });
+
   it('passes validation', () => {
     expect(validateContent()).toEqual([]);
   });
@@ -156,8 +165,7 @@ describe('World 5 (the island)', () => {
     expect(WORLDS[5].water).toEqual([4]);
     for (const l of LEVEL_LIST) expect(waterOf(l).length > 0).toBe(l.world === 5);
     for (const l of isle) expect(waterOf(l)).toEqual([4]);
-    // 5-1 is three lanes, two of land above the water; the rest are five.
-    expect(isle.map((l) => l.lanes.length)).toEqual([3, 5, 5, 5, 5]);
+    expect(isle.map((l) => l.lanes.length)).toEqual([5, 5, 5, 5, 5]);
   });
 
   it('sends 人魚 down the water in every job and ends with セイレーン as the boss', () => {

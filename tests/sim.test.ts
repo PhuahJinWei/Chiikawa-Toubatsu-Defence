@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, HIT_LINE, RESCUE_BOSS_DAMAGE, STEP_MS, TILE } from '../src/game/sim/constants';
+import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, RESCUE_BOSS_DAMAGE, STEP_MS, STUMP_HP, stumpStage, TILE } from '../src/game/sim/constants';
 import { ENEMIES, UNITS } from '../src/game/sim/defs';
 import { abilityBusyMs, abilityCycleMs, HEAL_PULSE_MS, healPauseOf, spawnMsOf } from '../src/game/sim/tempo';
 import { Rng } from '../src/game/sim/rng';
@@ -847,36 +847,120 @@ describe('terrain (World 2)', () => {
     return e;
   };
 
-  it('a stump stops friends’ shots, a lobbed can flies over it, and フグ comes past it for a clear spit', () => {
-    const sim = makeSim(['usagi', 'kurimanju'], { terrain: [{ lane: 2, col: 4, kind: 'stump' }] });
+  const run = (sim: Sim, ms: number) => {
+    const events: SimEvent[] = [];
+    for (let i = 0; i < ms / STEP_MS; i++) {
+      sim.step(STEP_MS);
+      events.push(...sim.events);
+      sim.events.length = 0;
+    }
+    return events;
+  };
+  const stumpAt = (col: number, lane = 2) => ({ terrain: [{ lane, col, kind: 'stump' as const }] });
+
+  it('a stump stops straight shots and takes their damage: friends keep at it until it breaks and its tile is free', () => {
+    const sim = makeSim(['usagi'], stumpAt(4));
     put(sim, 0, 2, 1);
-    put(sim, 1, 2, 0);
-    const far = foe(sim, 'goblin', 2, 6);
-    const r = hits(sim, 12000);
-    expect(r.blocked.length).toBeGreaterThan(0);
-    // Only the cans reach the goblin beyond the stump: usagi's blast never does.
-    const can = UNITS['kurimanju'].attack.damage!;
-    expect(r.got.get(far.uid)! % can).toBe(0);
-    expect(r.got.get(far.uid)!).toBeGreaterThan(0);
-    // With the goblin before the stump, usagi hits it.
-    const near = makeSim(['usagi'], { terrain: [{ lane: 2, col: 4, kind: 'stump' }] });
+    expect(sim.stumpHp[2][4]).toBe(STUMP_HP);
+    const shots = Math.ceil(STUMP_HP / UNITS['usagi'].attack.damage!);
+    const events = run(sim, (shots + 2) * 1700);
+    expect(events.filter((e) => e.type === 'blocked')).toHaveLength(shots);
+    expect(events.filter((e) => e.type === 'stumpHit' && e.broken)).toHaveLength(1);
+    expect(sim.terrain[2][4]).toBeNull();
+    expect(sim.stumpHp[2][4]).toBe(0);
+    // The lane ahead is clear now: no more shots, and the tile takes a friend.
+    expect(run(sim, 6000).filter((e) => e.type === 'shoot')).toEqual([]);
+    sim.cards[0].cooldownLeft = 0;
+    expect(sim.canPlace(0, 2, 4)).toBe('ok');
+  });
+
+  it('a friend takes no notice of a stump behind it', () => {
+    const sim = makeSim(['usagi'], stumpAt(2));
+    put(sim, 0, 2, 5);
+    expect(run(sim, 5000).filter((e) => e.type === 'shoot')).toEqual([]);
+  });
+
+  it('a straight shot hits whatever comes first: an enemy before the stump, or the stump before an enemy beyond it', () => {
+    const near = makeSim(['usagi'], stumpAt(4));
     put(near, 0, 2, 1);
     const g = foe(near, 'goblin', 2, 3);
     expect(hits(near, 6000).got.get(g.uid) ?? 0).toBeGreaterThan(0);
-    // A spit stops at a stump as well, so フグ does not stand spitting into one: it comes on until its line is clear.
-    const spit = makeSim(['yoroi'], { terrain: [{ lane: 2, col: 3, kind: 'stump' }] });
+    expect(near.stumpHp[2][4]).toBe(STUMP_HP);
+    const far = makeSim(['usagi'], stumpAt(4));
+    put(far, 0, 2, 1);
+    const o = foe(far, 'goblin', 2, 6);
+    expect(hits(far, 6000).got.get(o.uid) ?? 0).toBe(0);
+    expect(far.stumpHp[2][4]).toBeLessThan(STUMP_HP);
+  });
+
+  it('jabs, sword sweeps, lobbed cans and missiles go for the enemy past a stump and leave the stump alone', () => {
+    for (const [id, col, at] of [['hachiware', 3, 5], ['rakko', 3, 4], ['kurimanju', 1, 6], ['usagi_cool', 1, 6]] as const) {
+      const sim = makeSim([id], stumpAt(4));
+      put(sim, 0, 2, col);
+      const e = foe(sim, 'goblin', 2, at);
+      const r = hits(sim, 9000);
+      expect(r.got.get(e.uid) ?? 0, id).toBeGreaterThan(0);
+      expect(r.blocked, id).toEqual([]);
+      expect(sim.stumpHp[2][4], id).toBe(STUMP_HP);
+    }
+  });
+
+  it('with no enemy to go for they turn on a stump: a blow within its reach, a can ahead, a missile anywhere in the lane', () => {
+    const struck = (id: string, col: number, stump: number, ms: number) => {
+      const sim = makeSim([id], stumpAt(stump));
+      put(sim, 0, 2, col);
+      run(sim, ms);
+      return STUMP_HP - sim.stumpHp[2][stump];
+    };
+    expect(struck('hachiware', 1, 4, 3000)).toBeGreaterThan(0);
+    expect(struck('hachiware', 1, 5, 3000)).toBe(0);
+    expect(struck('rakko', 3, 4, 3000)).toBeGreaterThan(0);
+    expect(struck('kurimanju', 0, 6, 8000)).toBeGreaterThan(0);
+    expect(struck('usagi_cool', 6, 2, 12000)).toBeGreaterThan(0);
+    // モモンガ's acorns fly down three lanes, so a stump in the lane beside hers counts.
+    const m = makeSim(['momonga'], stumpAt(4, 3));
+    put(m, 0, 2, 1);
+    run(m, 5000);
+    expect(m.stumpHp[3][4]).toBeLessThan(STUMP_HP);
+  });
+
+  it('enemies take no notice of a stump, and only フグ’s spit hurts one, when it is in the way', () => {
+    // Nobody to spit at: フグ walks over the stump like anyone.
+    const alone = makeSim(['usagi'], stumpAt(3));
+    alone.spawnEnemy(ENEMIES['fugu'], 2, colY(6), { waveIndex: 0 });
+    alone.spawnEnemy(ENEMIES['goblin'], 2, colY(6), { waveIndex: 0 });
+    run(alone, 30000);
+    expect(alone.stumpHp[2][3]).toBe(STUMP_HP);
+    // A stump between フグ and the friend it spits at takes the spit, from three tiles off, until it breaks.
+    const spit = makeSim(['yoroi'], stumpAt(3));
     const w = put(spit, 0, 2, 2);
     spit.spawnEnemy(ENEMIES['fugu'], 2, colY(6) + TILE / 2, { waveIndex: 0 });
     const f = spit.enemies[spit.enemies.length - 1];
-    let blocked = 0;
-    for (let i = 0; i < 40000 / STEP_MS; i++) {
-      spit.step(STEP_MS);
-      for (const ev of spit.events) if (ev.type === 'blocked') blocked++;
-      spit.events.length = 0;
-    }
-    expect(blocked).toBe(0);
-    expect(f.y - HIT_LINE).toBeGreaterThanOrEqual(colY(3) + TILE / 2);
+    const events = run(spit, 40000);
+    expect(f.y).toBeLessThanOrEqual(colY(2) + CONTACT - 2 * TILE + 0.01);
+    expect(events.filter((e) => e.type === 'blocked')).toHaveLength(Math.ceil(STUMP_HP / ENEMIES['fugu'].attack.damage!));
+    expect(spit.terrain[2][3]).toBeNull();
     expect(w.hp).toBeLessThan(w.maxHp);
+  });
+
+  it('フグ and a friend either side of a stump break it between them, so a lane never stalls', () => {
+    const sim = makeSim(['yoroi', 'usagi'], stumpAt(4));
+    put(sim, 0, 2, 3);
+    put(sim, 1, 2, 1);
+    sim.spawnEnemy(ENEMIES['fugu'], 2, colY(8), { waveIndex: 0 });
+    const f = sim.enemies[sim.enemies.length - 1];
+    run(sim, 60000);
+    expect(sim.terrain[2][4]).toBeNull();
+    expect(f.hp).toBeLessThanOrEqual(0);
+  });
+
+  it('draws a stump whole, cracked, then split as it wears down', () => {
+    expect(stumpStage(STUMP_HP)).toBe(1);
+    expect(stumpStage((STUMP_HP * 2) / 3 + 1)).toBe(1);
+    expect(stumpStage((STUMP_HP * 2) / 3)).toBe(2);
+    expect(stumpStage(STUMP_HP / 3 + 1)).toBe(2);
+    expect(stumpStage(STUMP_HP / 3)).toBe(3);
+    expect(stumpStage(1)).toBe(3);
   });
 
   it('フグ stops to spit only on the field and in the open: a friend near the road or a bush does not let it hide', () => {
@@ -901,18 +985,6 @@ describe('terrain (World 2)', () => {
     walk(leafy, 20000);
     expect(['engaged', 'attack']).toContain(b.state);
     expect(b.y - (colY(6) + TILE / 2)).toBeGreaterThan(TILE * 0.31);
-  });
-
-  it('フグ beyond a stump comes on until the friends can hit it, so a lane never stalls', () => {
-    const sim = makeSim(['usagi'], { terrain: [{ lane: 2, col: 4, kind: 'stump' }] });
-    put(sim, 0, 2, 3);
-    sim.spawnEnemy(ENEMIES['fugu'], 2, colY(8), { waveIndex: 0 });
-    const f = sim.enemies[sim.enemies.length - 1];
-    for (let i = 0; i < 90000 / STEP_MS && f.hp > 0; i++) {
-      sim.step(STEP_MS);
-      sim.events.length = 0;
-    }
-    expect(f.hp).toBeLessThanOrEqual(0);
   });
 
   it('栗まんじゅう’s can splashes where it lands: every enemy in the 3×3 tiles round the spot takes the blow, none further', () => {

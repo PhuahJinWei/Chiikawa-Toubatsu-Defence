@@ -3,7 +3,7 @@
 import { WORLD_BLEED } from '../../art/bleed';
 import { FIELD_H, FIELD_W } from '../sim/constants';
 
-export interface BattleView {
+interface BattleView {
   /** CSS pixels per field pixel. */
   scale: number;
   /** Where the field's top-left corner is on the screen, in CSS pixels. */

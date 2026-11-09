@@ -6,10 +6,10 @@
 
 import { useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { paperGrainUrl } from '../../art/paper';
-import { seeded } from '../../art/placeholders/kit';
+import { seeded } from '../../art/kit';
 
 /** The four shapes of a plate, as SVG path data in the plate's own pixels (its top-left corner at 0, 0). */
-export interface PlatePaths {
+interface PlatePaths {
   /** The shadow under the cut edge. */
   drop: string;
   /** The white cut edge round the outside. */

@@ -17,7 +17,7 @@ export interface BuiltPiece {
 }
 
 /** Stage pixels added on each side of a piece by stretching its cut edges (`by`: how far on each side). */
-export function bleedOf(l: SceneLayer, by: Record<Side, number> = { l: BLEED_PX, r: BLEED_PX, t: BLEED_PX, b: BLEED_PX }): Record<Side, number> {
+function bleedOf(l: SceneLayer, by: Record<Side, number> = { l: BLEED_PX, r: BLEED_PX, t: BLEED_PX, b: BLEED_PX }): Record<Side, number> {
   const cut = l.cut ?? [];
   return { l: cut.includes('l') ? by.l : 0, r: cut.includes('r') ? by.r : 0, t: cut.includes('t') ? by.t : 0, b: cut.includes('b') ? by.b : 0 };
 }

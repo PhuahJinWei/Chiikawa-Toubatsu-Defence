@@ -23,6 +23,7 @@ import {
   SPAWN_Y,
   SPEED_PX_PER_S,
   SPIT_SPEED,
+  STUMP_HP,
   TILE,
   WEED_PULLED_MS,
   WEED_SPROUT_MS,
@@ -56,7 +57,7 @@ import type {
 import { abilityBusyMs, attackIntervalOf, fallMsOf, jumpAt, jumpMsOf, moveSpeedMulOf, spawnMsOf, swingOf, tempoOf } from './tempo';
 import { ScriptedWaves, type WaveHost, type WaveSource } from './waves';
 
-export interface SimConfig {
+interface SimConfig {
   lanes: number[];
   startWeeds: number;
   sprout: SproutDef | null;
@@ -180,6 +181,8 @@ export class Sim implements WaveHost {
   readonly waterLanes: number[];
   readonly grid: (Ally | null)[][];
   readonly terrain: (TerrainDef['kind'] | null)[][];
+  /** What each stump (切り株) has left, by lane and column. */
+  readonly stumpHp: number[][];
   allies: Ally[] = [];
   enemies: Enemy[] = [];
   projectiles: Projectile[] = [];
@@ -222,6 +225,7 @@ export class Sim implements WaveHost {
     this.grid = [0, 1, 2, 3, 4].map(() => new Array<Ally | null>(COLS).fill(null));
     this.terrain = [0, 1, 2, 3, 4].map(() => new Array<TerrainDef['kind'] | null>(COLS).fill(null));
     for (const t of cfg.terrain) if (this.laneActive[t.lane]) this.terrain[t.lane][t.col] = t.kind;
+    this.stumpHp = this.terrain.map((row) => row.map((kind) => (kind === 'stump' ? STUMP_HP : 0)));
     this.cards = cfg.deck.flatMap((id): CardState[] => {
       const def = UNITS[id];
       if (!def) return [];
@@ -431,7 +435,9 @@ export class Sim implements WaveHost {
   devCycleTerrain(lane: number, col: number): void {
     if (!this.laneActive[lane] || col < 0 || col >= COLS) return;
     const now = this.terrain[lane][col];
-    this.terrain[lane][col] = now === null ? 'stump' : now === 'stump' ? 'bush' : null;
+    const next = now === null ? 'stump' : now === 'stump' ? 'bush' : null;
+    this.terrain[lane][col] = next;
+    this.stumpHp[lane][col] = next === 'stump' ? STUMP_HP : 0;
   }
 
   /** The testing ground: every enemy is defeated where it is and falls as it would (its death frames, its fade); shots
@@ -827,15 +833,16 @@ export class Sim implements WaveHost {
 
   /** うさぎ（クール）'s missiles: one for each lane with an enemy on the field to drop it on (one of that lane's enemies
    *  on the ground, at random, never one hidden in a bush or ちいかぶ in disguise), each landing a moment after the last,
-   *  a little either side of where its enemy was. False if there was nowhere to drop one. */
+   *  a little either side of where its enemy was. A lane with no enemy but a stump gets one on the stump. False if there
+   *  was nowhere to drop one. */
   private launchMissiles(a: Ally): boolean {
     const atk = a.def.attack;
     const out: Projectile[] = [];
     for (const lane of this.activeLanes) {
       const there = this.enemies.filter((e) => this.covers(e, lane) && this.targetableEnemy(e) && this.onGround(e) && e.y < BASE_Y);
-      if (!there.length) continue;
-      const e = this.rng.pick(there);
-      const yT = Math.max(FIELD_ENTRY_Y, e.y - HIT_LINE + this.rng.range(-MISSILE_SCATTER, MISSILE_SCATTER));
+      const stump = there.length ? -1 : this.terrain[lane].lastIndexOf('stump');
+      if (!there.length && stump < 0) continue;
+      const yT = there.length ? Math.max(FIELD_ENTRY_Y, this.rng.pick(there).y - HIT_LINE + this.rng.range(-MISSILE_SCATTER, MISSILE_SCATTER)) : colY(stump) + TILE / 2;
       const p: Projectile = {
         uid: this.uidSeq++,
         fx: atk.fx ?? 'fx_missile',
@@ -848,7 +855,7 @@ export class Sim implements WaveHost {
         vy: 0,
         damage: this.allyDamage(a),
         source: a.def.id,
-        drop: { t0: this.t + out.length * MISSILE_STAGGER_MS, dur: MISSILE_FALL_MS, yT, tiles: atk.blastTiles ?? 0.75 },
+        drop: { t0: this.t + out.length * MISSILE_STAGGER_MS, dur: MISSILE_FALL_MS, yT, tiles: atk.blastTiles ?? 0.75, stump: stump >= 0 ? stump : undefined },
         bornAt: this.t,
         dead: false,
       };
@@ -956,11 +963,32 @@ export class Sim implements WaveHost {
     return hit;
   }
 
-  /** A shot runs into a stump and stops there. */
+  /** A shot runs into a stump, stops there and hurts it (a friend's shot, or フグ's spit by accident). */
   private blockShot(p: Projectile, at: number): void {
     p.dead = true;
     p.y = at;
     this.events.push({ type: 'blocked', lane: p.lane, y: at });
+    this.hitStump(p.lane, colOfY(at), p.damage);
+  }
+
+  /** A stump takes a blow (owner's call, 2026-11-09). With nothing left it is gone, and its tile is free. */
+  private hitStump(lane: number, col: number, damage: number, spark = false): void {
+    if (this.terrain[lane]?.[col] !== 'stump') return;
+    this.stumpHp[lane][col] = Math.max(0, this.stumpHp[lane][col] - damage);
+    const broken = this.stumpHp[lane][col] === 0;
+    if (broken) this.terrain[lane][col] = null;
+    this.events.push({ type: 'stumpHit', lane, col, broken, spark });
+  }
+
+  /** The nearest stump ahead of a friend in a lane, within its reach: its column, or null. Friends count a stump as
+   *  something to attack. One their blow would not be stopped by comes after any enemy (see targetFor's callers). */
+  private stumpAhead(a: Ally, lane = a.lane): number | null {
+    const row = this.terrain[lane];
+    if (!row) return null;
+    const range = a.def.attack.rangeTiles;
+    const last = range !== undefined ? Math.min(COLS - 1, a.col + range) : COLS - 1;
+    for (let col = a.col + 1; col <= last; col++) if (row[col] === 'stump') return col;
+    return null;
   }
 
   /** Nearest enemy in a lane between minY and maxY (feet), i.e. the one closest to the ally. */
@@ -986,10 +1014,10 @@ export class Sim implements WaveHost {
     // More than its own lane: モモンガ's three acorns, and ラッコ's sweep (`sweepLanes` either side of his).
     const spread = a.def.attack.kind === 'spread3' ? 1 : (a.def.attack.sweepLanes ?? 0);
     if (spread) {
-      for (let l = a.lane - spread; l <= a.lane + spread; l++) if (this.laneActive[l] && this.targetFor(a, l)) return true;
+      for (let l = a.lane - spread; l <= a.lane + spread; l++) if (this.laneActive[l] && (this.targetFor(a, l) || this.stumpAhead(a, l) !== null)) return true;
       return false;
     }
-    return !!this.targetFor(a);
+    return !!this.targetFor(a) || this.stumpAhead(a) !== null;
   }
 
   private release(a: Ally): void {
@@ -999,15 +1027,21 @@ export class Sim implements WaveHost {
     const muzzleY = allyFeetY(a.col) - MUZZLE;
     switch (atk.kind) {
       case 'hitscan': {
-        // One blow at the first enemy within reach. A sweep (ラッコ's sword, `sweepLanes`) strikes the first in each lane
-        // either side too, nearest lanes first, each enemy once (a giant across them, in the nearest of its lanes).
+        // One blow at the first enemy within reach, or with none at a stump within reach (a stump never stops a blow). A
+        // sweep (ラッコ's sword, `sweepLanes`) strikes the first in each lane either side too, nearest lanes first, each enemy
+        // once (a giant across them, in the nearest of its lanes).
         const spread = atk.sweepLanes ?? 0;
         const struck = new Set<Enemy>();
         for (let gap = 0; gap <= spread; gap++) {
           for (const lane of gap ? [a.lane - gap, a.lane + gap] : [a.lane]) {
             if (gap && !this.laneActive[lane]) continue;
             const e = this.targetFor(a, lane);
-            if (!e || struck.has(e)) continue;
+            if (!e) {
+              const stump = this.stumpAhead(a, lane);
+              if (stump !== null) this.hitStump(lane, stump, damage, true);
+              continue;
+            }
+            if (struck.has(e)) continue;
             struck.add(e);
             this.events.push({ type: 'jab', ally: a, enemy: e, lane });
             this.damageEnemy(e, damage, a.def.id, atk.fx ?? 'fx_hit', !!atk.ignoresArmor, lane);
@@ -1032,12 +1066,15 @@ export class Sim implements WaveHost {
         break;
       }
       case 'lob': {
+        // At the first enemy in the lane, over anything in the way; with none, at the nearest stump ahead.
         const e = this.targetFor(a);
-        if (!e) break;
-        const dist = Math.max(0, muzzleY - (e.y - HIT_LINE));
+        const stump = e ? null : this.stumpAhead(a);
+        if (!e && stump === null) break;
+        const yT = e ? e.y - HIT_LINE : colY(stump!) + TILE / 2;
+        const dist = Math.max(0, muzzleY - yT);
         const p = this.spawnProjectile(a, a.lane, muzzleY, damage);
         p.vy = 0;
-        p.lob = { targetUid: e.uid, t0: this.t, dur: 520 + dist / 2.4, yT: e.y - HIT_LINE, height: 80 + dist * 0.12 };
+        p.lob = { targetUid: e?.uid ?? -1, t0: this.t, dur: 520 + dist / 2.4, yT, height: 80 + dist * 0.12, stump: stump ?? undefined };
         p.splashTiles = atk.splashTiles;
         break;
       }
@@ -1476,17 +1513,14 @@ export class Sim implements WaveHost {
   }
 
   /** Where an enemy stops for a friend ahead (its front, in travel px): just inside the friend's tile, or as far off as
-   *  its reach (フグ spits from further away). But フグ stops only where it can be hit back: on the field, out of any bush
-   *  (nothing can aim at it in one), and with no stump between them (a stump stops its spit and the friends' shots
-   *  alike). Otherwise a lane could stall, with neither side able to reach the other. */
+   *  its reach (フグ spits from further away). But フグ stops only where it can be hit back: on the field and out of any
+   *  bush (nothing can aim at it in one). A stump between them takes its spit, and the friends' shots, until it breaks. */
   private stopYFor(e: Enemy, b: Ally): number {
     const reach = e.def.attack.rangeTiles ?? 1;
     const close = colY(b.col) + CONTACT;
     if (reach <= 1) return close;
-    const friend = allyFeetY(b.col) - TILE * 0.45;
     let y = Math.max(close - (reach - 1) * TILE, FIELD_ENTRY_Y);
     if (this.hidden(e)) y = Math.max(y, colY(colOfY(e.y)) + TILE / 2 + BUSH_REACH + 1);
-    for (let s = this.stumpCrossed(e.lane, y - HIT_LINE, friend); s !== null; s = this.stumpCrossed(e.lane, y - HIT_LINE, friend)) y = s + HIT_LINE;
     return Math.min(y, close);
   }
 
@@ -1932,7 +1966,7 @@ export class Sim implements WaveHost {
       if (p.hostileTarget !== undefined) {
         const a = this.allyByUid(p.hostileTarget);
         p.y += (p.vy * dt) / 1000;
-        // フグ's spit stops at a stump too.
+        // フグ's spit stops at a stump too, and hurts it: enemies take no other notice of stumps.
         const wall = this.stumpCrossed(p.lane, p.prevY, p.y);
         if (wall !== null && (!a || wall < allyFeetY(a.col) - TILE * 0.45)) {
           this.blockShot(p, wall);
@@ -1954,7 +1988,8 @@ export class Sim implements WaveHost {
       const travelled = p.y0 - p.y;
       const laneT = Math.min(1, travelled / 120);
       p.x = p.x0 + (laneX(p.lane) - p.x0) * (1 - (1 - laneT) * (1 - laneT));
-      // A stump in the way stops the shot (a lob flies over it): only what is before the stump can be hit.
+      // A stump in the way stops a shot flying straight along the lane, and takes the blow (a lob or a missile never
+      // comes this way): only what is before the stump can be hit.
       const wall = this.stumpCrossed(p.lane, p.prevY, p.y);
       const before = (e: Enemy) => wall === null || e.y - HIT_LINE >= wall;
       const back = p.back;
@@ -2028,6 +2063,7 @@ export class Sim implements WaveHost {
     p.x = p.x0;
     if (k < 1) return;
     p.dead = true;
+    if (lob.stump !== undefined) this.hitStump(p.lane, lob.stump, p.damage);
     // 栗まんじゅう's can splashes where it lands, over everyone round the spot (its target among them, if still there).
     if (p.splashTiles) {
       this.splash(p, lob.yT, p.splashTiles, target);
@@ -2070,6 +2106,7 @@ export class Sim implements WaveHost {
       if (Math.abs(e.y - HIT_LINE - d.yT) > d.tiles * TILE) continue;
       this.damageEnemy(e, p.damage, p.source, p.fx, false, p.lane);
     }
+    if (d.stump !== undefined) this.hitStump(p.lane, d.stump, p.damage);
     this.events.push({ type: 'blast', lane: p.lane, y: d.yT, source: p.source });
   }
 

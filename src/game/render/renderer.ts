@@ -34,7 +34,7 @@ import {
 import { BASELINE, characterSpec, type SceneSpec, sceneSpec, spriteIdFor, STAR_SPRITE, STICKER_VARIANTS, STICKERS, stickerSpec, WORLD_FIELD } from '../../art/spec';
 import { StickerCache } from '../../art/sticker';
 import { resolveScene } from '../../art/store';
-import { FONT_STACK, INK } from '../../art/placeholders/kit';
+import { FONT_STACK, INK } from '../../art/kit';
 
 /** The menus' line colour (--ink in global.css), for the UI the battle draws itself. */
 const UI_INK = '#4A2A12';
@@ -45,12 +45,12 @@ import {
   COLLAPSE_MS,
   colLeft,
   COLS,
+  colY,
   FADE_MS,
   FIELD_H,
   FIELD_W,
   HIT_LINE,
   LANE_FEET,
-  LANE_LEN,
   laneX,
   LANES,
   MUZZLE,
@@ -58,6 +58,7 @@ import {
   screenX,
   screenY,
   STEP_MS,
+  stumpStage,
   TILE,
   travelOfScreenX,
   WEED_WILT_MS,
@@ -152,6 +153,9 @@ interface CharacterLook {
 
 /** Sim position (+ height above the ground) → field space. */
 const S = (x: number, y: number, h = 0): Pt => ({ x: screenX(y), y: screenY(x) - h });
+/** A stump that has just been hit: how long it stays squashed (ms), and how much at first. */
+const STUMP_JOLT_MS = 140;
+const STUMP_JOLT = 0.07;
 /** A fallen character fades as it falls: fully gone when the fall and the fade are over (no puff of smoke). */
 const fadeOut = (since: number, total = COLLAPSE_MS + FADE_MS): number => {
   // Slow at first, so the fall can be seen; gone at the end.
@@ -258,6 +262,8 @@ export class BattleRenderer {
   private bg: HTMLCanvasElement | null = null;
   private bgKey = '';
   private fx: Fx[] = [];
+  /** When each stump last took a blow (see drawStumps), by lane × 10 + column. */
+  private stumpHits = new Map<number, number>();
   /** The version each effect drawn in versions showed last (see pictureFor). */
   private lastPic = new Map<string, string>();
   /** The version each shot drawn in versions (古本屋's books) flies as, picked when it is first drawn. */
@@ -302,6 +308,8 @@ export class BattleRenderer {
   private sizedFor = '';
   /** Bumped to stop cutting frames' stickers ahead of time (see warmSprites). */
   private warmToken = 0;
+  /** The characters whose frames are cut ahead of time, cut again when the scale changes (see resize). */
+  private warmIds: string[] = [];
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -344,7 +352,9 @@ export class BattleRenderer {
     this.oy = view.oy;
     // Looking at the road: the picture's right edge at the screen's right edge.
     this.lookShift = Math.max(0, this.ox - (this.cssW - this.pictureRight() * this.scale));
-    this.stickers.setDeviceScale(this.scale * this.dpr);
+    // A new scale empties the sticker cache: cut the battle's frames again ahead of time, as at the start, so a
+    // resize does not leave each frame to be cut on its first draw (20 to 110 ms each on a big screen).
+    if (this.stickers.setDeviceScale(this.scale * this.dpr) && this.warmIds.length) this.warmSprites(this.warmIds);
     this.bgKey = '';
   }
 
@@ -528,15 +538,11 @@ export class BattleRenderer {
     ctx.stroke();
     ctx.restore();
 
-    // Terrain. A bush is drawn with the characters instead, over the enemies hiding in it (see render).
+    // A bush's shadow. The bush itself is drawn with the characters, over the enemies hiding in it, and a stump every
+    // frame, since it can break (see render and drawStumps).
     for (let lane = 0; lane < LANES; lane++) {
       for (let col = 0; col < COLS; col++) {
-        const kind = this.sim.terrain[lane][col];
-        if (!kind) continue;
-        const x = colLeft(col) + TILE / 2;
-        const y = lane * TILE + LANE_FEET - 6;
-        shadow(ctx, x, y - 4, 62);
-        if (kind !== 'bush') this.drawSticker(ctx, `terrain_${kind}`, x, y);
+        if (this.sim.terrain[lane][col] === 'bush') shadow(ctx, colLeft(col) + TILE / 2, lane * TILE + LANE_FEET - 10, 62);
       }
     }
 
@@ -585,7 +591,7 @@ export class BattleRenderer {
         else if (e.fx === 'fx_can_splash') this.addFx('fx_can_splash', p.x, p.y + 10, now, CAN_SPLASH_MS);
         else if (e.armored && e.source !== 'rakko_car') this.addFx('fx_clink', p.x - 10, p.y - 20, now, 220, 0.9);
         // A missile's blow: its blast shows where it lands ('blast'), no spark over each one it hits.
-        else if (e.fx !== 'fx_splash' && e.fx !== 'fx_missile') this.addFx('fx_hit', p.x + (Math.random() - 0.5) * 30, p.y + (Math.random() - 0.5) * 30, now, 200, 0.8);
+        else if (e.fx !== 'fx_missile') this.addFx('fx_hit', p.x + (Math.random() - 0.5) * 30, p.y + (Math.random() - 0.5) * 30, now, 200, 0.8);
         break;
       }
       case 'place': {
@@ -652,6 +658,19 @@ export class BattleRenderer {
       case 'blocked': {
         const p = S(laneX(e.lane), e.y, PROJECTILE_HEIGHT);
         this.addFx('fx_hit', p.x, p.y, now, 200, 0.6);
+        break;
+      }
+      case 'stumpHit': {
+        this.stumpHits.set(e.lane * 10 + e.col, now);
+        const y = colY(e.col) + TILE / 2;
+        if (e.spark) {
+          const p = S(laneX(e.lane), y, PROJECTILE_HEIGHT);
+          this.addFx('fx_hit', p.x, p.y, now, 200, 0.6);
+        }
+        if (e.broken) {
+          const p = S(laneX(e.lane), y, 30);
+          this.addFx('fx_dust', p.x, p.y, now, 340, 0.7);
+        }
         break;
       }
       case 'jump': {
@@ -973,6 +992,7 @@ export class BattleRenderer {
   /** Cut the stickers of these characters' frames ahead of time, a few at a time in spare moments (their walk
    *  first), so nobody stutters the first time they walk, strike or fall. Started again, it drops the last run. */
   warmSprites(ids: string[]): void {
+    this.warmIds = ids;
     const jobs: (() => void)[] = [];
     const order: SpriteMotion[] = ['walk', 'idle', 'attack', 'death', 'ability', 'transform'];
     for (const motion of order) {
@@ -1000,6 +1020,7 @@ export class BattleRenderer {
   /** Stop cutting stickers ahead of time (the battle is over). */
   stopWarming(): void {
     this.warmToken++;
+    this.warmIds = [];
   }
 
   // ------------------------------------------------------------ frame
@@ -1027,6 +1048,7 @@ export class BattleRenderer {
     } else this.shakeAmp = 0;
     this.worldTransform(ctx, sx, sy);
 
+    this.drawStumps(ctx, now);
     this.drawWater(ctx, now, ui);
     this.drawHighlights(ctx, ui, now);
     this.drawParkedCars(ctx, now, ui);
@@ -1073,6 +1095,23 @@ export class BattleRenderer {
     this.drawDrivingCars(ctx, now, ui);
     this.drawGhost(ctx, ui, now);
     this.drawBalloons(ctx, now);
+  }
+
+  /** The stumps on the ground, under everyone: whole, cracked or split by what each has left, and for a moment after a
+   *  blow squashed a little, from its roots. */
+  private drawStumps(ctx: CanvasRenderingContext2D, now: number): void {
+    const sim = this.sim;
+    for (let lane = 0; lane < LANES; lane++) {
+      for (let col = 0; col < COLS; col++) {
+        if (sim.terrain[lane][col] !== 'stump') continue;
+        const x = colLeft(col) + TILE / 2;
+        const y = lane * TILE + LANE_FEET - 6;
+        shadow(ctx, x, y - 4, 62);
+        const since = now - (this.stumpHits.get(lane * 10 + col) ?? -Infinity);
+        const jolt = this.calm || since >= STUMP_JOLT_MS ? 0 : (1 - since / STUMP_JOLT_MS) * STUMP_JOLT;
+        this.drawSticker(ctx, `terrain_stump_${stumpStage(sim.stumpHp[lane][col])}`, x, y, { sx: 1 + jolt, sy: 1 - jolt });
+      }
+    }
   }
 
   /** The waiting enemies, breathing on the road (on their own clock: the battle has not started). */
@@ -1646,8 +1685,6 @@ export class BattleRenderer {
   }
 }
 
-// Keep the lane length in scope for anyone reading screen coordinates in this file.
-export const FIELD_RIGHT = LANE_LEN;
 
 // ---------------------------------------------------------------- small helpers
 

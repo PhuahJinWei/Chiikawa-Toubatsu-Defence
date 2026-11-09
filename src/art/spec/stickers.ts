@@ -167,7 +167,18 @@ export const STICKERS: StickerSpec[] = [
   // 草 itself: its icon (the counter, every cost) and the weed that grows on the field (also what ちいかわ finds).
   s('pickup_weed', 'pickup', 120, 120, 'center', '草のアイコン。草の数と、カードやなかまのコストに出る。集めた草はこの絵になって草の数へ飛んでいく。', 'The 草 icon: shown by the 草 count and every cost. A collected weed flies to the count as this picture.'),
   s('pickup_drop', 'pickup', 120, 120, 'feet', '戦場に生えてくる草（タップで集める）。ちいかわが見つけた草もこの絵で出てきて、自動で集まる。生える・ゆれる・抜ける・しおれるはゲームが動かす。', 'The weed that grows on the field (tap to collect). The weeds ちいかわ finds come up as this picture too, and collect themselves. The game makes it sprout, wobble, pop out and wilt.'),
-  s('terrain_stump', 'terrain', 170, 170, 'feet', '切り株。このマスには置けない。投げたものはここで止まる（山なりの缶は越える）。', 'Stump. Nothing can be placed on this tile, and shots stop at it (a lobbed can flies over).'),
+  // A stump wears down through three pictures as it takes damage, and is gone when it breaks.
+  ...(['無傷', 'ひびが入った', '大きく割れた'] as const).map((state, i) =>
+    s(
+      `terrain_stump_${i + 1}`,
+      'terrain',
+      170,
+      170,
+      'feet',
+      `切り株（3段階の${i + 1}つめ：${state}）。このマスには置けない。まっすぐ飛ぶものはここで止まって、切り株を傷つける（山なりの缶とミサイルは越える）。こわれるとマスがあく。`,
+      `Stump (${i + 1} of 3: ${['whole', 'cracked', 'split'][i]}). Nothing can be placed on this tile. Whatever flies straight along the lane stops at it and hurts it (a lobbed can and a missile go over). When it breaks the tile is free.`,
+    ),
+  ),
   s('terrain_bush', 'terrain', 170, 170, 'feet', '茂み。このマスには置けない。中に入った相手はこの絵のうしろに隠れて、ねらわれない。', 'Bush. Nothing can be placed on this tile. An enemy walking into it hides behind this picture and cannot be aimed at.'),
 ];
 

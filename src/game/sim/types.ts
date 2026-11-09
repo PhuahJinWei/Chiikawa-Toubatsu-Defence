@@ -1,11 +1,11 @@
 // Content definitions (loaded from src/data/*.json) and runtime entity shapes.
 
 export type SizeTier = 'S' | 'M' | 'L' | 'XL';
-export type SpeedTier = 'slow' | 'normal' | 'fast';
+type SpeedTier = 'slow' | 'normal' | 'fast';
 
 // ---------------------------------------------------------------- allies
 
-export interface AllyAttackDef {
+interface AllyAttackDef {
   /** `missiles`: うさぎ（クール）'s (owner's call, 2026-11-08): she only poses, and every interval missiles fall from
    *  the sky, one on each lane that has an enemy on the field, where one of its enemies is (picked at random). Each
    *  blows up where it lands: every enemy on the ground in that lane within `blastTiles` tiles of the spot takes the
@@ -55,7 +55,7 @@ export interface MineDef {
   damage: number;
 }
 
-export interface ProduceDef {
+interface ProduceDef {
   amount: number;
   intervalMs: number;
   firstMs: number;
@@ -64,13 +64,13 @@ export interface ProduceDef {
 }
 
 /** What a friend who never attacks does for the others instead (v2). */
-export type SupportDef =
+type SupportDef =
   /** Friends in the same lane attack this many times as fast while it sings (パジャマパーティーズ). */
   { kind: 'aura_attackspeed'; mul: number };
 
 /** A one-use card (v2): it does its one thing and nothing stays. オデ is put down like any friend, on an empty land
  *  tile (owner's call, 2026-11-08); むちゃうマン on any tile of an open lane, a friend standing there or not. */
-export type OneUseDef =
+type OneUseDef =
   /** オデ (owner's call, 2026-11-08): put down on a tile, he comes running in from the base end of its lane and
    *  sprints the whole length of it, like Rakko's car: every enemy on the ground he runs into is defeated (a boss takes RESCUE_BOSS_DAMAGE, as from
    *  the car). Fliers are overhead: he runs under them. */
@@ -128,7 +128,7 @@ export interface UnitDef {
 
 // ---------------------------------------------------------------- enemies
 
-export interface EnemyAttackDef {
+interface EnemyAttackDef {
   kind: 'none' | 'melee' | 'ranged' | 'stomp';
   damage?: number;
   intervalMs?: number;
@@ -289,7 +289,7 @@ export interface WorldDef {
 // ---------------------------------------------------------------- runtime
 
 /** `carried`: in でかい鳥's talons, off its tile (it lands again if the bird falls). */
-export type AllyState = 'idle' | 'attack' | 'pull' | 'collapse' | 'carried';
+type AllyState = 'idle' | 'attack' | 'pull' | 'collapse' | 'carried';
 
 export interface Ally {
   uid: number;
@@ -412,10 +412,12 @@ export interface Projectile {
   splashBehind?: number;
   splashTiles?: number;
   slowMs?: number;
-  lob?: { targetUid: number; t0: number; dur: number; yT: number; height: number };
+  /** `stump`: the column of the stump it was thrown at, when there was no enemy to throw it at. */
+  lob?: { targetUid: number; t0: number; dur: number; yT: number; height: number; stump?: number };
   /** A missile falling from the sky (うさぎ（クール）): it lands at `yT` (a hit line in its lane) `dur` ms after `t0`
-   *  and blows up there, over `tiles` tiles either side along the lane. */
-  drop?: { t0: number; dur: number; yT: number; tiles: number };
+   *  and blows up there, over `tiles` tiles either side along the lane. `stump`: the column of the stump it was sent
+   *  to, in a lane with no enemy. */
+  drop?: { t0: number; dur: number; yT: number; tiles: number; stump?: number };
   /** For a projectile that goes through everyone (AllyAttackDef.passThrough): the enemies it has hit already. */
   passed?: Set<number>;
   /** Enemy projectile homing on an ally. */
@@ -458,7 +460,7 @@ export interface Cameo {
   fired: boolean;
 }
 
-export type PickupState = 'sprout' | 'idle' | 'pulled' | 'wilt' | 'gone';
+type PickupState = 'sprout' | 'idle' | 'pulled' | 'wilt' | 'gone';
 
 export interface Pickup {
   uid: number;
@@ -540,6 +542,8 @@ export type SimEvent =
   | { type: 'spitHit'; ally: Ally; projectile: Projectile }
   /** A shot stopped by a stump (World 2's 切り株), at that point of the lane. */
   | { type: 'blocked'; lane: number; y: number }
+  /** A stump took a blow; `broken` if that was its last. `spark`: nothing else shows where it landed (a jab). */
+  | { type: 'stumpHit'; lane: number; col: number; broken: boolean; spark: boolean }
   /** 栗まんじゅう's can splashed where it landed (its lane, the spot's hit line), over `tiles` lanes and tiles round it. */
   | { type: 'splash'; lane: number; y: number; tiles: number }
   | { type: 'rescue'; lane: number }

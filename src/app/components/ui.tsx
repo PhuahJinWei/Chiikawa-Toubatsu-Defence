@@ -11,7 +11,7 @@ import { PlatePaper } from './Plate';
 
 // ---------------------------------------------------------------- toast
 
-export const toastMsg = signal<{ key: number; text: string } | null>(null);
+const toastMsg = signal<{ key: number; text: string } | null>(null);
 let toastTimer = 0;
 
 export function toast(text: string): void {

@@ -173,7 +173,7 @@ function meanDiff(pre: RGBA, free: Uint8Array, s: Samples, x: number, y: number)
   return seen < 0.5 * s.n ? Infinity : sum / seen;
 }
 
-export interface Placement {
+interface Placement {
   x: number;
   y: number;
   /** How well it matched, 0–1. */

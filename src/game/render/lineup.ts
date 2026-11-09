@@ -3,7 +3,7 @@
 
 import { FIELD_W, LANE_FEET, LANES, TILE } from '../sim/constants';
 
-export interface LineupSpot {
+interface LineupSpot {
   /** Where its feet stand, in field pixels. */
   x: number;
   y: number;

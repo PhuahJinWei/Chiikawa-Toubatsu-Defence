@@ -40,7 +40,7 @@ export interface Frame {
 /** How a preview draws one character: `k` CSS pixels per field pixel (the same for every character: this is what keeps
  *  them true to size), where its feet stand (`x`, `y`, CSS pixels from the preview's top left), and the preview's
  *  height for its width (taller for a giant). */
-export interface FigureLayout {
+interface FigureLayout {
   k: number;
   x: number;
   y: number;
@@ -173,7 +173,7 @@ const FRAMES = new Map<string, Frame>();
 /** A character's preview: the stage, grown taller (the ground moving down) for anyone taller than it, so a giant's
  *  head stays in view. Whoever fits across stands centred on all it does; anyone wider (a giant) stands with its front
  *  just inside the side it faces and runs off the other. */
-export function figureFrame(id: string): Frame {
+function figureFrame(id: string): Frame {
   const hit = FRAMES.get(id);
   if (hit) return hit;
   const st = stage();

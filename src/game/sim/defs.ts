@@ -11,7 +11,7 @@ import type { EnemyDef, LevelDef, UnitDef, WorldDef } from './types';
 
 export const UNIT_LIST = unitsJson as unknown as UnitDef[];
 export const ENEMY_LIST = enemiesJson as unknown as EnemyDef[];
-export const WORLD_LIST = worldsJson as unknown as WorldDef[];
+const WORLD_LIST = worldsJson as unknown as WorldDef[];
 export const LEVEL_LIST: LevelDef[] = [
   ...(world1 as unknown as LevelDef[]),
   ...(world2 as unknown as LevelDef[]),

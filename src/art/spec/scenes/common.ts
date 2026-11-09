@@ -4,9 +4,9 @@ const CUT: Text = { ja: '白いふちと影はゲームが付けるので描か�
 const BACK: Text = { ja: '透明部分なし（絵の全体をぬる）。', en: 'No transparency: fills the whole picture.' };
 
 /** A cut-out piece's note, with the reminder that the game draws the border. */
-export const cutNote = (ja: string, en: string): Text => ({ ja: `${ja}${CUT.ja}`, en: `${en} ${CUT.en}` });
+const cutNote = (ja: string, en: string): Text => ({ ja: `${ja}${CUT.ja}`, en: `${en} ${CUT.en}` });
 /** The backmost piece's note. */
-export const backNote = (ja: string, en: string): Text => ({ ja: `${ja}${BACK.ja}`, en: `${en} ${BACK.en}` });
+const backNote = (ja: string, en: string): Text => ({ ja: `${ja}${BACK.ja}`, en: `${en} ${BACK.en}` });
 
 /** The backmost piece: the whole picture, no border, running off every side. */
 export function back(id: string, w: number, h: number, z: number, ja: string, en: string): SceneLayer {

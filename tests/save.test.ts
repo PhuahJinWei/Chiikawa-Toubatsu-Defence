@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { crc32, defaultSave, exportCode, importCode, migrate, SAVE_VERSION } from '../src/save/save';
+import { crc32, defaultSave, exportCode, FIRST_FRIEND, importCode, migrate, SAVE_VERSION } from '../src/save/save';
 
 describe('save', () => {
   it('export → import round-trips the whole save', () => {
@@ -106,6 +106,13 @@ describe('save', () => {
     expect(m.money).toBe(100 + 3 * 150);
     expect(m.upgrades).toEqual({ slots: 1, ramen: 0 });
     expect(m.items).toEqual({ buta: 0 });
+  });
+
+  it('counts the first friend as seen for anyone who has already played, and only them', () => {
+    const played = { v: 7, gallery: { seen: ['mushi_twolegs'], defeated: [], met: ['yoroi_rodo'] } };
+    expect(migrate(played, defaultSave('ja')).gallery.met).toEqual(['yoroi_rodo', FIRST_FRIEND]);
+    const fresh = { v: 7, gallery: { seen: [], defeated: [], met: ['yoroi_rodo', 'furuhonya'] } };
+    expect(migrate(fresh, defaultSave('ja')).gallery.met).toEqual(['yoroi_rodo', 'furuhonya']);
   });
 
   it('crc32 matches a known value', () => {
