@@ -1,7 +1,7 @@
 import { BANNER_LEAD_MS, EARLY_WAVE_MIN_MS, SPAWN_Y } from './constants';
-import { ENEMIES } from './defs';
+import { ENEMIES, waterOf } from './defs';
 import type { Rng } from './rng';
-import type { EnemyDef, SpawnDef, WaveDef } from './types';
+import type { EnemyDef, LevelDef, SpawnDef, WaveDef } from './types';
 
 /** What a wave source asks the simulation to do. */
 export interface WaveHost {
@@ -80,6 +80,24 @@ export function giantLane(lanes: number[]): number | null {
     if (best === null || Math.abs(l - mid) < Math.abs(best - mid)) best = l;
   }
   return best;
+}
+
+/** How many of each enemy a job sends over all its waves, in the order they first come, counted as `expandSpawns`
+ *  sends them: a spawn on 'all' lanes once for each lane it can use, a group (小さい人魚) for each one in it, a giant
+ *  once a count however its lane is given. */
+export function enemyCounts(level: LevelDef): { id: string; count: number }[] {
+  const water = waterOf(level);
+  const counts = new Map<string, number>();
+  for (const w of level.waves) {
+    for (const s of w.spawns) {
+      const def = ENEMIES[s.enemy];
+      if (!def) continue;
+      const pool = lanesFor(def, level.lanes, water);
+      const across = s.lane === 'all' && !(def.giant && giantLane(pool) !== null) ? pool.length : 1;
+      counts.set(s.enemy, (counts.get(s.enemy) ?? 0) + (s.count ?? 1) * across * Math.max(1, def.pack ?? 1));
+    }
+  }
+  return [...counts].map(([id, count]) => ({ id, count }));
 }
 
 export function expandSpawns(

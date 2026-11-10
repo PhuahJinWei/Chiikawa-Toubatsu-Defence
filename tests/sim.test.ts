@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, HIT_LINE, RESCUE_BOSS_DAMAGE, STEP_MS, STUMP_HP, stumpStage, TILE } from '../src/game/sim/constants';
-import { ENEMIES, UNITS } from '../src/game/sim/defs';
+import { ENEMIES, LEVEL_LIST, UNITS, waterOf } from '../src/game/sim/defs';
 import { abilityBusyMs, abilityCycleMs, HEAL_PULSE_MS, healPauseOf, spawnMsOf } from '../src/game/sim/tempo';
 import { Rng } from '../src/game/sim/rng';
 import { Sim } from '../src/game/sim/sim';
 import type { DevRules, Enemy, SimEvent } from '../src/game/sim/types';
-import { expandSpawns, giantLane, LanePicker, type WaveSource } from '../src/game/sim/waves';
+import { enemyCounts, expandSpawns, giantLane, LanePicker, type WaveSource } from '../src/game/sim/waves';
 
 /** A wave source that never spawns anything, so tests can place enemies by hand. */
 class NoWaves implements WaveSource {
@@ -623,6 +623,15 @@ describe('the water lane (World 5)', () => {
     );
     for (const s of q) expect(s.lane === 2).toBe(!!s.def.aquatic);
     expect(q.filter((s) => s.def.id === 'goblin').map((s) => s.lane)).toEqual([0, 1, 3, 4]);
+    // What the road shows before a job is counted as the waves send it, groups and 'all' lanes included.
+    for (const level of LEVEL_LIST) {
+      const sent = new Map<string, number>();
+      const lanes = new LanePicker();
+      level.waves.forEach((w, i) => {
+        for (const s of expandSpawns(w.spawns, new Rng(i + 1), level.lanes, lanes, 0, i, waterOf(level))) sent.set(s.def.id, (sent.get(s.def.id) ?? 0) + 1);
+      });
+      expect(enemyCounts(level).map((k) => [k.id, k.count]), level.id).toEqual([...sent]);
+    }
     // Without water, a mermaid walks any lane.
     const dry = expandSpawns([{ enemy: 'ningyo', count: 6 }], new Rng(9), [0, 1, 2, 3, 4], new LanePicker(), 0, 0);
     expect(new Set(dry.map((s) => s.lane)).size).toBeGreaterThan(1);
@@ -1376,6 +1385,60 @@ describe('v2 friends', () => {
     expect(count(false)).toBeLessThan(1.65);
     // Silenced by a song, they do not sing.
     expect(count(true)).toBeCloseTo(1, 1);
+  });
+
+  it('tells the drawing who the song and a partner speed up, as the battle does', () => {
+    const sim = makeSim(['pajama_parties', 'hachiware', 'yoroi']);
+    const p = put(sim, 0, 1, 0);
+    const near = put(sim, 1, 1, 3);
+    const wall = put(sim, 2, 1, 5);
+    const away = put(sim, 1, 3, 3);
+    expect(sim.lanePace()).toEqual([1, 1.5, 1, 1, 1]);
+    // Only a friend that attacks is sped up: not a wall, nor the singers themselves.
+    expect([p, near, wall, away].map((a) => sim.spedUp(a))).toEqual([false, true, false, false]);
+    // A silenced friend doesn't attack at all; silenced singers don't sing.
+    near.songUntil = sim.t + 1000;
+    expect(sim.spedUp(near)).toBe(false);
+    near.songUntil = 0;
+    p.songUntil = sim.t + 1000;
+    expect(sim.lanePace()[1]).toBe(1);
+    expect(sim.spedUp(near)).toBe(false);
+    // フタバ and ヒトハ side by side, each sped up by the other.
+    const isle = makeSim(['futaba', 'hitoha'], { water: [2] });
+    const f = put(isle, 0, 2, 3);
+    const h = put(isle, 1, 2, 4);
+    expect([f, h].map((a) => isle.spedUp(a))).toEqual([true, true]);
+  });
+
+  it('says what a friend would reach from a tile, and who putting it there would speed up', () => {
+    const sim = makeSim(['pajama_parties', 'hachiware', 'yoroi', 'usagi']);
+    const reach = (id: string, lane: number, col: number) => sim.reachFrom(UNITS[id], lane, col);
+    // The song: the whole lane. A melee blow: its tile and the tiles ahead it reaches, no further than the field.
+    expect(reach('pajama_parties', 2, 4)).toEqual([{ lane: 2, from: 0, to: 8, kind: 'song' }]);
+    expect(reach('hachiware', 2, 4)).toEqual([{ lane: 2, from: 4, to: 7, kind: 'reach' }]);
+    expect(reach('hachiware', 2, 7)).toEqual([{ lane: 2, from: 7, to: 8, kind: 'reach' }]);
+    // ラッコ's sweep takes in the open lanes either side; モモンガ's acorns three lanes to the end of the field.
+    expect(reach('rakko', 2, 4).map((s) => [s.lane, s.from, s.to])).toEqual([[1, 4, 6], [2, 4, 6], [3, 4, 6]]);
+    expect(reach('rakko', 0, 4).map((s) => s.lane)).toEqual([0, 1]);
+    expect(reach('momonga', 2, 4).map((s) => [s.lane, s.from, s.to])).toEqual([[1, 4, 8], [2, 4, 8], [3, 4, 8]]);
+    const narrow = makeSim(['rakko'], { lanes: [1, 2, 3] });
+    expect(narrow.reachFrom(UNITS.rakko, 1, 4).map((s) => s.lane)).toEqual([1, 2]);
+    // A shooter reaches the whole lane ahead, as in PvZ: nothing to show. フタバ: the tiles beside it for ヒトハ.
+    expect(reach('usagi', 2, 4)).toEqual([]);
+    expect(reach('futaba', 2, 4).map((s) => [s.from, s.kind])).toEqual([[3, 'partner'], [5, 'partner']]);
+    // Who would be sped up: those in the lane the song would reach (attackers only), and a friend put where a song
+    // already is.
+    const fighter = put(sim, 1, 1, 3);
+    put(sim, 2, 1, 5);
+    expect(sim.boostsFrom(UNITS.pajama_parties, 1, 1)).toEqual({ allies: [fighter], self: false });
+    put(sim, 0, 1, 0);
+    expect(sim.boostsFrom(UNITS.usagi, 1, 6).self).toBe(true);
+    expect(sim.boostsFrom(UNITS.usagi, 2, 6).self).toBe(false);
+    // A partner beside: both.
+    const isle = makeSim(['futaba', 'hitoha'], { water: [2] });
+    const h = put(isle, 1, 2, 4);
+    expect(isle.boostsFrom(UNITS.futaba, 2, 3)).toEqual({ allies: [h], self: true });
+    expect(isle.boostsFrom(UNITS.futaba, 2, 6)).toEqual({ allies: [], self: false });
   });
 
   it('パジャマパーティーズ’ card brings one of the four members at a time, at random, and shows who is next', () => {

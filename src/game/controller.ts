@@ -639,7 +639,7 @@ export class BattleController {
     this.phase.value = 'pick';
   }
 
-  /** Back to the field. `skip`: a tap asked for it, so quicker, with the cars already parked and no countdown. */
+  /** Back to the field. `skip`: `skipLook` asked for it, so quicker, with the cars already parked and no countdown. */
   private toBack(now: number, skip = false): void {
     this.prep = { stage: 'back', t0: now, from: this.look, ms: PREP.back * (skip ? SKIP_BACK : 1), skip };
     if (skip) this.renderer?.setCars(null);
@@ -665,9 +665,9 @@ export class BattleController {
     this.toBack(performance.now());
   }
 
-  /** A tap while getting ready hurries it along. On the way to the road: straight to the team tray, or back to the field
-   *  with no ceremony. Once on the way back: no more ceremony either, and the battle starts as soon as the camera is
-   *  home. */
+  /** Hurries getting ready along, for the dev tools and tests: a player's tap doesn't (owner's call, 2026-11-10: the look
+   *  at the enemies always plays out). On the way to the road: straight to the team tray, or back to the field with no
+   *  ceremony. Once on the way back: no more ceremony either, and the battle starts as soon as the camera is home. */
   skipLook(): void {
     const now = performance.now();
     if (this.phase.value === 'look') {
@@ -940,10 +940,8 @@ export class BattleController {
 
   private onDown = (ev: PointerEvent): void => {
     audio.unlock();
-    if (this.phase.value !== 'battle') {
-      this.skipLook();
-      return;
-    }
+    // Getting ready plays out in full: a tap doesn't cut the look at the enemies short (owner's call, 2026-11-10).
+    if (this.phase.value !== 'battle') return;
     this.down = { x: ev.clientX, y: ev.clientY, t: performance.now(), id: ev.pointerId };
     // Collect weeds immediately on press for snappy feel.
     if (!this.renderer || this.selected.value >= 0 || this.sendingHome.value || this.tool.value !== 'play') return;

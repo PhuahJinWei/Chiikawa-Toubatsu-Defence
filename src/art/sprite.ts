@@ -230,6 +230,17 @@ export function spriteBox(f: SpriteFrame, x: number, y: number, scale: number): 
   return { x0: x + (bx - f.a.ax) * scale, y0: y + (by - f.a.ay) * down, x1: x + (bx + bw - f.a.ax) * scale, y1: y + (by + bh - f.a.ay) * down };
 }
 
+/** A character's visible box standing at rest (its first idle frame), around the point its feet stand on (field
+ *  pixels): `l` and `r` across, `t` its top (negative). */
+export function restingBox(s: SpriteLayout): { l: number; r: number; t: number } | null {
+  const m = motionFor(s, 'idle');
+  const a = m && s.anims[m];
+  const box = a?.boxes[0];
+  if (!a || !box) return null;
+  const k = spriteScale(s);
+  return { l: (box[0] - a.ax) * k, r: (box[0] + box[2] - a.ax) * k, t: (box[1] - a.ay) * k };
+}
+
 /** A frame's box on the field with its sticker's room around it: the white cut edge and the shadow spill past the
  *  art by the sticker's pad (cut for `unit`, drawn at `scale`). Anything that draws the whole sticker off screen first
  *  (a fade, a hit flash, a tint) must take this box, or the edge and shadow are cut off in straight lines. */

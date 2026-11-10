@@ -17,6 +17,7 @@ import {
   jumpFrameAt,
   jumpHop,
   ONCE_MS,
+  restingBox,
   spriteBox,
   spriteFor,
   type SpriteFrame,
@@ -92,11 +93,11 @@ import {
 import { ENEMIES } from '../sim/defs';
 import { attackIntervalOf, deathMsOf, fallMsOf, HEAL_PULSE_MS, HEALED_MARK_MS, healPauseOf, jumpAt, jumpMsOf, swingOf, tempoOf } from '../sim/tempo';
 import type { Sim } from '../sim/sim';
-import type { Ally, Enemy, Pickup, Projectile, Rescue, SimEvent } from '../sim/types';
+import type { Ally, Enemy, Pickup, Projectile, Rescue, SimEvent, UnitDef } from '../sim/types';
 import { CAR_STAGGER_MS, carBehind, PARKED_X } from './arrival';
 import { glide, glideTime } from './glide';
 import { drawKey } from './layers';
-import { byFeet, lineupLayout } from './lineup';
+import { type Body, byFeet, lineupLayout } from './lineup';
 import { battleView } from './view';
 import { type Takeoff, WEED_TUG_MS } from './weedFlight';
 
@@ -108,6 +109,12 @@ export interface Waiting {
 }
 
 const SIZE_RANK = { S: 0, M: 1, L: 2, XL: 3 } as const;
+
+/** A waiting enemy's visible box at rest (field pixels); a small one's for a picture that is missing. */
+function restingBody(id: string): Body {
+  const s = spriteFor(spriteIdFor('enemy', id));
+  return (s && restingBox(s)) ?? { l: -60, r: 60, t: -150 };
+}
 
 export interface RenderUi {
   selectedCard: number;
@@ -183,6 +190,32 @@ const FRIEND_FADE_MS = 450;
 const COOKED_SPARKLE_MS = 700;
 /** One of the five song-note pictures, at random. */
 const noteKind = (): number => 1 + Math.floor(Math.random() * 5);
+/** The beat of パジャマパーティーズ' song (ms): they let a note go on it, and the rings round the friends their song
+ *  speeds up glow and hop to it. */
+const SONG_BEAT_MS = 760;
+/** How long a speed-up ring takes to pop in round a friend (ms). */
+const RING_POP_MS = 260;
+/** How flat the rings on the ground are drawn: a circle seen from the camera's height. */
+const RING_FLAT = 0.32;
+/** The notes at a speed-up ring's left end, front and right end (which picture, and where on the ring: 0 is its right
+ *  end, a quarter turn its front), where the friend standing in it never covers them. */
+const RING_NOTES = [
+  { n: 1, at: Math.PI * 0.94 },
+  { n: 3, at: Math.PI * 0.5 },
+  { n: 5, at: Math.PI * 0.06 },
+];
+/** How strongly the previews of a card in hand show (0–1): fainter than the real thing. */
+const PREVIEW_ALPHA = 0.6;
+/** A speed-up ring's size round a friend standing in it (field px from the middle): a little wider than the friend
+ *  itself, so its ends show either side (a boat is wide). */
+function ringRadius(sprite: string, def: UnitDef): number {
+  const s = spriteFor(sprite);
+  const box = s && restingBox(s);
+  const half = box ? Math.max(box.r, -box.l) : def.size === 'L' ? 90 : 70;
+  return Math.max(62, Math.min(130, half + 20));
+}
+/** The picture a friend on the field is drawn from (a team's own member's). */
+const allySprite = (a: Ally): string => spriteIdFor('ally', a.def.id, a.member ?? undefined);
 /** Status colours laid over a character, in place of badges (owner's call, 2026-11-07: badges were hard to spot):
  *  blue while slowed by シーサー's ゴーヤ, purple while held by 山姥's spell or 擬態型's song, pale ice blue while frozen
  *  by むちゃうマン. */
@@ -308,6 +341,8 @@ export class BattleRenderer {
   private healUntil = new Map<number, number>();
   /** When each singing friend (パジャマパーティーズ) last let a note go. */
   private singAt = new Map<number, number>();
+  /** When each friend attacking faster (see drawBoosts) began to, so its ring pops in. */
+  private boostedAt = new Map<number, number>();
   /** When each friend held by 山姥's spell was caught: it stands frozen in that frame while it is held. */
   private heldAt = new Map<number, number>();
   /** When オデ last kicked up dust as he ran (by his charge's uid). */
@@ -450,8 +485,8 @@ export class BattleRenderer {
     this.bgKey = '';
   }
 
-  /** The enemies waiting on the road before the battle (one of each kind), or null once it starts. Small ones
-   *  stand at the front, nearest the field. */
+  /** The enemies waiting on the road before the battle (a crowd in proportion to who is coming, see `crowdOf`), or
+   *  null once it starts. Small ones stand at the front, nearest the field. */
   setLineup(list: Waiting[] | null): void {
     if (!list) {
       this.lineup = null;
@@ -459,8 +494,13 @@ export class BattleRenderer {
     }
     const rank = (w: Waiting) => SIZE_RANK[ENEMIES[w.id]?.size ?? 'M'];
     const order = [...list].sort((a, b) => rank(a) - rank(b));
-    // Swimmers wait in the water when there is any, everyone else on the sand, and the others keep clear of a giant.
-    const spots = lineupLayout(order.map((w) => ({ swims: !!ENEMIES[w.id]?.aquatic, giant: !!ENEMIES[w.id]?.giant })), this.pictureRight(), this.sim.waterLanes);
+    // Swimmers wait in the water when there is any, everyone else on the sand, the others keep clear of a giant, and
+    // nobody stands where it is out of sight or hides another.
+    const spots = lineupLayout(
+      order.map((w) => ({ swims: !!ENEMIES[w.id]?.aquatic, giant: !!ENEMIES[w.id]?.giant, body: restingBody(w.id) })),
+      this.pictureRight(),
+      this.sim.waterLanes,
+    );
     this.lineup = order.map((w, i) => ({ ...w, ...spots[i], phase: i * 370 })).sort(byFeet);
     this.lineupT0 = performance.now();
     this.lineupAlpha = 1;
@@ -1161,6 +1201,8 @@ export class BattleRenderer {
     this.drawStumps(ctx, now);
     this.drawWater(ctx, now, ui);
     this.drawHighlights(ctx, ui, now);
+    this.drawReach(ctx, ui, now);
+    this.drawBoosts(ctx, ui, now);
     this.drawParkedCars(ctx, now, ui);
     this.drawLineup(ctx, ui);
 
@@ -1295,6 +1337,113 @@ export class BattleRenderer {
     }
   }
 
+  /** The friend a card in hand would put down on the tile under the finger (or mouse), when it can go there: what the
+   *  reach and speed-up previews are of. A phone's tap on a card and then a tile puts it down at once, so these show
+   *  while a card is dragged, or under a mouse. */
+  private placing(ui: RenderUi): { def: UnitDef; lane: number; col: number } | null {
+    if (ui.selectedCard < 0 || ui.sendingHome || !ui.hover) return null;
+    const card = this.sim.cards[ui.selectedCard];
+    if (!card || !ui.placeable(ui.hover.lane, ui.hover.col)) return null;
+    return { def: card.def, lane: ui.hover.lane, col: ui.hover.col };
+  }
+
+  /** While a card is in hand, what its friend would reach from the tile under the finger (owner's call, 2026-11-10), on
+   *  the ground under everyone: a melee blow's tiles, ラッコ's sweep, モモンガ's three lanes or the lane パジャマパーティーズ'
+   *  song speeds up, in gold with a running dashed edge; for フタバ and ヒトハ, the tiles beside it where the partner
+   *  would stand, the edge alone. A shooter's reach is the whole lane ahead, as in PvZ, and shows nothing. */
+  private drawReach(ctx: CanvasRenderingContext2D, ui: RenderUi, now: number): void {
+    const p = this.placing(ui);
+    if (!p) return;
+    const glow = ui.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(now / 260);
+    ctx.save();
+    ctx.lineWidth = 5;
+    ctx.setLineDash([22, 14]);
+    ctx.lineDashOffset = ui.reducedMotion ? 0 : -now / 40;
+    ctx.strokeStyle = 'rgba(236, 160, 30, 0.9)';
+    ctx.fillStyle = `rgba(255, 205, 80, ${0.2 + 0.08 * glow})`;
+    for (const s of this.sim.reachFrom(p.def, p.lane, p.col)) {
+      const x = colLeft(s.from) + 6;
+      roundRectPath(ctx, x, s.lane * TILE + 6, colLeft(s.to) + TILE - 6 - x, TILE - 12, 22);
+      if (s.kind !== 'partner') ctx.fill();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** A gold ring round the feet of every friend attacking faster (パジャマパーティーズ' song in its lane, or its partner
+   *  beside it), on the ground under everyone, so it never hides an enemy (owner's call, 2026-11-10: the song's reach
+   *  showed nowhere). While a card is in hand, faintly, the rings putting it down would add, and one under its ghost if
+   *  it would attack faster there itself. */
+  private drawBoosts(ctx: CanvasRenderingContext2D, ui: RenderUi, now: number): void {
+    const sim = this.sim;
+    const pace = sim.lanePace();
+    const live = new Set<number>();
+    for (const a of sim.allies) {
+      if (!sim.spedUp(a, pace)) continue;
+      live.add(a.uid);
+      const since = this.boostedAt.get(a.uid) ?? now;
+      this.boostedAt.set(a.uid, since);
+      const p = S(laneX(a.lane), allyFeetY(a.col));
+      this.boostRing(ctx, p.x, p.y, ringRadius(allySprite(a), a.def), now, ui, 1, now - since);
+    }
+    for (const uid of this.boostedAt.keys()) if (!live.has(uid)) this.boostedAt.delete(uid);
+    const pl = this.placing(ui);
+    if (!pl) return;
+    const { allies, self } = sim.boostsFrom(pl.def, pl.lane, pl.col);
+    for (const a of allies) {
+      if (live.has(a.uid)) continue;
+      const p = S(laneX(a.lane), allyFeetY(a.col));
+      this.boostRing(ctx, p.x, p.y, ringRadius(allySprite(a), a.def), now, ui, PREVIEW_ALPHA);
+    }
+    if (self) {
+      const p = S(laneX(pl.lane), allyFeetY(pl.col));
+      this.boostRing(ctx, p.x, p.y, ringRadius(ui.ghostSprite ?? spriteIdFor('ally', pl.def.id), pl.def), now, ui, PREVIEW_ALPHA);
+    }
+  }
+
+  /** One speed-up ring on the ground round the feet at (x, y): a gold circle glowing on each beat of the song, with a
+   *  note at each end and at its front hopping in turn to the beat (all of it still when motion is reduced). `since`:
+   *  how long the friend has been attacking faster, so the ring pops in. */
+  private boostRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, now: number, ui: RenderUi, alpha: number, since = Infinity): void {
+    const calm = ui.reducedMotion;
+    const beat = calm ? 0.6 : (1 - (now % SONG_BEAT_MS) / SONG_BEAT_MS) ** 2;
+    const k = calm ? 1 : Math.min(1, since / RING_POP_MS);
+    // Out a little past its size and back (an ease-out-back), the notes with it.
+    const grow = 1 + 2.70158 * (k - 1) ** 3 + 1.70158 * (k - 1) ** 2;
+    const rx = r * grow;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    ctx.translate(x, y - 4);
+    ctx.save();
+    ctx.scale(1, RING_FLAT);
+    const g = ctx.createRadialGradient(0, 0, rx * 0.3, 0, 0, rx * 1.2);
+    g.addColorStop(0, `rgba(255, 214, 96, ${0.45 + 0.3 * beat})`);
+    g.addColorStop(1, 'rgba(255, 214, 96, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, rx * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    // The ring: a bright gold band on a deep gold edge (it shows on pale ground too), and a white line inside it like a
+    // sticker's cut edge.
+    const ring = (w: number, colour: string, at: number) => {
+      ctx.lineWidth = w;
+      ctx.strokeStyle = colour;
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(1, at), 0, Math.PI * 2);
+      ctx.stroke();
+    };
+    ring(14, 'rgba(206, 120, 10, 0.9)', rx);
+    ring(7, 'rgb(255, 204, 64)', rx);
+    ring(3.5, 'rgba(255, 253, 247, 0.95)', rx - 10);
+    ctx.restore();
+    RING_NOTES.forEach(({ n, at }, i) => {
+      // Each hops on its own third of the beat, so they take turns.
+      const hop = calm ? 0 : 16 * (1 - (((now + (i * SONG_BEAT_MS) / 3) % SONG_BEAT_MS) / SONG_BEAT_MS)) ** 3;
+      this.drawSticker(ctx, `fx_note_${n}`, Math.cos(at) * rx, Math.sin(at) * rx * RING_FLAT - 16 - hop, { scale: 0.72 * grow });
+    });
+    ctx.restore();
+  }
+
   /** How long after the blow a melee picture reaches field x (ms), its swing having been announced just before its hits.
    *  0 for any other hit. */
   private swingArrival(fx: string, x: number, now: number, ui: RenderUi): number {
@@ -1406,7 +1555,7 @@ export class BattleRenderer {
     const box = this.drawCharacter(ctx, id, anim, elapsed, x + shakeX, y, { scale, alpha, flash: flash * 0.5, tint: held ? SPELL_TINT : null, guides: ui.guides, tempo: tempoOf(a.def), onceMs: anim === 'attack' ? ALLY_ATTACK_MS : undefined, at });
     if (!box || a.state === 'collapse') return;
     // パジャマパーティーズ let a note go now and then while they sing.
-    if (a.anim === 'song' && !ui.reducedMotion && now - (this.singAt.get(a.uid) ?? -1e9) > 760) {
+    if (a.anim === 'song' && !ui.reducedMotion && now - (this.singAt.get(a.uid) ?? -1e9) > SONG_BEAT_MS) {
       this.singAt.set(a.uid, now);
       this.notes.push({ x: x + (Math.random() - 0.5) * 50, y: box.y0 + 20, t0: now, v: noteKind() });
     }

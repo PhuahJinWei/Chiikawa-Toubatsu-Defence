@@ -5,10 +5,12 @@ import en from '../src/i18n/en.json';
 import ja from '../src/i18n/ja.json';
 import { pictureBleed, WORLD_BLEED, worldBleed } from '../src/art/bleed';
 import { mergeScene, type SceneLayout } from '../src/art/layout';
-import { ALL_IMAGES, LOBBY_SCENE, pieceFiles, QUEST_IMAGES, type SceneLayer, SCENES, type SceneSpec, SHOP_ITEMS, SHOP_SCENE, SOUNDS, STICKER_DETAIL, STICKER_VARIANTS, STICKERS, UI_BUTTONS, UI_ICONS, UI_PROPS, WORLD_SCENES, worldScene } from '../src/art/spec';
-import { LEVEL_LIST, UNITS, WORLDS } from '../src/game/sim/defs';
+import { ALL_IMAGES, LOBBY_SCENE, pieceFiles, QUEST_IMAGES, type SceneLayer, SCENES, type SceneSpec, SHOP_ITEMS, SHOP_SCENE, SOUNDS, spriteIdFor, STICKER_DETAIL, STICKER_VARIANTS, STICKERS, UI_BUTTONS, UI_ICONS, UI_PROPS, WORLD_SCENES, worldScene } from '../src/art/spec';
+import { ENEMIES, ENEMY_LIST, LEVEL_LIST, LEVELS, UNITS, waterOf, WORLDS } from '../src/game/sim/defs';
 import { FIELD_H, FIELD_W, TILE } from '../src/game/sim/constants';
-import { byFeet, lineupLayout, lineupSpots, lineupSpotsWet } from '../src/game/render/lineup';
+import { byFeet, crowdOf, lineupLayout, lineupSpots, MOST_WAITING } from '../src/game/render/lineup';
+import { restingBox, spriteFor } from '../src/art/sprite';
+import { enemyCounts } from '../src/game/sim/waves';
 import { battleView, SEEN_LEFT } from '../src/game/render/view';
 import { resolveScene } from '../src/art/store';
 import {
@@ -441,6 +443,10 @@ describe('the shop', () => {
   });
 });
 
+/** A waiting enemy's visible box at rest, as the renderer gives it to the line-up; a plain small one. */
+const bodyOf = (id: string) => restingBox(spriteFor(spriteIdFor('enemy', id))!)!;
+const SMALL = { l: -60, r: 60, t: -150 };
+
 describe('battle worlds', () => {
   it('give every world with jobs its own picture and its own music', () => {
     for (const w of new Set(LEVEL_LIST.map((l) => l.world))) {
@@ -549,31 +555,33 @@ describe('battle worlds', () => {
 
   it('line the swimmers up in the water and everyone else on the land, with water about', () => {
     const swims = [false, true, false, false, true, false, false];
-    const spots = lineupSpotsWet(swims, 2460, [2]);
+    const who = swims.map((s) => ({ swims: s, giant: false, body: SMALL }));
+    const spots = lineupLayout(who, 2460, [2]);
     expect(new Set(spots.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`)).size).toBe(swims.length);
     spots.forEach((s, i) => expect(Math.floor(s.y / TILE) === 2).toBe(swims[i]));
-    // Without water it is the usual crowd.
-    expect(lineupSpotsWet(swims, 2460, [])).toEqual(lineupSpots(swims.length, 2460));
+    // Without water, small ones stand in the usual columns.
+    expect(lineupLayout(who, 2460, [])).toEqual(lineupSpots(swims.length, 2460));
   });
 
   it('have the others stand clear of a lone giant, and draw everyone by where their feet are', () => {
-    // As in 6-5: seven others, then the giant. でかつよ is the widest there is.
-    const who = Array.from({ length: 8 }, (_, i) => ({ swims: false, giant: i === 7 }));
+    // As in 6-5: eleven others, small ones first, then でかつよ, the widest there is.
+    const big = bodyOf('dekatsuyo');
+    const who = [...Array.from({ length: 11 }, () => ({ swims: false, giant: false, body: bodyOf('goblin') })), { swims: false, giant: true, body: big }];
     const spots = lineupLayout(who, 2460, []);
-    const giant = spots[7];
-    const idle = JSON.parse(readFileSync('art/sprites/enemy_dekatsuyo/sprite.json', 'utf8')).anims.idle;
-    const reach = (idle.w * (480 / idle.h)) / 2;
-    expect(new Set(spots.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`)).size).toBe(8);
-    expect(Math.floor(giant.y / TILE)).toBe(3);
-    // The first five are a column, the smallest at the back; a shorter line stands in the middle of the road.
-    expect(spots.slice(0, 5).map((s) => Math.floor(s.y / TILE))).toEqual([0, 1, 2, 3, 4]);
-    const few = lineupLayout(Array.from({ length: 4 }, (_, i) => ({ swims: false, giant: i === 3 })), 2460, []);
-    expect(few.slice(0, 3).map((s) => Math.floor(s.y / TILE))).toEqual([1, 2, 3]);
-    for (const s of spots.slice(0, 7)) {
+    const giant = spots[11];
+    const lane = (s: { y: number }) => Math.floor(s.y / TILE);
+    expect(new Set(spots.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`)).size).toBe(12);
+    expect(lane(giant)).toBe(3);
+    // The first five are a column, the smallest at the back; a shorter line stands in the middle of the road. The rest
+    // go along the two lanes its body doesn't reach.
+    expect(spots.slice(0, 5).map(lane)).toEqual([0, 1, 2, 3, 4]);
+    expect(spots.slice(5, 11).map(lane)).toEqual([0, 4, 0, 4, 0, 4]);
+    const few = lineupLayout([...who.slice(0, 3), who[11]], 2460, []);
+    expect(few.slice(0, 3).map(lane)).toEqual([1, 2, 3]);
+    for (const s of spots.slice(0, 11)) {
       // On the road, and out from behind it: within its reach, only in the two lanes its body doesn't fill.
       expect(s.x).toBeGreaterThan(FIELD_W);
-      const lane = Math.floor(s.y / TILE);
-      if (lane >= 1 && lane <= 3) expect(s.x).toBeLessThan(giant.x - reach);
+      if (lane(s) >= 1 && lane(s) <= 3) expect(s.x).toBeLessThan(giant.x + big.l);
     }
     // Whoever is further back goes first and whoever is nearer goes after it, the giant among them.
     const drawn = [...spots].sort(byFeet);
@@ -584,15 +592,78 @@ describe('battle worlds', () => {
     });
   });
 
-  it('leave a crowd too big to stand clear of its giants as it is, and a job without one as usual', () => {
-    const who = Array.from({ length: 20 }, (_, i) => ({ swims: false, giant: i >= 18 }));
+  it('keep a big figure from standing in front of a smaller one, and find a crowd too big for the road a place each', () => {
+    // A column of five that ends with a tall one: it doesn't take the front lane, in front of the fourth.
+    const tall = bodyOf('mushi_horned');
+    const who = [...Array.from({ length: 4 }, () => ({ swims: false, giant: false, body: SMALL })), { swims: false, giant: false, body: tall }];
     const spots = lineupLayout(who, 2460, []);
-    const crowd = lineupSpots(20, 2460);
-    expect(spots.slice(0, 18)).toEqual(crowd.slice(0, 18));
-    expect(spots.slice(18).map((s) => s.x)).toEqual(crowd.slice(18).map((s) => s.x));
-    expect(spots.slice(18).map((s) => Math.floor(s.y / TILE))).toEqual([3, 3]);
-    const plain = Array.from({ length: 6 }, () => ({ swims: false, giant: false }));
-    expect(lineupLayout(plain, 2460, [])).toEqual(lineupSpots(6, 2460));
+    expect(spots.slice(0, 4).map((s) => Math.floor(s.y / TILE))).toEqual([2, 1, 3, 0]);
+    expect(Math.floor(spots[4].y / TILE)).not.toBe(4);
+    // Endless mode: every kind there is, two giants among them. Everyone still gets a place of their own on the road.
+    const all = ENEMY_LIST.filter((e) => !e.summonOnly).map((e) => ({ swims: !!e.aquatic, giant: !!e.giant, body: bodyOf(e.id) }));
+    const crowd = lineupLayout(all, 2460, []);
+    expect(new Set(crowd.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`)).size).toBe(all.length);
+    for (const s of crowd) expect(s.x).toBeGreaterThan(FIELD_W);
+    all.forEach((w, i) => w.giant && expect(Math.floor(crowd[i].y / TILE)).toBe(3));
+  });
+
+  it('show a crowd on the road in proportion to who is coming, one for every five of a kind', () => {
+    const crowd = (id: string) => crowdOf(enemyCounts(LEVELS[id]).map((k) => ({ ...k, giant: !!ENEMIES[k.id]?.giant })));
+    // The owner's examples: 1-1's eight two-legged bugs are one; 1-2's thirteen are two, as are 1-3's ten, with its
+    // four ちゅーしです shown once.
+    expect(crowd('1-1')).toEqual(['mushi_twolegs']);
+    expect(crowd('1-2')).toEqual(['mushi_twolegs', 'mushi_twolegs']);
+    expect(crowd('1-3')).toEqual(['mushi_twolegs', 'mushi_twolegs', 'chushidesu']);
+    // A giant once, however many times it is counted.
+    expect(crowdOf([{ id: 'g', count: 40, giant: true }, { id: 'a', count: 4, giant: false }])).toEqual(['g', 'a']);
+    // No more than the road takes: the kind with the most figures gives way first, never down to none.
+    const many = crowdOf([
+      { id: 'a', count: 100, giant: false },
+      { id: 'b', count: 30, giant: false },
+      { id: 'c', count: 1, giant: false },
+    ]);
+    expect(many).toEqual([...Array(5).fill('a'), ...Array(5).fill('b'), 'c']);
+    expect(many.length).toBe(MOST_WAITING);
+  });
+
+  it('have room on the road for every job\'s crowd, everyone in sight', () => {
+    const rank = { S: 0, M: 1, L: 2, XL: 3 } as const;
+    for (const level of LEVEL_LIST) {
+      const sc = resolveScene(worldScene(level.world, level.lanes));
+      const right = sc.w - sc.field!.x;
+      // As the renderer lines them up: small ones first.
+      const ids = crowdOf(enemyCounts(level).map((k) => ({ ...k, giant: !!ENEMIES[k.id]?.giant }))).sort((a, b) => rank[ENEMIES[a].size] - rank[ENEMIES[b].size]);
+      expect(ids.length, level.id).toBeLessThanOrEqual(MOST_WAITING);
+      const bodies = ids.map(bodyOf);
+      const spots = lineupLayout(ids.map((id, i) => ({ swims: !!ENEMIES[id].aquatic, giant: !!ENEMIES[id].giant, body: bodies[i] })), right, waterOf(level));
+      expect(new Set(spots.map((s) => `${Math.round(s.x)},${Math.round(s.y)}`)).size, level.id).toBe(ids.length);
+      const box = (i: number) => ({ x0: spots[i].x + bodies[i].l, x1: spots[i].x + bodies[i].r, y0: spots[i].y + bodies[i].t, y1: spots[i].y });
+      spots.forEach((s, i) => {
+        const at = `${level.id} ${ids[i]} #${i}`;
+        const b = box(i);
+        // Feet on the road. A giant stands on the nearest of the middle three lanes and may reach past the picture's
+        // edge (でかつよ always has); everyone else is wholly inside it, under the top of a phone's screen, and out of
+        // the pause button's corner.
+        expect(s.x, at).toBeGreaterThan(FIELD_W);
+        if (ENEMIES[ids[i]].giant) {
+          expect(Math.floor(s.y / TILE), at).toBe(3);
+          return;
+        }
+        expect(b.x1, at).toBeLessThanOrEqual(right);
+        expect(b.y0, at).toBeGreaterThanOrEqual(-120);
+        expect(b.x1 > right - 150 && b.y0 < -10, at).toBe(false);
+      });
+      // Nobody covers more than a quarter of anyone drawn before it (further back, or level and further down the road).
+      const drawn = spots.map((_, i) => i).sort((a, b) => byFeet(spots[a], spots[b]));
+      drawn.forEach((a, k) => {
+        for (const c of drawn.slice(k + 1)) {
+          const [A, C] = [box(a), box(c)];
+          const w = Math.min(A.x1, C.x1) - Math.max(A.x0, C.x0);
+          const h = Math.min(A.y1, C.y1) - Math.max(A.y0, C.y0);
+          if (w > 0 && h > 0) expect((w * h) / ((A.x1 - A.x0) * (A.y1 - A.y0)), `${level.id}: ${ids[c]} #${c} over ${ids[a]} #${a}`).toBeLessThanOrEqual(0.25);
+        }
+      });
+    }
   });
 
   it('leave a road right of the field wide enough for the enemies waiting before a battle', () => {

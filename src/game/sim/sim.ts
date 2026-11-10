@@ -58,6 +58,12 @@ import type {
 import { abilityBusyMs, attackIntervalOf, fallMsOf, jumpAt, jumpMsOf, moveSpeedMulOf, spawnMsOf, swingOf, tempoOf } from './tempo';
 import { ScriptedWaves, type WaveHost, type WaveSource } from './waves';
 
+/** Whether a friend of this kind attacks, so that a song or a partner can speed it up: not a trap, nor a singer, nor one
+ *  with no attack (a wall, ちいかわ). */
+function attacks(def: UnitDef): boolean {
+  return !def.mine && !def.support && def.attack.kind !== 'none';
+}
+
 interface SimConfig {
   lanes: number[];
   startWeeds: number;
@@ -694,12 +700,7 @@ export class Sim implements WaveHost {
   private stepAllies(dt: number): void {
     // Stars whose wish comes true now turn into their friends; until then a star does nothing.
     for (const a of this.allies) if (a.wishUntil > 0 && this.t >= a.wishUntil && this.onTile(a)) this.grantWish(a);
-    // パジャマパーティーズ: friends in a lane where they are singing (not silenced) attack faster.
-    const pace = [1, 1, 1, 1, 1];
-    for (const a of this.allies) {
-      const s = a.def.support;
-      if (s?.kind === 'aura_attackspeed' && this.onTile(a) && !a.wishUntil && a.songUntil <= this.t) pace[a.lane] = Math.max(pace[a.lane], s.mul);
-    }
+    const pace = this.lanePace();
     for (const a of this.allies) {
       if (!this.onTile(a) || a.wishUntil) continue;
       // A taiyaki is a trap, not a fighter: it cooks, then waits for an enemy to reach it.
@@ -770,6 +771,66 @@ export class Sim implements WaveHost {
 
   /** Whether a friend's partner (BondDef) stands right beside it in its lane, in front or behind, and is itself (a
    *  star still turning into the partner does not count yet). */
+  /** How much faster friends in each lane attack: パジャマパーティーズ singing there (not silenced) speed up the whole lane,
+   *  several in one lane no more than one. */
+  lanePace(): number[] {
+    const pace = [1, 1, 1, 1, 1];
+    for (const a of this.allies) {
+      const s = a.def.support;
+      if (s?.kind === 'aura_attackspeed' && this.onTile(a) && !a.wishUntil && a.songUntil <= this.t) pace[a.lane] = Math.max(pace[a.lane], s.mul);
+    }
+    return pace;
+  }
+
+  /** Whether a friend's attack can be sped up: one on its tile with an attack, not a star still wishing, a trap or a
+   *  singer (see stepAllies). */
+  private attacker(a: Ally): boolean {
+    return this.onTile(a) && !a.wishUntil && attacks(a.def);
+  }
+
+  /** Whether a friend attacks faster just now, for showing it: パジャマパーティーズ are singing in its lane, or its partner
+   *  stands beside it (フタバ and ヒトハ). A silenced or held friend doesn't attack at all. */
+  spedUp(a: Ally, pace = this.lanePace()): boolean {
+    return this.attacker(a) && a.songUntil <= this.t && (pace[a.lane] > 1 || (!!a.def.bond?.attackMul && this.bonded(a)));
+  }
+
+  /** What a friend put down at (lane, col) would reach, for showing it while it is being placed: stretches of lanes
+   *  (columns `from` to `to`) of a reach shorter than the whole lane ahead (a melee blow's, ラッコ's sweep, モモンガ's
+   *  three lanes), the whole lane its song speeds up, or the tiles beside it where its partner would stand. Nothing for
+   *  a friend that reaches the whole lane ahead, as every shooter does. */
+  reachFrom(def: UnitDef, lane: number, col: number): { lane: number; from: number; to: number; kind: 'reach' | 'song' | 'partner' }[] {
+    const atk = def.attack;
+    if (def.support?.kind === 'aura_attackspeed') return [{ lane, from: 0, to: COLS - 1, kind: 'song' }];
+    const out: { lane: number; from: number; to: number; kind: 'reach' | 'song' | 'partner' }[] = [];
+    const melee = atk.kind === 'hitscan' && atk.rangeTiles !== undefined;
+    if (melee || atk.kind === 'spread3') {
+      const spread = melee ? (atk.sweepLanes ?? 0) : 1;
+      const to = melee ? Math.min(COLS - 1, col + (atk.rangeTiles ?? 0)) : COLS - 1;
+      for (let l = lane - spread; l <= lane + spread; l++) if (this.laneActive[l]) out.push({ lane: l, from: col, to, kind: 'reach' });
+    }
+    if (def.bond) for (const c of [col - 1, col + 1]) if (c >= 0 && c < COLS) out.push({ lane, from: c, to: c, kind: 'partner' });
+    return out;
+  }
+
+  /** Who would attack faster if a friend were put down at (lane, col), for showing it while it is being placed: those
+   *  in the lane its song would speed up, or its partner beside it; and whether it would itself (a song already in
+   *  the lane, or its partner beside it). */
+  boostsFrom(def: UnitDef, lane: number, col: number): { allies: Ally[]; self: boolean } {
+    const allies: Ally[] = [];
+    if (def.support?.kind === 'aura_attackspeed') for (const a of this.allies) if (a.lane === lane && this.attacker(a)) allies.push(a);
+    let partner = false;
+    if (def.bond) {
+      for (const c of [col - 1, col + 1]) {
+        const o = this.allyAt(lane, c);
+        if (o && o.def.id === def.bond.with && this.onTile(o) && !o.wishUntil) {
+          allies.push(o);
+          partner = true;
+        }
+      }
+    }
+    return { allies, self: attacks(def) && (this.lanePace()[lane] > 1 || (partner && !!def.bond?.attackMul)) };
+  }
+
   bonded(a: Ally): boolean {
     const b = a.def.bond;
     if (!b || !this.onTile(a)) return false;

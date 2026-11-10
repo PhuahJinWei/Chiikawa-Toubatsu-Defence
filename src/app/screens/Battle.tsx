@@ -4,7 +4,9 @@ import { CARD_LOOKS, spriteIdFor } from '../../art/spec';
 import { art } from '../../art/store';
 import { audio } from '../../audio/audio';
 import { BattleController, type BattleEnd, type CardView } from '../../game/controller';
-import { enemiesInLevel, LEVELS, nextLevelId, UNITS, waterOf } from '../../game/sim/defs';
+import { crowdOf } from '../../game/render/lineup';
+import { ENEMIES, LEVELS, nextLevelId, UNITS, waterOf } from '../../game/sim/defs';
+import { enemyCounts } from '../../game/sim/waves';
 import { nameOf, t } from '../../i18n/i18n';
 import { save, updateSave } from '../../save/save';
 import { CutOut, warmCutOut } from '../components/CutOut';
@@ -71,7 +73,8 @@ function planFor(r: BattleRoute): Plan {
   // The friends who can go on this job (the islanders only where there is water).
   const owned = jobCards(level);
   const size = deckSize();
-  const enemies = endless ? endlessPool() : level ? enemiesInLevel(level) : [];
+  // Waiting on the road: as many of each kind as its numbers call for (endless mode has no numbers: one of each).
+  const enemies = endless ? endlessPool() : level ? crowdOf(enemyCounts(level).map((k) => ({ ...k, giant: !!ENEMIES[k.id]?.giant }))) : [];
   // The team picked on the job notice (only cards still owned, as many as fit).
   const picked = r.team?.filter((id) => owned.includes(id) || level?.deck.forced?.includes(id)).slice(0, size);
   // 星 comes with its wish (made on the notice, or else the one made last time); without one it stays home.
@@ -515,6 +518,18 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
   const [info, setInfo] = useState<number | null>(null);
   /** The card being pressed, by the finger (`id`) pressing it. */
   const press = useRef<{ i: number; timer: number; long: boolean; id: number } | null>(null);
+  // A card ready again that can be paid for flashes, as PvZ's seed packets do (owner's call, 2026-11-10: one almost
+  // recharged looked ready). Each card counts its flashes, so every flash is a new one that plays once; `last` is how
+  // ready each card was the time before. The team tray's column (`onRemove`) is only for choosing: no shade, no flash.
+  const last = useRef(new Map<string, number>());
+  const flashes = useRef(new Map<string, number>());
+  if (!onRemove) {
+    for (const c of cards) {
+      const before = last.current.get(c.deckId);
+      if (before !== undefined && before < 1 && c.ready >= 1 && c.affordable) flashes.current.set(c.deckId, (flashes.current.get(c.deckId) ?? 0) + 1);
+      last.current.set(c.deckId, c.ready);
+    }
+  }
 
   // However the finger that pressed a card leaves (let go anywhere, or taken over by the browser), the press is over.
   // The card's own handlers come first; this tidies up after a finger let go somewhere else.
@@ -586,7 +601,7 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
         {cards.map((c, i) => (
           <button
             key={c.deckId}
-            class={`card ${sel === i ? 'sel' : ''} ${c.affordable ? '' : 'poor'} ${UNITS[c.id]?.oneUse && !c.star ? 'once' : ''} ${c.star ? 'wish' : ''}`}
+            class={`card ${sel === i ? 'sel' : ''} ${c.affordable ? '' : 'poor'} ${!onRemove && c.ready < 1 ? 'charging' : ''} ${UNITS[c.id]?.oneUse && !c.star ? 'once' : ''} ${c.star ? 'wish' : ''}`}
             style={{ '--cd': (1 - Math.min(1, c.ready)).toFixed(3), '--tint': CARD_LOOKS[c.id].tint } as Record<string, string>}
             aria-label={`${c.star ? t('wish.as', { name: nameOf(c.id) }) : nameOf(c.id)} ${t('battle.cost', { n: c.cost })}`}
             aria-pressed={sel === i}
@@ -610,6 +625,7 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
               </span>
             ) : null}
             <span class="cd" />
+            {flashes.current.get(c.deckId) ? <span class="flash" key={`flash-${flashes.current.get(c.deckId)}`} aria-hidden="true" /> : null}
           </button>
         ))}
       </div>

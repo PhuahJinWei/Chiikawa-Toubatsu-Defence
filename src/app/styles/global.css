@@ -3033,7 +3033,8 @@ input[type='range'] {
     1.2px -1.2px #fffdf7,
     -1.2px -1.2px #fffdf7;
 }
-/* Recharging: a shade that drains away from the bottom up. */
+/* Recharging: what is left of it, darker still over the shaded card, draining away from the bottom up, and never
+   thinner than 3 px until it is done (PvZ's seed packets keep 2 px of their 68). */
 .card .cd {
   position: absolute;
   left: 0;
@@ -3045,7 +3046,12 @@ input[type='range'] {
   pointer-events: none;
   transition: height 0.06s linear;
 }
-/* Too dear for now: the whole card in shade (a recharge still shows, faintly) and the price in red. */
+.card.charging .cd {
+  height: calc(3px + var(--cd) * (100% - 3px));
+}
+/* Not ready to use, recharging or too dear for now: the whole card in shade, as PvZ's seed packets go grey (owner's
+   call, 2026-11-10: a card almost recharged looked ready). Too dear, the price is red too. */
+.card.charging::after,
 .card.poor::after {
   content: '';
   position: absolute;
@@ -3054,11 +3060,26 @@ input[type='range'] {
   background: rgba(40, 32, 30, 0.38);
   pointer-events: none;
 }
-.card.poor .cd {
-  background: rgba(40, 32, 30, 0.16);
-}
 .card.poor .cost {
   color: #d92b2b;
+}
+/* Ready again, and affordable: a white flash over the card, once (PvZ's seed packets flash the same way). */
+.card .flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 253, 247, 0.95) 0%, rgba(255, 253, 247, 0.6) 55%, rgba(255, 253, 247, 0) 100%);
+  opacity: 0;
+  pointer-events: none;
+  animation: card-ready 0.55s ease-out;
+}
+@keyframes card-ready {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 /* The card in hand steps out toward the field, ringed in pink. */
 .card.sel {
@@ -4790,7 +4811,8 @@ input[type='range'] {
   .report-yoroi-pic,
   .report-friend-pic,
   .report-friend-pic .cut-out,
-  .report-goal .star-mark.on {
+  .report-goal .star-mark.on,
+  .card .flash {
     animation: none;
   }
   .qf-slot,
