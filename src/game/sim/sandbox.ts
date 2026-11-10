@@ -104,7 +104,6 @@ export function simForSandbox(setup: SandboxSetup, deck: string[], rules: DevRul
     terrain: [],
     rescues: setup.cars,
     deck,
-    enemyHp: w?.enemyHp,
     seed: Date.now() >>> 0,
     autoCollect: opts.autoCollect,
     ready: true,

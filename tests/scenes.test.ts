@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import shop from '../src/data/shop.json';
 import en from '../src/i18n/en.json';
 import ja from '../src/i18n/ja.json';
-import { WORLD_BLEED, worldBleed } from '../src/art/bleed';
+import { pictureBleed, WORLD_BLEED, worldBleed } from '../src/art/bleed';
 import { mergeScene, type SceneLayout } from '../src/art/layout';
 import { ALL_IMAGES, LOBBY_SCENE, pieceFiles, QUEST_IMAGES, type SceneLayer, SCENES, type SceneSpec, SHOP_ITEMS, SHOP_SCENE, SOUNDS, STICKER_DETAIL, STICKER_VARIANTS, STICKERS, UI_BUTTONS, UI_ICONS, UI_PROPS, WORLD_SCENES, worldScene } from '../src/art/spec';
 import { LEVEL_LIST, UNITS, WORLDS } from '../src/game/sim/defs';
@@ -478,6 +478,13 @@ describe('battle worlds', () => {
     [1024, 768, 0],
     [1366, 1024, 0],
     [1180, 820, 0],
+    // Foldables opened flat, and the passport-shaped outer screens.
+    [829, 690, 0],
+    [820, 791, 0],
+    [933, 704, 0],
+    [904, 640, 0],
+    [751, 475, 0],
+    [882, 344, 0],
     [1280, 720, 0],
     [1440, 900, 0],
     [2560, 1080, 0],
@@ -494,12 +501,14 @@ describe('battle worlds', () => {
   it('cover everything the battle camera shows, from phones to 21:9 (with the stretched edges)', () => {
     for (const sc of WORLD_SCENES.map(resolveScene)) {
       const f = sc.field!;
-      for (const [W, H, notch] of CAMERA_SCREENS) {
+      // A passport-shaped outer screen with a camera cut-out in the corner sees a sliver further left, behind the cards.
+      for (const [W, H, notch] of [...CAMERA_SCREENS, [696, 474, 47]]) {
         const v = visible(sc, W, H, notch);
         expect(v.x0 + f.x).toBeGreaterThanOrEqual(-worldBleed(f.x).l);
-        expect(v.y0 + f.y).toBeGreaterThanOrEqual(-WORLD_BLEED.t - 1e-6);
+        const tall = pictureBleed(H / v.s, sc.h);
+        expect(v.y0 + f.y).toBeGreaterThanOrEqual(-tall - 1e-6);
         expect(v.x1 + f.x).toBeLessThanOrEqual(sc.w + WORLD_BLEED.r);
-        expect(v.y1 + f.y).toBeLessThanOrEqual(sc.h + WORLD_BLEED.b + 1e-6);
+        expect(v.y1 + f.y).toBeLessThanOrEqual(sc.h + tall + 1e-6);
       }
     }
   });

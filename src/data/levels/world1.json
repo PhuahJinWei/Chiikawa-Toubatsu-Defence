@@ -10,19 +10,19 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 24, "spawns": [
+      { "at": 29, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 48, "spawns": [
+      { "at": 58, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 70, "spawns": [
+      { "at": 84, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 90, "spawns": [
+      { "at": 108, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 114, "final": true, "spawns": [
+      { "at": 137, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 3}
       ] }
     ],
@@ -39,22 +39,22 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 24, "spawns": [
+      { "at": 29, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 46, "spawns": [
+      { "at": 55, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 66, "spawns": [
+      { "at": 79, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 86, "spawns": [
+      { "at": 103, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 106, "spawns": [
+      { "at": 127, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 130, "final": true, "spawns": [
+      { "at": 156, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 5}
       ] }
     ],
@@ -71,23 +71,23 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 24, "spawns": [
+      { "at": 29, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 46, "spawns": [
+      { "at": 55, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 66, "spawns": [
+      { "at": 79, "spawns": [
         {"enemy": "chushidesu"}
       ] },
-      { "at": 86, "spawns": [
+      { "at": 103, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 106, "spawns": [
+      { "at": 127, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "chushidesu"}
       ] },
-      { "at": 130, "final": true, "spawns": [
+      { "at": 156, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 4},
         {"enemy": "chushidesu", "count": 2}
       ] }
@@ -105,28 +105,28 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 24, "spawns": [
+      { "at": 29, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 46, "spawns": [
+      { "at": 55, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 70, "spawns": [
+      { "at": 84, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 92, "spawns": [
+      { "at": 110, "spawns": [
         {"enemy": "mushi_twolegs"},
         {"enemy": "chushidesu"}
       ] },
-      { "at": 114, "spawns": [
+      { "at": 137, "spawns": [
         {"enemy": "mushi_sixlegs", "hpMul": 0.7},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 136, "spawns": [
+      { "at": 163, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "chushidesu"}
       ] },
-      { "at": 160, "final": true, "spawns": [
+      { "at": 192, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 5},
         {"enemy": "mushi_sixlegs", "hpMul": 0.7},
         {"enemy": "chushidesu"}
@@ -145,35 +145,34 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 24, "spawns": [
+      { "at": 29, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 46, "spawns": [
+      { "at": 55, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 66, "spawns": [
+      { "at": 79, "spawns": [
         {"enemy": "chushidesu"},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 88, "spawns": [
+      { "at": 106, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 110, "big": true, "spawns": [
-        {"enemy": "mushi_twolegs", "count": 6},
-        {"enemy": "mushi_sixlegs", "hpMul": 0.7}
+      { "at": 132, "big": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 5},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.45}
       ] },
-      { "at": 134, "spawns": [
+      { "at": 161, "spawns": [
         {"enemy": "chushidesu"},
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 156, "spawns": [
+      { "at": 187, "spawns": [
         {"enemy": "mushi_twolegs", "count": 3}
       ] },
-      { "at": 184, "final": true, "boss": true, "spawns": [
-        {"enemy": "mushi_pink", "boss": true, "hpMul": 0.6},
-        {"enemy": "mushi_twolegs", "count": 6},
-        {"enemy": "mushi_sixlegs", "hpMul": 0.7},
-        {"enemy": "chushidesu"}
+      { "at": 221, "final": true, "boss": true, "spawns": [
+        {"enemy": "mushi_pink", "boss": true, "hpMul": 0.42},
+        {"enemy": "mushi_twolegs", "count": 5},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.5}
       ] }
     ],
     "rewards": {"firstClear": 600, "replay": 50, "unlockCard": "furuhonya", "unlockFeatures": ["speed"]}

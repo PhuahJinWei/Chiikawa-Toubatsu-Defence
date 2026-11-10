@@ -282,8 +282,6 @@ export interface WorldDef {
   key: string;
   palette: { ground: string; ground2: string; accent: string; sky: string };
   bgm: string;
-  /** Multiplies every enemy's HP in this world's levels (the world's difficulty knob). */
-  enemyHp?: number;
   /** Lanes that are water in this world's battle picture (World 5: the bottom lane, the edge of the sea). Only aquatic
    *  friends go on them and only aquatic enemies come down them. */
   water?: number[];

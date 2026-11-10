@@ -1,6 +1,5 @@
 // Where the battle's camera stands on a given screen. Pure maths, so the tests can check it on every screen shape.
 
-import { WORLD_BLEED } from '../../art/bleed';
 import { FIELD_H, FIELD_W } from '../sim/constants';
 
 interface BattleView {
@@ -22,9 +21,9 @@ export const SEEN_LEFT = 500;
 
 /**
  * The camera for a W × H screen, the HUD covering `left` CSS pixels (the card column), `top` (its strip) and `right` (the
- * testing ground's panel); the scenery runs underneath them, stretched outward where the view runs past the picture
+ * testing ground's panel); the scenery runs underneath them, carrying on where the view runs past the picture
  * (worldBleed). It shows from SEEN_LEFT left of the field to the field's far end. Spare width goes to the road and spare
- * height is split evenly.
+ * height is split evenly; a screen taller than the picture shows it centred, its soft edges above and below.
  */
 export function battleView(W: number, H: number, inset: { left: number; top: number; right: number }, picture: { h: number; field: { x: number; y: number } }): BattleView {
   const { field, h } = picture;
@@ -34,11 +33,9 @@ export function battleView(W: number, H: number, inset: { left: number; top: num
   const ah = Math.max(1, H - ay);
   const coreH = CORE.y1 - CORE.y0;
   const scale = Math.min(aw / (SEEN_LEFT + CORE.x1), ah / coreH);
-  // Where the screen's top edge falls in the picture, kept on the picture (and, on a squarish screen, its stretched edges).
+  // Where the screen's top edge falls in the picture, kept on the picture.
   const seen = H / scale;
   const wanted = field.y - (ay + (ah - coreH * scale) / 2 - CORE.y0 * scale) / scale;
-  const lowest = Math.min(0, h + WORLD_BLEED.b - seen);
-  const highest = Math.max(lowest, h - seen);
-  const picTop = Math.max(lowest, Math.min(highest, wanted));
+  const picTop = seen > h ? (h - seen) / 2 : Math.max(0, Math.min(h - seen, wanted));
   return { scale, ox: ax + SEEN_LEFT * scale, oy: (field.y - picTop) * scale };
 }

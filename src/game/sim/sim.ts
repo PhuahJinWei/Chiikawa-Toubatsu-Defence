@@ -12,6 +12,7 @@ import {
   HIT_LINE,
   laneX,
   MUZZLE,
+  LOB_FLIGHT_MS,
   PROJECTILE_SPEED,
   RESCUE_BOSS_DAMAGE,
   RESCUE_SPEED,
@@ -64,8 +65,6 @@ interface SimConfig {
   terrain: TerrainDef[];
   rescues: boolean;
   deck: string[];
-  /** Multiplies every enemy's HP (a world's difficulty). */
-  enemyHp?: number;
   seed: number;
   autoCollect?: boolean;
   /** Every card ready from the start, without its opening wait (a ぶた入りラーメン券). */
@@ -138,7 +137,6 @@ export function simForLevel(
     terrain: level.terrain,
     rescues: level.rescues,
     deck,
-    enemyHp: WORLDS[level.world]?.enemyHp,
     seed: opts.seed ?? hashString(`${level.id}:${opts.attempt ?? 0}`),
     autoCollect: opts.autoCollect,
     ready: opts.ready,
@@ -211,7 +209,6 @@ export class Sim implements WaveHost {
   private nextSproutAt: number;
   private readonly sprout: SproutDef | null;
   private readonly rescuesEnabled: boolean;
-  private readonly enemyHp: number;
   /** The testing ground's rules, or null in a real battle. */
   readonly dev: DevRules | null;
 
@@ -238,7 +235,6 @@ export class Sim implements WaveHost {
     this.sprout = cfg.sprout;
     this.nextSproutAt = cfg.sprout ? cfg.sprout.firstMs : Infinity;
     this.rescuesEnabled = cfg.rescues;
-    this.enemyHp = cfg.enemyHp ?? 1;
     this.autoCollect = !!cfg.autoCollect;
     this.waves = cfg.waves;
     this.levelId = cfg.levelId ?? 'custom';
@@ -529,7 +525,7 @@ export class Sim implements WaveHost {
   // ------------------------------------------------------------ wave host
 
   spawnEnemy(def: EnemyDef, lane: number, y: number, opts: { hpMul?: number; boss?: boolean; waveIndex: number }): Enemy {
-    const hp = Math.round(def.hp * (opts.hpMul ?? 1) * this.enemyHp);
+    const hp = Math.round(def.hp * (opts.hpMul ?? 1));
     const disguise = def.abilities.some((a) => a.kind === 'disguise');
     const flier = def.abilities.some((a) => a.kind === 'flier');
     const e: Enemy = {
@@ -1099,7 +1095,7 @@ export class Sim implements WaveHost {
         const dist = Math.max(0, muzzleY - yT);
         const p = this.spawnProjectile(a, a.lane, muzzleY, damage);
         p.vy = 0;
-        p.lob = { targetUid: e?.uid ?? -1, t0: this.t, dur: 520 + dist / 2.4, yT, height: 80 + dist * 0.12, stump: stump ?? undefined };
+        p.lob = { targetUid: e?.uid ?? -1, t0: this.t, dur: LOB_FLIGHT_MS, yT, height: 120 + dist * 0.12, stump: stump ?? undefined };
         p.splashTiles = atk.splashTiles;
         break;
       }

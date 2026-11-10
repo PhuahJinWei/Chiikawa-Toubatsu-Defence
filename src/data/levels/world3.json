@@ -10,38 +10,37 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 28, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "goblin"}
       ] },
-      { "at": 53, "spawns": [
+      { "at": 85, "spawns": [
         {"enemy": "fugu", "count": 2}
       ] },
-      { "at": 76, "spawns": [
+      { "at": 122, "spawns": [
         {"enemy": "majyo"},
         {"enemy": "goblin"}
       ] },
-      { "at": 99, "spawns": [
+      { "at": 159, "spawns": [
         {"enemy": "dekai_tori"},
         {"enemy": "chushidesu"}
       ] },
-      { "at": 122, "big": true, "spawns": [
+      { "at": 196, "big": true, "spawns": [
         {"enemy": "goblin", "count": 7},
         {"enemy": "fugu", "count": 2},
         {"enemy": "majyo"}
       ] },
-      { "at": 150, "spawns": [
+      { "at": 240, "spawns": [
         {"enemy": "dekai_tori"},
         {"enemy": "goblin"}
       ] },
-      { "at": 175, "spawns": [
+      { "at": 281, "spawns": [
         {"enemy": "chushidesu", "count": 2},
         {"enemy": "fugu"}
       ] },
-      { "at": 207, "final": true, "spawns": [
-        {"enemy": "goblin", "count": 7},
+      { "at": 333, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
         {"enemy": "fugu", "count": 2},
         {"enemy": "majyo"},
-        {"enemy": "mushi_sixlegs"},
         {"enemy": "dekai_tori"}
       ] }
     ],
@@ -58,37 +57,37 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 28, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "goblin"}
       ] },
-      { "at": 53, "spawns": [
+      { "at": 85, "spawns": [
         {"enemy": "goblin"},
         {"enemy": "fugu"}
       ] },
-      { "at": 76, "spawns": [
+      { "at": 122, "spawns": [
         {"enemy": "goblin", "count": 2},
         {"enemy": "majyo"}
       ] },
-      { "at": 101, "spawns": [
+      { "at": 163, "spawns": [
         {"enemy": "kimera"},
         {"enemy": "mushi_sixlegs"}
       ] },
-      { "at": 126, "big": true, "spawns": [
+      { "at": 204, "big": true, "spawns": [
         {"enemy": "goblin", "count": 6},
         {"enemy": "chushidesu"},
         {"enemy": "goblin"}
       ] },
-      { "at": 154, "spawns": [
+      { "at": 248, "spawns": [
         {"enemy": "kimera"},
         {"enemy": "majyo"},
         {"enemy": "goblin"},
         {"enemy": "mushi_sixlegs"}
       ] },
-      { "at": 179, "spawns": [
+      { "at": 289, "spawns": [
         {"enemy": "kuroi_nagareboshi"},
         {"enemy": "goblin", "count": 2}
       ] },
-      { "at": 212, "final": true, "spawns": [
+      { "at": 340, "final": true, "spawns": [
         {"enemy": "goblin", "count": 6},
         {"enemy": "kimera", "count": 2},
         {"enemy": "mushi_sixlegs"},
@@ -109,38 +108,37 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 28, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "goblin"}
       ] },
-      { "at": 53, "spawns": [
+      { "at": 85, "spawns": [
         {"enemy": "fugu"},
         {"enemy": "majyo"}
       ] },
-      { "at": 76, "spawns": [
+      { "at": 122, "spawns": [
         {"enemy": "goblin", "count": 2}
       ] },
-      { "at": 99, "spawns": [
+      { "at": 159, "spawns": [
         {"enemy": "dekai_tori"},
-        {"enemy": "mushi_sixlegs"}
+        {"enemy": "goblin"}
       ] },
-      { "at": 122, "big": true, "spawns": [
+      { "at": 196, "big": true, "spawns": [
         {"enemy": "goblin", "count": 6},
         {"enemy": "fugu", "count": 2},
         {"enemy": "majyo"}
       ] },
-      { "at": 150, "spawns": [
-        {"enemy": "kimera"},
-        {"enemy": "chushidesu"}
+      { "at": 240, "spawns": [
+        {"enemy": "kimera"}
       ] },
-      { "at": 175, "spawns": [
+      { "at": 281, "spawns": [
         {"enemy": "fugu", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 209, "final": true, "spawns": [
-        {"enemy": "goblin", "count": 7},
+      { "at": 337, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 6},
         {"enemy": "fugu", "count": 3},
         {"enemy": "kimera"},
-        {"enemy": "majyo", "count": 2},
+        {"enemy": "majyo"},
         {"enemy": "mushi_sixlegs", "count": 2}
       ] }
     ],
@@ -157,37 +155,37 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 28, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "goblin"}
       ] },
-      { "at": 53, "spawns": [
+      { "at": 85, "spawns": [
         {"enemy": "goblin"},
         {"enemy": "fugu"}
       ] },
-      { "at": 76, "spawns": [
+      { "at": 122, "spawns": [
         {"enemy": "fugu"},
         {"enemy": "majyo"}
       ] },
-      { "at": 101, "spawns": [
+      { "at": 163, "spawns": [
         {"enemy": "kimera"},
         {"enemy": "goblin"}
       ] },
-      { "at": 126, "big": true, "spawns": [
+      { "at": 204, "big": true, "spawns": [
         {"enemy": "goblin", "count": 7},
         {"enemy": "majyo"},
         {"enemy": "fugu"}
       ] },
-      { "at": 154, "boss": true, "spawns": [
-        {"enemy": "zou", "boss": true, "hpMul": 0.8},
+      { "at": 248, "boss": true, "spawns": [
+        {"enemy": "zou", "boss": true, "hpMul": 0.35},
         {"enemy": "goblin", "count": 3}
       ] },
-      { "at": 184, "spawns": [
+      { "at": 296, "spawns": [
         {"enemy": "fugu", "count": 2},
         {"enemy": "goblin"}
       ] },
-      { "at": 218, "final": true, "spawns": [
-        {"enemy": "goblin", "count": 8},
-        {"enemy": "kimera"},
+      { "at": 352, "final": true, "spawns": [
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "kimera", "hpMul": 0.8},
         {"enemy": "majyo", "count": 2},
         {"enemy": "fugu", "count": 2}
       ] }
@@ -205,44 +203,43 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 28, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "goblin"}
       ] },
-      { "at": 53, "spawns": [
+      { "at": 85, "spawns": [
         {"enemy": "fugu"},
         {"enemy": "goblin"}
       ] },
-      { "at": 78, "spawns": [
+      { "at": 126, "spawns": [
         {"enemy": "goblin"},
         {"enemy": "majyo"}
       ] },
-      { "at": 103, "spawns": [
+      { "at": 166, "spawns": [
         {"enemy": "kimera"},
         {"enemy": "chushidesu"}
       ] },
-      { "at": 129, "big": true, "spawns": [
+      { "at": 207, "big": true, "spawns": [
         {"enemy": "goblin", "count": 7},
         {"enemy": "fugu", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 156, "spawns": [
+      { "at": 252, "spawns": [
         {"enemy": "dekai_tori"},
         {"enemy": "goblin"}
       ] },
-      { "at": 182, "spawns": [
+      { "at": 292, "spawns": [
         {"enemy": "majyo"},
         {"enemy": "chushidesu"}
       ] },
-      { "at": 209, "big": true, "spawns": [
-        {"enemy": "goblin", "count": 7},
-        {"enemy": "zou"},
-        {"enemy": "fugu", "count": 2}
+      { "at": 337, "big": true, "spawns": [
+        {"enemy": "goblin", "count": 5},
+        {"enemy": "zou", "hpMul": 0.3},
+        {"enemy": "fugu"}
       ] },
-      { "at": 251, "final": true, "boss": true, "spawns": [
-        {"enemy": "chiikabu", "boss": true},
-        {"enemy": "goblin", "count": 7},
-        {"enemy": "kimera", "count": 2},
-        {"enemy": "majyo", "count": 2},
+      { "at": 403, "final": true, "boss": true, "spawns": [
+        {"enemy": "chiikabu", "boss": true, "hpMul": 0.55},
+        {"enemy": "goblin", "count": 6},
+        {"enemy": "majyo"},
         {"enemy": "fugu", "count": 2}
       ] }
     ],

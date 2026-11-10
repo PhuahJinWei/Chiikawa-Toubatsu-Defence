@@ -17,7 +17,7 @@ export class EndlessWaves implements WaveSource {
   private spawnedOf = new Map<number, number>();
   private aliveOf = new Map<number, number>();
 
-  constructor(pool: string[], private firstGapMs = 22000) {
+  constructor(pool: string[], private firstGapMs = 28000) {
     const defs = pool.map((id) => ENEMIES[id]).filter(Boolean);
     this.regular = defs.filter((d) => !d.boss);
     this.bosses = defs.filter((d) => d.boss);
@@ -26,7 +26,7 @@ export class EndlessWaves implements WaveSource {
 
   private gapFor(wave: number): number {
     if (wave <= 1) return this.firstGapMs;
-    return Math.max(16000, 26000 - wave * 300);
+    return Math.max(20000, 30000 - wave * 300);
   }
 
   /** Called by the sim whenever an enemy of a given wave collapses. */
@@ -48,7 +48,7 @@ export class EndlessWaves implements WaveSource {
   private compose(host: WaveHost, wave: number): SpawnDef[] {
     const rng = host.rng;
     const isBig = wave % 5 === 0;
-    let budget = (3 + wave * 2.1) * (isBig ? 1.6 : 1);
+    let budget = (1 + wave * 1.3) * (isBig ? 1.6 : 1);
     const spawns: SpawnDef[] = [];
     if (wave % 10 === 0 && this.bosses.length) {
       const boss = this.bosses[(wave / 10 - 1) % this.bosses.length];

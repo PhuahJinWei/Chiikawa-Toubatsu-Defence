@@ -43,13 +43,18 @@ export const STUMP_HP = 300;
 /** Which of a stump's three pictures shows at this much HP: whole, cracked (two thirds left), split (one third left). */
 export const stumpStage = (hp: number): 1 | 2 | 3 => (hp > (STUMP_HP * 2) / 3 ? 1 : hp > STUMP_HP / 3 ? 2 : 3);
 
+/** How fast enemies walk (px/s). `normal` is PvZ's zombie, 4.7 s a tile, and `fast` its runners (pole vaulter, football),
+ *  2.5 s; `slow`, which PvZ has no match for, keeps its place half as slow again as normal. */
 export const SPEED_PX_PER_S = {
-  slow: TILE / 9,
-  normal: TILE / 6,
-  fast: TILE / 3,
+  slow: TILE / 7,
+  normal: TILE / 4.7,
+  fast: TILE / 2.5,
 } as const;
 
-export const PROJECTILE_SPEED = 900;
+/** A straight shot's speed: PvZ's pea, 3.33 px per update at 100 updates a second on its 80 px tiles, 4.16 tiles a second. */
+export const PROJECTILE_SPEED = TILE * 4.16;
+/** How long a lobbed shot is in the air (ms), however far it goes: PvZ's pults always take 120 updates. */
+export const LOB_FLIGHT_MS = 1200;
 export const SPIT_SPEED = 520;
 export const RESCUE_SPEED = 1300;
 /** A rescue car defeats ordinary enemies outright but only deals this much to bosses. */

@@ -54,6 +54,8 @@ const WATER_TEMPLATE: Slot[] = [
 /** The friends who stand on water (UnitDef.aquatic): the pair throw, 島二郎 is the wall. */
 const WATER_ATTACKERS = ['futaba', 'hitoha'];
 const WATER_WALLS = ['shimajiro'];
+/** Land friends whose shots reach the whole lane, unlike ハチワレ's three tiles: who can hit a フグ spitting from afar. */
+const LONG_SHOTS = ['usagi', 'furuhonya', 'shisa', 'momonga', 'kurimanju', 'chiikawa_island'];
 const ATTACKERS = ['hachiware', 'usagi', 'momonga', 'kurimanju', 'shisa', 'furuhonya', 'chiikawa_island', 'usagi_cool', 'hachiware_pajama', ...WATER_ATTACKERS];
 /** Whoever holds the front. ラッコ fights there rather than walling it, but he stands in the same places. */
 const WALLS = ['yoroi', 'yoroi_erai', 'rakko', ...WATER_WALLS];
@@ -332,6 +334,20 @@ export class Bot {
         return this.place(id, lane, cols.length ? cols : this.freeRows(lane, [0, 1, 2, 3], false));
       }
       return false; // save for it
+    }
+
+    // A フグ stops three tiles short of whoever it spits at: a lane held only by jabs can never reach it, and rebuilding
+    // the wall it spits at would keep it there for good. Any player would put a shooter down, once the rest is built (so
+    // only with 草 to spare: this is for a stand-off, not the opening).
+    const longShot = s.weeds >= 500 ? LONG_SHOTS.find((x) => this.has(x) && this.affordable(x)) : undefined;
+    if (longShot) {
+      for (const lane of land) {
+        if (this.count(lane, LONG_SHOTS) === 0 && this.laneEnemies(lane).some((e) => e.def.attack.kind === 'ranged')) {
+          // Behind the wall if there is room, else right up against the enemy.
+          const cols = this.freeRows(lane, [1, 2, 0, 3, 4, 5, 6], false, true);
+          if (cols.length) return this.place(longShot, lane, cols);
+        }
+      }
     }
 
     // 2. Opening: one producer per land lane.

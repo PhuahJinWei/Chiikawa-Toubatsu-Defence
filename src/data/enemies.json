@@ -142,11 +142,11 @@
     "scope": 2,
     "size": "S",
     "speed": "normal",
-    "hp": 250,
+    "hp": 360,
     "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
     "abilities": [],
     "pack": 3,
-    "weight": 2.5
+    "weight": 3.5
   },
   {
     "id": "mermaid_twolegs",
@@ -154,7 +154,7 @@
     "scope": 2,
     "size": "S",
     "speed": "normal",
-    "hp": 200,
+    "hp": 360,
     "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
     "abilities": [],
     "weight": 1

@@ -1,4 +1,5 @@
 import { useEffect } from 'preact/hooks';
+import { art } from '../art/store';
 import { audio } from '../audio/audio';
 import { t } from '../i18n/i18n';
 import { save } from '../save/save';
@@ -62,9 +63,10 @@ export function App() {
       <WishHost />
       <HandStampHost />
       <div class="rotate" aria-live="polite">
+        <img class="rotate-face" src={art.portraitUrl('chiikawa')} alt="" draggable={false} />
         <div class="phone" />
-        <p class="bold">{t('common.rotate')}</p>
-        <p class="small muted">{t('common.rotateSub')}</p>
+        <p class="rotate-line">{t('common.rotate')}</p>
+        <p class="rotate-sub">{t('common.rotateSub')}</p>
       </div>
     </div>
   );

@@ -113,7 +113,7 @@ const breathes = (motion: string, a: SpriteAnimLayout) => a.frames === 1 && (mot
 /** Rakko's car and boat are machines: parked or driving, their one picture holds still. */
 const MACHINE: Record<string, true> = { parked: true, drive: true };
 /** A small walker's walk frame by speed (ms): slow, normal and fast walkers. */
-export const WALK_FRAME_MS = { slow: 190, normal: 150, fast: 110 } as const;
+export const WALK_FRAME_MS = { slow: 168, normal: 133, fast: 100 } as const;
 /** How high 六足の虫 jumps over a friend (field px). Its jump frames are drawn on the spot, so the game lifts it
  *  (and carries it forward); its shadow stays on the ground. */
 const JUMP_ARC = 120;

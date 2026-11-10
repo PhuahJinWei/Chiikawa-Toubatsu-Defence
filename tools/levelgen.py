@@ -56,14 +56,17 @@ STD_SPROUT = {'firstMs': 2500, 'minMs': 7000, 'maxMs': 10000, 'value': 25, 'life
 
 # Pacing (2026-11-06, owner: the later worlds felt too hard, the waves too quick, too few regular enemies between the
 # tough ones). The scripts above are written in World 1's rhythm; pace() then reshapes each level:
-#   1. The waves' times are stretched by the world's PACE, so later worlds get real lulls between waves.
+#   1. The waves' times are stretched by the world's PACE, so later worlds get real lulls between waves. Since every enemy
+#      fights with the health it lists in every world (2026-11-10, owner's call: there is no per-world discount any more)
+#      the lulls are long, as PvZ's are; a job's first wave, one small enemy, still comes within FIRST_WAVE_MAX_S.
 #   2. No big enemy (L, XL, a boss, or 六足の虫, who jumps every friend and has to be shot down) comes before EARLY_S: the
 #      player builds an economy and a second attacker first.
 #      A big one scripted earlier is moved to the first wave at or after EARLY_S, and a basic takes its place.
 #   3. Big enemies never come in two waves running (unless the second is the final or a boss wave): the second wave's
 #      big ones move on to the wave after it, and basics take their place. When the wave after is the final or a boss
 #      wave they are simply let go (basics in their place), so the last wave never piles up.
-PACE = {1: 1.0, 2: 1.1, 3: 1.15, 4: 1.25, 5: 1.25, 6: 1.25}
+PACE = {1: 1.2, 2: 1.55, 3: 1.85, 4: 1.75, 5: 1.9, 6: 2.0}
+FIRST_WAVE_MAX_S = 30
 EARLY_S = 90
 BIG = {'mushi_sixlegs', 'kimera', 'mushi_horned', 'mushi_pink', 'guchokipanogitaigata', 'zou', 'chiikabu', 'yamanba', 'dekai_tori', 'seiren', 'anoko', 'dekatsuyo'}
 BASIC = {1: 'mushi_twolegs', 2: 'goblin', 3: 'goblin', 4: 'mushi_twolegs', 5: 'mushi_twolegs', 6: 'goblin'}
@@ -91,6 +94,7 @@ def pace(world, waves):
     k = PACE[world]
     for w in waves:
         w['at'] = int(round(w['at'] * k))
+    waves[0]['at'] = min(waves[0]['at'], FIRST_WAVE_MAX_S)
     # 2. Nothing big before EARLY_S.
     late = next((i for i, w in enumerate(waves) if w['at'] >= EARLY_S), None)
     if late is not None:
@@ -140,34 +144,34 @@ W1 = [
     lvl(1, 4, "24: t2; 46: t2; 70: t2*2; 92: t2 cd; 114: s6^0.7 t2; 136: t2*2 cd; 160 final: t2*5 s6^0.7 cd",
         unlock='kurimanju'),
     # The bugs' boss, at a toughness that suits the fifth job of the game. Endless mode opens after World 6, not here.
-    lvl(1, 5, "24: t2; 46: t2*2; 66: cd t2; 88: t2*2; 110 big: t2*6 s6^0.7; 134: cd t2*2; 156: t2*3; 184 final boss: pk!^0.6 t2*6 s6^0.7 cd",
+    lvl(1, 5, "24: t2; 46: t2*2; 66: cd t2; 88: t2*2; 110 big: t2*5 s6^0.45; 134: cd t2*2; 156: t2*3; 184 final boss: pk!^0.42 t2*5 s6^0.5",
         unlock='furuhonya', features=['speed'], first=600),
 ]
 
 ST = 'stump'; BU = 'bush'
 W2 = [
-    lvl(2, 1, "24: gb; 46: gb; 66: gb t2; 86: s6 gb; 106 big: gb*5 s6; 130: gb*2 cd; 152: gb*2 s6; 178 final: gb*6 s6*2 cd",
+    lvl(2, 1, "24: gb; 46: gb; 66: gb t2; 86: s6^0.85 gb; 106 big: gb*5 s6^0.85; 130: gb*2 cd; 152: gb s6^0.85; 178 final: gb*6 s6*2^0.85 cd",
         terrain=[(1, 5, ST), (3, 2, ST), (0, 3, ST), (4, 6, ST)]),
     lvl(2, 2, "24: gb; 46: fg; 66: gb*2; 86: fg s6; 106 big: gb*5 fg*2; 130: fg cd gb; 152: s6 fg; 180 final: gb*7 fg*3 s6*2 cd",
         terrain=[(2, 4, ST), (0, 6, ST), (4, 2, ST)], unlock='taiyaki'),
     # The first bushes stand well up the field, so whoever hides in one comes out before reaching anyone.
-    lvl(2, 3, "24: gb; 46: mj; 66: gb fg; 86: mj gb; 106 big: gb*5 mj*2; 130: s6 fg; 152: cd mj gb*2; 180 final: gb*6 mj*2 s6 cd fg",
+    lvl(2, 3, "24: gb; 46: gb; 66: gb fg; 86: mj gb; 106 big: gb*4 mj; 130: s6^0.7 fg; 152: cd mj gb*2; 180 final: gb*5 mj s6^0.6 cd",
         terrain=[(1, 6, BU), (3, 6, BU), (0, 6, ST), (4, 1, ST), (2, 7, BU)]),
-    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*7 s6 bs*2 mj fg",
+    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*6 s6 bs*2 mj",
         terrain=[(0, 5, BU), (4, 5, BU), (2, 1, ST), (1, 7, ST), (3, 3, ST)], unlock='momonga'),
-    lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*6 s6 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt! gb*5 s6 mj",
+    lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*5 s6^0.85 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt!^0.65 gb*4 s6^0.85",
         terrain=[(0, 4, ST), (4, 4, ST), (2, 6, BU)], first=600),
 ]
 
 W3 = [
-    lvl(3, 1, "24: gb; 46: fg*2; 66: mj gb; 86: dt cd; 106 big: gb*7 fg*2 mj; 130: dt gb; 152: cd*2 fg; 180 final: gb*7 fg*2 mj s6 dt",
+    lvl(3, 1, "24: gb; 46: fg*2; 66: mj gb; 86: dt cd; 106 big: gb*7 fg*2 mj; 130: dt gb; 152: cd*2 fg; 180 final: gb*6 fg*2 mj dt",
         unlock='ode'),
     lvl(3, 2, "24: gb; 46: gb fg; 66: gb*2 mj; 88: km s6; 110 big: gb*6 cd s6; 134: km mj gb; 156: s6*2 bs; 184 final: gb*6 km*2 s6 cd fg"),
     # パジャマパーティーズ join two jobs after the bird that kidnapped them in the story comes in.
-    lvl(3, 3, "24: gb; 46: fg mj; 66: gb*2; 86: dt s6; 106 big: gb*6 fg*2 mj; 130: km cd; 152: fg*2 bs; 182 final: gb*7 fg*3 km mj*2 s6*2",
+    lvl(3, 3, "24: gb; 46: fg mj; 66: gb*2; 86: dt gb; 106 big: gb*6 fg*2 mj; 130: km; 152: fg*2 bs; 182 final: gb*6 fg*3 km mj s6*2",
         unlock='pajama_parties'),
-    lvl(3, 4, "24: gb; 46: gb fg; 66: fg mj; 88: km gb; 110 big: gb*7 mj fg; 134 boss: zu!^0.8 gb*3; 160: km fg*2; 190 final: gb*8 km mj*2 fg*2"),
-    lvl(3, 5, "24: gb; 46: fg gb; 68: gb mj; 90: km cd; 112 big: gb*7 fg*2 bs; 136: dt gb; 158: mj cd; 182 big: gb*7 zu fg*2; 218 final boss: cb! gb*7 km*2 mj*2 fg*2",
+    lvl(3, 4, "24: gb; 46: gb fg; 66: fg mj; 88: km gb; 110 big: gb*7 mj fg; 134 boss: zu!^0.35 gb*3; 160: km^0.8 fg*2; 190 final: gb*7 km^0.8 mj*2 fg*2"),
+    lvl(3, 5, "24: gb; 46: fg gb; 68: gb mj; 90: km cd; 112 big: gb*7 fg*2 bs; 136: dt gb; 158: mj cd; 182 big: gb*5 zu^0.3 fg; 218 final boss: cb!^0.55 gb*6 mj fg*2",
         unlock='rakko', first=800),
 ]
 
@@ -181,12 +185,12 @@ def night(idx, waves, start=NIGHT_START, **kw):
 
 W4 = [
     night(1, "30: t2; 54: t2; 76: t2*2; 98: t2*2 bs; 120 big: t2*5 s6; 146: t2*3; 170: s6 bs t2; 198 final: t2*6 s6 bs"),
-    night(2, "28: t2; 50: t2*2; 74: hn; 98: t2*2; 120 big: t2*5 s6; 146: hn t2; 170: t2*2 bs; 198 final: t2*6 s6 hn bs",
+    night(2, "28: t2; 50: t2*2; 74: hn^0.7; 98: t2*2; 120 big: t2*5 s6; 146: hn^0.8 t2; 170: t2*2 bs; 198 final: t2*6 s6 hn^0.8 bs",
           unlock='muchauman'),
     night(3, "28: t2; 50: t2*2; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: ym bs; 170: hn t2; 198 final: t2*6 s6 ym bs"),
-    night(4, "28: t2; 50: t2 bs; 74: hn; 96: t2*2 bs; 118 big: t2*7 bs; 142: ym bs; 166: zu^0.8 t2; 190 big: t2*6 s6; 222 final: t2*7 hn ym bs*2",
+    night(4, "28: t2; 50: t2 bs; 74: hn^0.7; 96: t2*2 bs; 118 big: t2*7 bs; 142: ym bs; 166: zu^0.45 t2; 190 big: t2*6 s6; 222 final: t2*5 hn^0.6 ym bs",
           unlock='yoroi_erai'),
-    night(5, "28: t2; 50: t2 bs; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: hn bs; 170: ym t2; 194 big: t2*6 bs; 232 final boss: an! t2*6 s6 bs*2",
+    night(5, "28: t2; 50: t2 bs; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: hn^0.8 bs; 170: ym t2; 194 big: t2*6 bs; 232 final boss: an! t2*5 s6^0.85 bs*2",
           first=800),
 ]
 
@@ -200,14 +204,15 @@ def isle(idx, waves, **kw):
     return lvl(5, idx, waves, **kw)
 
 W5 = [
-    isle(1, "24: t2; 46: fg; 68: t2*2; 90: nm t2; 112 big: t2*5 fg*2; 136: fg t2*2; 160: nm; 186 final: t2*6 fg*3 nm",
+    # Nobody can stand on the water yet, so the first mermaids are well under half as tough as the ones フタバ joins to meet.
+    isle(1, "24: t2; 46: fg; 68: t2*2; 90: nm^0.4 t2; 112 big: t2*5 fg*2; 136: fg t2*2; 160: nm^0.4; 186 final: t2*5 fg*2 nm^0.4",
          unlock='futaba'),
     isle(2, "24: t2; 46: nm; 66: fg t2; 88: nm t2; 110 big: t2*6 fg*2 nm; 134: s6 nm; 156: fg*2 t2; 182 final: t2*7 s6 fg*2 nm*2",
          unlock='hitoha'),
-    isle(3, "24: t2; 46: mj; 66: nm fg; 88: mj t2*2; 110 big: t2*6 mj*2 nm; 134: nm s6; 156: fg*2 mj; 184 final: t2*7 mj*3 fg*2 nm*2",
+    isle(3, "24: t2; 46: t2*2; 66: nm fg; 88: mj t2*2; 110 big: t2*6 mj nm; 134: nm; 156: fg mj; 184 final: t2*6 mj*2 fg*2 nm",
          unlock='shimajiro'),
-    isle(4, "24: t2; 46: nm fg; 68: t2*3; 90: km nm; 112 big: t2*8 s6 fg nm*2; 136: hn t2; 158: nm*2 mj; 180 big: t2*6 fg*2 nm; 210 final: t2*7 km hn mj nm*2"),
-    isle(5, "24: t2; 46: nm fg; 68: t2*2; 90: km nm; 112 big: t2*8 fg*2 nm*2; 136: hn nm; 158: s6*2 mj*2; 182 big: t2*7 km fg*2 nm*2; 218 final boss: sr! t2*7 km*2 fg*2 nm*2",
+    isle(4, "24: t2; 46: nm^0.7 fg; 68: t2*3; 90: km nm; 112 big: t2*6 s6^0.85 fg nm; 136: hn^0.85 t2; 158: nm mj; 180 big: t2*5 fg*2 nm; 210 final: t2*5 km^0.85 hn^0.8 nm"),
+    isle(5, "24: t2; 46: nm fg; 68: t2*2; 90: km^0.8 nm; 112 big: t2*8 fg*2 nm*2; 136: hn^0.8 nm; 158: s6^0.7; 182 big: t2*5 km^0.7 fg nm; 218 final boss: sr!^0.45 t2",
          unlock='chiikawa_island', first=800),
 ]
 
@@ -222,13 +227,13 @@ def hunt(idx, waves, start=HUNT_START, **kw):
     return lvl(6, idx, waves, start=start, rescues=False, **kw)
 
 W6 = [
-    hunt(1, "24: gb; 46: gb*2; 68: gb*2; 90: hn; 112 big: gb*6 km; 136: ym gb; 158: km mj; 186 final: gb*7 km hn s6",
+    hunt(1, "24: gb; 46: gb*2; 68: gb*2; 90: hn^0.7; 112 big: gb*5 km^0.8; 136: ym gb; 158: km mj; 186 final: gb*6 km^0.8 hn^0.8 s6^0.5",
          unlock='hachiware_pajama'),
-    hunt(2, "24: gb; 46: gb*2; 68: gb mj; 90: dt; 112 big: gb*6 ym; 136: km bs; 158: dt gb*2; 186 final: gb*7 ym km hn dt",
+    hunt(2, "24: gb; 46: gb*2; 68: gb*2; 90: dt; 112 big: gb*6 ym; 136: km bs; 158: dt gb*2; 186 final: gb*7 ym km hn dt",
          unlock='usagi_cool'),
-    hunt(3, "24: gb; 46: gb*2; 68: hn; 90: ym dt; 112 big: gb*7 hn; 136 boss: zu! gb*3; 160: km mj; 188 final: gb*7 zu km ym dt"),
-    hunt(4, "24: gb; 46: gb*2; 68: ym mj; 90: hn dt; 112 big: gb*7 km bs; 136 boss: gt! gb; 160: ym km; 184 big: gb*6 dt mj; 214 final: gb*7 km ym hn"),
-    hunt(5, "24: gb; 46: gb*2; 68: gb mj; 90: km gb; 112 big: gb*8 ym; 136: hn bs; 160: km mj; 184 big: gb*7 dt ym; 222 final boss: dk! gb*7 km ym",
+    hunt(3, "24: gb; 46: gb*2; 68: hn^0.7; 90: ym dt; 112 big: gb*6 hn^0.7; 136 boss: zu!^0.33 gb; 160: km mj; 188 final: gb*5 zu^0.33 dt"),
+    hunt(4, "24: gb; 46: gb*2; 68: ym gb; 90: hn^0.7 dt; 112 big: gb*6 km^0.65 bs; 136 boss: gt!^0.6 gb; 160: ym km^0.8; 184 big: gb*5 dt; 214 final: gb*6 km^0.8 ym hn^0.8"),
+    hunt(5, "24: gb; 46: gb*2; 68: gb*2; 90: km gb; 112 big: gb*8 ym; 136: hn bs; 160: km mj; 184 big: gb*7 dt ym; 222 final boss: dk! gb*7 km ym",
          features=['endless'], first=1000),
 ]
 

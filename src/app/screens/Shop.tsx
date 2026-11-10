@@ -20,6 +20,9 @@ import { SHOP_SPOTS, SHOP_TAGS } from '../scene/shop';
 
 type Good = (typeof SHOP.sellers)[number]['items'][number];
 
+/** The sellers at the shop's two ends: on the squarest screens their name plates step in, to stay on the screen. */
+const OUTER_TAG: Record<string, string> = { ramen: ' outer-l', pochette: ' outer-r' };
+
 /** How many of a good the player has: upgrades bought, tickets held, or 1 for a friend who has joined. */
 function owned(item: Good): number {
   const s = save.value;
@@ -95,7 +98,7 @@ export function Shop({ r }: { r: Extract<Route, { name: 'shop' }> }) {
   const slots = Object.fromEntries(
     Object.entries(SHOP_TAGS).map(([slot, seller]) => [
       slot,
-      <span key={slot} class="ink-plate d-tag" style={{ '--plate': SELLER_TONE[seller] }}>
+      <span key={slot} class={`ink-plate d-tag${OUTER_TAG[seller] ?? ''}`} style={{ '--plate': SELLER_TONE[seller] }}>
         <PlatePaper />
         {t(`shop.sellers.${seller}.name`)}
       </span>,

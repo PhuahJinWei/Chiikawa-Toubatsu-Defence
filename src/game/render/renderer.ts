@@ -8,7 +8,7 @@
 // Everything is paper: the world's backdrop is one painted picture, characters are frame animations (sprites), and
 // projectiles, effects, pickups and terrain are single stickers the game pops, spins and fades.
 
-import { worldBleed } from '../../art/bleed';
+import { pictureBleed, WORLD_BLEED, worldBleed } from '../../art/bleed';
 import { type BuiltPiece, buildPiece } from '../../art/pieces';
 import {
   drawSpriteFrame,
@@ -328,7 +328,7 @@ export class BattleRenderer {
   private shakeAmp = 0;
   private stickers = new StickerCache();
   private scene: SceneSpec;
-  private picture: { q: number; built: BuiltPiece } | null = null;
+  private picture: { q: number; tall: number; built: BuiltPiece } | null = null;
   /** Melee blows still showing on the ground. */
   private swings: Swing[] = [];
   /** Enemies hit by a melee blow whose picture has not reached them yet: when their hit flash really shows. */
@@ -510,9 +510,13 @@ export class BattleRenderer {
   /** The world's picture, built for the current resolution (kept across small resizes). */
   private worldPicture(): BuiltPiece {
     const q = Math.min(2.5, this.scale * this.dpr);
-    if (this.picture && Math.abs(this.picture.q - q) / q < 0.12) return this.picture.built;
-    const built = buildPiece(this.scene.id, this.scene.layers[0], q, undefined, undefined, worldBleed((this.scene.field ?? WORLD_FIELD).x));
-    this.picture = { q, built };
+    // A squarish screen shows more than the picture's height, so the picture carries on to its edges, in soft colour.
+    const seen = this.cssH / this.scale;
+    const tall = pictureBleed(seen, this.scene.h);
+    if (this.picture && this.picture.tall === tall && Math.abs(this.picture.q - q) / q < 0.12) return this.picture.built;
+    const soft = tall > WORLD_BLEED.t || seen > this.scene.h;
+    const built = buildPiece(this.scene.id, this.scene.layers[0], q, undefined, undefined, worldBleed((this.scene.field ?? WORLD_FIELD).x, tall), soft);
+    this.picture = { q, tall, built };
     return built;
   }
 

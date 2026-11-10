@@ -36,7 +36,7 @@ describe('a friend or an enemy in numbers', () => {
   it('a trap that goes off where it stands reads 目の前, and tells how long it cooks', () => {
     const s = statsOf('taiyaki');
     expect(s.find((x) => x.k === t('stat.range'))?.v).toBe(t('stat.rangeTouch'));
-    expect(s.find((x) => x.k === t('stat.ready'))?.v).toBe(t('stat.seconds', { n: '12.0' }));
+    expect(s.find((x) => x.k === t('stat.ready'))?.v).toBe(t('stat.seconds', { n: '15.0' }));
   });
 
   it('a one-use card tells what it does and where: オデ his lane, むちゃうマン the whole field', () => {

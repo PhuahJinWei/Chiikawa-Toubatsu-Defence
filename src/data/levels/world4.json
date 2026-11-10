@@ -10,32 +10,32 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 38, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 68, "spawns": [
+      { "at": 94, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 95, "spawns": [
+      { "at": 133, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 122, "spawns": [
+      { "at": 172, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 150, "big": true, "spawns": [
+      { "at": 210, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 5},
         {"enemy": "mushi_sixlegs"}
       ] },
-      { "at": 182, "spawns": [
+      { "at": 256, "spawns": [
         {"enemy": "mushi_twolegs", "count": 3}
       ] },
-      { "at": 212, "spawns": [
+      { "at": 298, "spawns": [
         {"enemy": "mushi_sixlegs"},
         {"enemy": "kuroi_nagareboshi"},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 248, "final": true, "spawns": [
+      { "at": 346, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "mushi_sixlegs"},
         {"enemy": "kuroi_nagareboshi"}
@@ -54,35 +54,35 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 35, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 62, "spawns": [
+      { "at": 88, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 92, "spawns": [
-        {"enemy": "mushi_horned"}
+      { "at": 130, "spawns": [
+        {"enemy": "mushi_horned", "hpMul": 0.7}
       ] },
-      { "at": 122, "spawns": [
+      { "at": 172, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 150, "big": true, "spawns": [
+      { "at": 210, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 5},
         {"enemy": "mushi_sixlegs"}
       ] },
-      { "at": 182, "spawns": [
+      { "at": 256, "spawns": [
         {"enemy": "mushi_twolegs"},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 212, "spawns": [
+      { "at": 298, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "kuroi_nagareboshi"},
-        {"enemy": "mushi_horned"}
+        {"enemy": "mushi_horned", "hpMul": 0.8}
       ] },
-      { "at": 248, "final": true, "spawns": [
+      { "at": 346, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "mushi_sixlegs"},
-        {"enemy": "mushi_horned"},
+        {"enemy": "mushi_horned", "hpMul": 0.8},
         {"enemy": "kuroi_nagareboshi"}
       ] }
     ],
@@ -99,33 +99,33 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 35, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 62, "spawns": [
+      { "at": 88, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2}
       ] },
-      { "at": 92, "spawns": [
+      { "at": 130, "spawns": [
         {"enemy": "yamanba"}
       ] },
-      { "at": 122, "spawns": [
+      { "at": 172, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 150, "big": true, "spawns": [
+      { "at": 210, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "mushi_sixlegs"}
       ] },
-      { "at": 182, "spawns": [
+      { "at": 256, "spawns": [
         {"enemy": "kuroi_nagareboshi"},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 212, "spawns": [
+      { "at": 298, "spawns": [
         {"enemy": "mushi_horned"},
         {"enemy": "mushi_twolegs"},
         {"enemy": "yamanba"}
       ] },
-      { "at": 248, "final": true, "spawns": [
+      { "at": 346, "final": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "mushi_sixlegs"},
         {"enemy": "yamanba"},
@@ -145,42 +145,42 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 35, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 62, "spawns": [
+      { "at": 88, "spawns": [
         {"enemy": "mushi_twolegs"},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 92, "spawns": [
-        {"enemy": "mushi_horned"}
+      { "at": 130, "spawns": [
+        {"enemy": "mushi_horned", "hpMul": 0.7}
       ] },
-      { "at": 120, "spawns": [
+      { "at": 168, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 148, "big": true, "spawns": [
+      { "at": 206, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 7},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 178, "spawns": [
+      { "at": 248, "spawns": [
         {"enemy": "yamanba"},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 208, "spawns": [
+      { "at": 290, "spawns": [
         {"enemy": "mushi_twolegs"},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 238, "big": true, "spawns": [
+      { "at": 332, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "mushi_sixlegs"},
-        {"enemy": "zou", "hpMul": 0.8}
+        {"enemy": "zou", "hpMul": 0.45}
       ] },
-      { "at": 278, "final": true, "spawns": [
-        {"enemy": "mushi_twolegs", "count": 7},
-        {"enemy": "mushi_horned"},
+      { "at": 388, "final": true, "spawns": [
+        {"enemy": "mushi_twolegs", "count": 5},
+        {"enemy": "mushi_horned", "hpMul": 0.6},
         {"enemy": "yamanba"},
-        {"enemy": "kuroi_nagareboshi", "count": 2}
+        {"enemy": "kuroi_nagareboshi"}
       ] }
     ],
     "rewards": {"firstClear": 400, "replay": 50, "unlockCard": "yoroi_erai"}
@@ -196,41 +196,41 @@
     "terrain": [],
     "rescues": true,
     "waves": [
-      { "at": 35, "spawns": [
+      { "at": 30, "spawns": [
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 62, "spawns": [
+      { "at": 88, "spawns": [
         {"enemy": "mushi_twolegs"},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 92, "spawns": [
+      { "at": 130, "spawns": [
         {"enemy": "yamanba"}
       ] },
-      { "at": 122, "spawns": [
+      { "at": 172, "spawns": [
         {"enemy": "mushi_twolegs", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 150, "big": true, "spawns": [
+      { "at": 210, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "mushi_sixlegs"}
       ] },
-      { "at": 182, "spawns": [
+      { "at": 256, "spawns": [
         {"enemy": "kuroi_nagareboshi"},
         {"enemy": "mushi_twolegs"}
       ] },
-      { "at": 212, "spawns": [
+      { "at": 298, "spawns": [
         {"enemy": "yamanba"},
         {"enemy": "mushi_twolegs"},
-        {"enemy": "mushi_horned"}
+        {"enemy": "mushi_horned", "hpMul": 0.8}
       ] },
-      { "at": 242, "big": true, "spawns": [
+      { "at": 340, "big": true, "spawns": [
         {"enemy": "mushi_twolegs", "count": 6},
         {"enemy": "kuroi_nagareboshi"}
       ] },
-      { "at": 290, "final": true, "boss": true, "spawns": [
+      { "at": 406, "final": true, "boss": true, "spawns": [
         {"enemy": "anoko", "boss": true},
-        {"enemy": "mushi_twolegs", "count": 6},
-        {"enemy": "mushi_sixlegs"},
+        {"enemy": "mushi_twolegs", "count": 5},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.85},
         {"enemy": "kuroi_nagareboshi", "count": 2}
       ] }
     ],

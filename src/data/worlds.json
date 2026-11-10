@@ -9,36 +9,31 @@
     "id": 2,
     "key": "forest",
     "palette": { "ground": "#C4D89B", "ground2": "#B5CB89", "accent": "#5E8C52", "sky": "#E4F1DC" },
-    "bgm": "bgm_world2",
-    "enemyHp": 0.8
+    "bgm": "bgm_world2"
   },
   {
     "id": 3,
     "key": "town",
     "palette": { "ground": "#EADFCB", "ground2": "#E0D3BB", "accent": "#C9876B", "sky": "#FFF1E0" },
-    "bgm": "bgm_world3",
-    "enemyHp": 0.68
+    "bgm": "bgm_world3"
   },
   {
     "id": 4,
     "key": "night",
     "palette": { "ground": "#9DB8A6", "ground2": "#90AD9A", "accent": "#5D7F72", "sky": "#2F3A62" },
-    "bgm": "bgm_world4",
-    "enemyHp": 0.62
+    "bgm": "bgm_world4"
   },
   {
     "id": 5,
     "key": "island",
     "palette": { "ground": "#BDBECC", "ground2": "#AFB2C3", "accent": "#5E82A9", "sky": "#6F8DB3" },
     "bgm": "bgm_world5",
-    "enemyHp": 0.62,
     "water": [4]
   },
   {
     "id": 6,
     "key": "hunt",
     "palette": { "ground": "#F2E4CF", "ground2": "#E9D8BF", "accent": "#A8C597", "sky": "#DDEDEB" },
-    "bgm": "bgm_world6",
-    "enemyHp": 0.45
+    "bgm": "bgm_world6"
   }
 ]

@@ -246,7 +246,7 @@ describe('balance', () => {
 
   it('endless mode keeps going and gets harder', () => {
     const sim = simForEndless(
-      ENEMY_LIST.map((e) => e.id),
+      ENEMY_LIST.filter((e) => !e.summonOnly).map((e) => e.id),
       ['chiikawa', 'usagi', 'yoroi', 'hachiware', 'momonga', 'yoroi_erai', 'kurimanju'],
       { seed: 5 },
     );
