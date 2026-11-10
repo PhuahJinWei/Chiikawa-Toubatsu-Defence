@@ -1359,6 +1359,47 @@ input[type='range'] {
   left: calc(var(--safe-l) + 16px + var(--fb) * 0.12);
   top: calc(var(--safe-t) + max(72px, 19vh) + var(--fb) * 1.12);
 }
+/* Something lasting in the shop can be bought now (app/shopping.ts): a gold coin on the お店 button's corner, which hops
+   now and then. */
+.shop-badge {
+  position: absolute;
+  top: 0;
+  right: -6%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: calc(var(--fb) * 0.3);
+  height: calc(var(--fb) * 0.3);
+  border: var(--ow) solid var(--outline);
+  border-radius: 50%;
+  background: #ffd84a;
+  box-shadow:
+    0 0 0 3px #fffdf7,
+    0 3px 0 3px rgba(59, 47, 47, 0.25);
+  color: var(--outline);
+  animation: shop-badge-hop 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.shop-badge svg {
+  width: 74%;
+  height: 74%;
+}
+@keyframes shop-badge-hop {
+  0%,
+  72%,
+  100% {
+    translate: 0 0;
+  }
+  80% {
+    translate: 0 -7px;
+  }
+  88% {
+    translate: 0 0;
+  }
+  94% {
+    translate: 0 -2px;
+  }
+}
 /* The top-right corner: the money pill, then 設定 small in the very corner. */
 .lobby-corner {
   zoom: var(--z);
@@ -3483,57 +3524,6 @@ input[type='range'] {
 .sheet.report.solo .report-grid {
   grid-template-columns: minmax(0, 1fr);
 }
-.report-friend {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: center;
-  touch-action: manipulation;
-}
-.report-tag {
-  --plate: #f9c2ce;
-  z-index: 1;
-  margin-bottom: -4px;
-  padding: 0.08em 0.8em 0.12em;
-  font-size: 14px;
-  rotate: -3deg;
-}
-.report-friend-pic {
-  position: relative;
-  display: block;
-  animation: report-friend-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3) 0.15s backwards;
-}
-.report-friend-pic .cut-out {
-  transform-origin: 50% 100%;
-  animation: report-breathe 1.1s ease-in-out infinite alternate;
-}
-@keyframes report-friend-in {
-  from {
-    opacity: 0;
-    scale: 0.6;
-  }
-}
-.report-name {
-  margin-top: 4px;
-  font-size: 19px;
-  font-weight: 900;
-  line-height: 1.15;
-}
-.report-does {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  overflow: hidden;
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--ink-soft);
-}
 .report-sum {
   position: relative;
   display: flex;
@@ -3643,16 +3633,247 @@ input[type='range'] {
   align-self: center;
   margin-bottom: 6px;
 }
-/* On a short phone the new friend's description gets shorter, then goes (their card is a tap away), and on the shortest
-   so does the count of cars (the stars say it), so the stars and the pay are always in view without scrolling. */
+
+/* A new friend's card, dropped by the last enemy to fall (owner's call, 2026-11-10, as PvZ's seed packet). It pops out of
+   the enemy in an arc (--dx, --dy: from where it lands back to where it popped out), bounces once and waits, bobbing in
+   a gold glow with a ring going out from it now and then, until it is tapped. It lands clear of the win's banner
+   (cardDrop.ts). Then it flies to the middle of the screen,
+   growing, and the friend's page opens (.sheet.new-friend). */
+.card-drop {
+  position: absolute;
+  z-index: 5;
+  width: calc(88px * var(--ui));
+  height: calc(66px * var(--ui));
+  padding: 0;
+  border: 0;
+  background: none;
+  translate: -50% -50%;
+  touch-action: manipulation;
+  cursor: pointer;
+  animation: card-drop-pop 0.8s linear backwards;
+  transition:
+    left 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+    top 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+    scale 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+}
+.card-drop-glow {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 4px #fff3b0) drop-shadow(0 0 9px #ffd447);
+  animation: card-drop-bob 0.7s ease-in-out 0.8s infinite alternate;
+}
+.card-drop .card {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.card-drop::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 3px solid #ffd84a;
+  border-radius: 16px;
+  opacity: 0;
+  pointer-events: none;
+  animation: card-drop-ring 1.6s ease-out 1s infinite;
+}
+.card-drop.taken {
+  scale: 2.2;
+  animation: none;
+}
+.card-drop.taken .card-drop-glow,
+.card-drop.taken::after {
+  animation: none;
+}
+@keyframes card-drop-pop {
+  0% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3) rotate(-20deg);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  }
+  12% {
+    opacity: 1;
+  }
+  45% {
+    transform: translate(calc(var(--dx) * 0.45), calc(var(--dy) * 0.45 - 80px)) scale(1.05) rotate(-6deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.5);
+  }
+  82% {
+    transform: translate(0, 0) scale(1) rotate(3deg);
+    animation-timing-function: ease-out;
+  }
+  91% {
+    transform: translate(0, -9px) rotate(0deg);
+    animation-timing-function: ease-in;
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes card-drop-bob {
+  to {
+    translate: 0 -5px;
+  }
+}
+@keyframes card-drop-ring {
+  0% {
+    opacity: 0.9;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.45;
+  }
+}
+
+/* The question about the shop as a new world starts, in the report's place (ShopAsk in screens/Battle.tsx), with
+   ラーメンの鎧さん beside it, arms folded, where 労働の鎧さん stood: his line and the good it is about, written as on the
+   shop's price list, then the question. */
+.shop-ask-body {
+  text-align: left;
+}
+.shop-ask-body .seller-says {
+  margin: 4px 0 6px;
+}
+.shop-ask-body .good {
+  border-bottom: 2px dashed rgba(74, 42, 18, 0.25);
+  cursor: default;
+}
+.shop-ask-body .good:active {
+  scale: none;
+}
+.shop-ask-q {
+  margin: 12px 0 0;
+  font-size: clamp(14px, 2.9vh, 16px);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* The friend who has just joined (NewFriendSheet in components/NewFriend.tsx). They stand on a little stage of their own
+   in front of a paper burst turning slowly, drawn from their battle frames and breathing, true to size beside every
+   other friend; beside them their card, small, by their name, all of what they do and their numbers. The hand stamp
+   presses 「なかま入り」 onto the page's corner, as on the なかま屋's price list. 次へ is an ordinary button. */
+.sheet.new-friend {
+  width: min(calc(100% - 32px), 600px);
+}
+.sheet.new-friend .sheet-body {
+  padding: 22px 22px 2px;
+}
+.sheet.new-friend .sheet-actions {
+  justify-content: center;
+}
+.nf-next {
+  flex: 0 1 230px;
+}
+.nf-body {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.nf-stage {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  animation: nf-stage-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
+}
+/* The paper burst: rays of two pale yellows on a disc cut out with a white edge (--bx, --by: its centre, the middle of
+   whoever stands there; --bd: its size). */
+.nf-stage::before {
+  content: '';
+  position: absolute;
+  left: var(--bx);
+  top: var(--by);
+  width: var(--bd);
+  height: var(--bd);
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(#ffe39a 0deg 10deg, #fff4cc 10deg 20deg);
+  box-shadow:
+    inset 0 0 0 4px #fffdf7,
+    inset 0 0 0 5px rgba(74, 42, 18, 0.12);
+  animation: nf-burst 40s linear infinite;
+}
+.nf-fig {
+  position: absolute;
+  pointer-events: none;
+}
+/* Only the friend and their shadow: none of the art kit's paper behind them. */
+.nf-fig .figure-preview {
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+/* The stage with 「なかま入り」 stamped on its corner. */
+.nf-photo {
+  position: relative;
+  flex: none;
+}
+@keyframes nf-burst {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes nf-stage-in {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+.nf-notes {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: left;
+}
+.nf-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* As tall as a card in the column, so it looks just like one (a shorter card moves its price aside). */
+.nf-card.card {
+  flex: none;
+  width: 70px;
+  height: 56px;
+}
+.nf-name {
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.nf-does {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.nf-stamp {
+  --s: 60px;
+  right: -14px;
+  top: -12px;
+  z-index: 1;
+  rotate: -12deg;
+  font-size: 14px;
+  font-weight: 900;
+}
+/* A narrow screen: the stage over the words. */
+@media (max-width: 459px) {
+  .nf-body {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .nf-notes {
+    align-items: center;
+    text-align: center;
+  }
+}
+/* On a short phone the stars get smaller, and on the shortest the count of cars goes (the stars say it), so the stars
+   and the pay are always in view without scrolling. */
 @media (max-height: 379px) {
-  .report-friend-pic {
-    zoom: 0.9;
-  }
-  .report-does {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-  }
   .report-goal .star-mark {
     font-size: 38px;
   }
@@ -3664,10 +3885,6 @@ input[type='range'] {
   .sheet.report .sheet-body {
     padding-top: 22px;
   }
-  .report-friend-pic {
-    zoom: 0.75;
-  }
-  .report-does,
   .report-used {
     display: none;
   }
@@ -3686,7 +3903,8 @@ input[type='range'] {
   .sheet-stage {
     --yh: min(86vh, 470px, 40vw);
   }
-  .sheet.report {
+  .sheet.report,
+  .sheet.new-friend {
     zoom: 1.3;
   }
 }
@@ -3694,7 +3912,8 @@ input[type='range'] {
   .sheet-stage {
     --yh: min(86vh, 640px, 40vw);
   }
-  .sheet.report {
+  .sheet.report,
+  .sheet.new-friend {
     zoom: 1.7;
   }
 }
@@ -4828,8 +5047,12 @@ input[type='range'] {
   .report-yoroi,
   .report-yoroi-bow,
   .report-yoroi-pic,
-  .report-friend-pic,
-  .report-friend-pic .cut-out,
+  .shop-badge,
+  .card-drop,
+  .card-drop::after,
+  .card-drop-glow,
+  .nf-stage,
+  .nf-stage::before,
   .report-goal .star-mark.on,
   .card .flash {
     animation: none;

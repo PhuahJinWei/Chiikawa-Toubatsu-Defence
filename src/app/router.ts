@@ -27,8 +27,9 @@ export type Route =
     }
   | { name: 'book' }
   /** The shop. `spot` is the seller the camera is on, with their goods open beside them: a step of its own (like a
-   *  level's notice on the quest screen), so もどる and the system back gesture close it before leaving the shop. */
-  | { name: 'shop'; spot?: string }
+   *  level's notice on the quest screen), so もどる and the system back gesture close it before leaving the shop. `next`:
+   *  the shop was stopped by on the way to that job, whose notice it goes back to instead of the lobby. */
+  | { name: 'shop'; spot?: string; next?: { world: number; level: string } }
   | { name: 'artkit' };
 
 /** The quest board's paper for endless mode (after the six worlds). */
@@ -47,6 +48,8 @@ const stack: Route[] = [];
 let leavingBattle = false;
 /** Where a step back the game took is to land instead (see upThen). */
 let landOn: Route | null = null;
+/** Where to go on to from there, once landed (see upThenGo). */
+let thenGo: Route | null = null;
 /** Set while the game undoes a step forward into a battle (see the popstate handler), so that step back is let be. */
 let undoingForward = false;
 /** The pop-ups that are up and asked to be closed by the system back gesture, the top one last (see closeOnBack). */
@@ -124,6 +127,12 @@ export function initRouter(): void {
     }
     stack[stack.length - 1] = next;
     route.value = next;
+    // A step on from there (upThenGo).
+    if (thenGo) {
+      const on = thenGo;
+      thenGo = null;
+      go(on);
+    }
   });
 }
 
@@ -190,4 +199,24 @@ export function upThen(parent: Route, then: Route): void {
     }
   }
   go(then, { replace: true });
+}
+
+/** upThen, then a step on to `after`, so stepping back from it lands on `then`: the battle report's 「お店へ」 opens the shop
+ *  with the next job's notice under it. */
+export function upThenGo(parent: Route, then: Route, after: Route): void {
+  if (stack.length >= 2 && sameScreen(stack[stack.length - 2], parent)) {
+    try {
+      leavingBattle = route.value.name === 'battle';
+      landOn = then;
+      thenGo = after;
+      history.back();
+      return;
+    } catch {
+      leavingBattle = false;
+      landOn = null;
+      thenGo = null;
+    }
+  }
+  go(then, { replace: true });
+  go(after);
 }

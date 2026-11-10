@@ -7,67 +7,40 @@ import { save, updateSave } from '../../save/save';
 import { CutOut } from '../components/CutOut';
 import { EarnedStamp } from '../components/HandStamp';
 import { Icon } from '../components/Icon';
-import { PenLoop } from '../components/PaperMarks';
+import { JOINED_STAMP, PenLoop } from '../components/PaperMarks';
 import { PlatePaper } from '../components/Plate';
 import { StickerIcon } from '../components/StickerIcon';
 import { confirm, confirmState, MoneyPill, tap, toast } from '../components/ui';
 import { noteMet, SHOP } from '../progress';
 import { go, type Route, up } from '../router';
+import { type Good, goodDesc, goodName, owned, SHOP_TONE, waits } from '../shopping';
 import { focusSide } from '../scene/camera';
 import { Diorama } from '../scene/Diorama';
 import { SceneTitle } from '../scene/SceneScreen';
 import { SHOP_SPOTS, SHOP_TAGS } from '../scene/shop';
 
-type Good = (typeof SHOP.sellers)[number]['items'][number];
-
 /** The sellers at the shop's two ends: on the squarest screens their name plates step in, to stay on the screen. */
 const OUTER_TAG: Record<string, string> = { ramen: ' outer-l', pochette: ' outer-r' };
-
-/** How many of a good the player has: upgrades bought, tickets held, or 1 for a friend who has joined. */
-function owned(item: Good): number {
-  const s = save.value;
-  if (item.card) return s.cards.includes(item.card) ? 1 : 0;
-  if (item.upgrade) return s.upgrades[item.upgrade] >= (item.tier ?? 1) ? 1 : 0;
-  if (item.id === 'buta') return s.items.buta;
-  return 0;
-}
-
-/** A good's name: a friend's own name, or the item's (the steps of an upgrade share theirs). */
-const goodName = (item: Good) => (item.card ? nameOf(item.card) : t(`shop.items.${item.pic ?? item.id}.name`));
-
-/** An upgrade's steps are bought in order: a later one waits while the one above it is not bought yet. */
-const waits = (item: Good) => !!item.upgrade && save.value.upgrades[item.upgrade] < (item.tier ?? 1) - 1;
-
-/** What a good does, on its line: a friend's ability, how many friends a pochette lets you bring, the 草 a ラーメン券
- *  starts every job with. */
-function goodDesc(item: Good, n: number): string {
-  if (item.card) return t(`card.${item.card}.ability`);
-  const tier = item.tier ?? 1;
-  if (item.upgrade === 'slots') return t('shop.items.slot.desc', { n: SHOP.slotsBase + tier });
-  if (item.upgrade === 'ramen') return t('shop.items.ramen.desc', { n: SHOP.ramenWeeds * tier });
-  return t(`shop.items.${item.id}.desc`, { n });
-}
 
 /** Each seller's name plate is in their own colour: the pochette shop's pink, like the bear pochette; the ramen shop's
  *  yellow, like its sign; Shisa's なかま屋 orange, like her mane. */
 const SELLER_TONE: Record<string, string> = { pochette: '#F7C1CF', ramen: '#FBD98F', shisa: '#F6B888' };
-/** The shop's own plate is peach, like the plate on the lobby's 「お店」 button. */
-const SHOP_TONE = '#FBD5AB';
 /** Once there is nothing more to buy, the item gets a red 「売り切れ」 stamp: Japanese in either language, like the
  *  game's other stamps (what it means is read out in the player's language). */
 const SOLD_OUT = '売り\n切れ';
-/** A friend who has joined gets a red 「なかま入り」 stamp instead. */
-const JOINED = 'なかま\n入り';
 
 /** The shop is the inside of ラーメン屋「郎」: tap someone to zoom in and see what they sell. */
 export function Shop({ r }: { r: Extract<Route, { name: 'shop' }> }) {
   const spot = r.spot && SHOP_SPOTS[r.spot] ? r.spot : null;
   // Opening a seller is a step of its own, so the back button (and the system back gesture) closes their goods first,
   // the way it steps back through the quest screen, and only then leaves the shop. Another seller replaces the step.
-  const open = (id: string) => go({ name: 'shop', spot: id }, { replace: !!spot });
+  // Stopped by on the way to a job (`next`), the shop is left for that job's notice instead of the lobby.
+  const next = r.next;
+  const open = (id: string) => go({ name: 'shop', spot: id, next }, { replace: !!spot });
   const close = () => {
-    if (spot) up({ name: 'shop' });
+    if (spot) up({ name: 'shop', next });
   };
+  const leave = () => up(next ? { name: 'quest', world: next.world, level: next.level } : { name: 'lobby' });
   const [cheer, setCheer] = useState<string | null>(null);
   // The item being bought: circled with the pink pen while the game asks to confirm.
   const [buying, setBuying] = useState<string | null>(null);
@@ -158,7 +131,7 @@ export function Shop({ r }: { r: Extract<Route, { name: 'shop' }> }) {
             close();
           }}
         />
-        <SceneTitle title={t('lobby.shop')} tone={SHOP_TONE} onBack={() => (spot ? close() : up({ name: 'lobby' }))} right={<MoneyPill />} />
+        <SceneTitle title={t('lobby.shop')} tone={SHOP_TONE} onBack={() => (spot ? close() : leave())} right={<MoneyPill />} />
         {spot ? (
           <SellerPanel
             key={spot}
@@ -250,7 +223,7 @@ function SellerPanel({
                   {maxed ? (
                     item.card ? (
                       <EarnedStamp id={`joined:${item.card}`} class="red-stamp good-stamp" label={t('shop.joinedStamp')}>
-                        {JOINED}
+                        {JOINED_STAMP}
                       </EarnedStamp>
                     ) : (
                       <EarnedStamp id={`soldout:${item.id}`} class="red-stamp good-stamp" label={t('shop.max')}>

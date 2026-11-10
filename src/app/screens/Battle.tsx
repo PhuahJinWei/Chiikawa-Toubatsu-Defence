@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { spriteFor } from '../../art/sprite';
-import { CARD_LOOKS, spriteIdFor } from '../../art/spec';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { CARD_LOOKS } from '../../art/spec';
 import { art } from '../../art/store';
 import { audio } from '../../audio/audio';
-import { BattleController, type BattleEnd, type CardView } from '../../game/controller';
+import { BattleController, type BattleEnd, type CardDrop } from '../../game/controller';
 import { crowdOf } from '../../game/render/lineup';
 import { ENEMIES, LEVELS, nextLevelId, UNITS, waterOf } from '../../game/sim/defs';
 import { enemyCounts } from '../../game/sim/waves';
 import { nameOf, t } from '../../i18n/i18n';
 import { save, updateSave } from '../../save/save';
 import { CutOut, warmCutOut } from '../components/CutOut';
-import { showDetails } from '../components/Details';
 import { callOff, pressNow } from '../components/HandStamp';
 import { Icon } from '../components/Icon';
 import { LoadingScreen } from '../components/LoadingScreen';
@@ -18,6 +16,9 @@ import { StarMark } from '../components/PaperMarks';
 import { PlatePaper } from '../components/Plate';
 import { BackButton, confirm, Notice, Sheet, Switch, tap, toast } from '../components/ui';
 import { SANDBOX_RULES, SandboxPanel, sandboxWish } from '../components/SandboxPanel';
+import { CardFigure, CardLook, warmCard } from '../components/CardLook';
+import { NewFriendSheet, warmNewFriend } from '../components/NewFriend';
+import { dropLanding } from '../cardDrop';
 import { canFullscreen, isFullscreen, toggleFullscreen } from '../fullscreen';
 import { DEBUG_ON } from '../../dev';
 import { askWish } from '../components/Wish';
@@ -43,7 +44,9 @@ import {
   wishable,
   wishFor,
 } from '../progress';
-import { backInBattle, battleParent, go, type Route, up, upThen } from '../router';
+import { backInBattle, battleParent, closeOnBack, go, type Route, up, upThen, upThenGo } from '../router';
+import { goodDesc, goodName, type Offer, SHOP_TONE, shopAsk, shopAskKey } from '../shopping';
+import { StickerIcon } from '../components/StickerIcon';
 
 type BattleRoute = Extract<Route, { name: 'battle' }>;
 
@@ -103,6 +106,25 @@ function playOn(r: BattleRoute, nextId: string): void {
   upThen(battleParent(r), { name: 'quest', world: LEVELS[nextId].world, level: nextId });
 }
 
+/** As the report's 次へ after a world's last job starts the next world, once a world whatever the answer, and only when
+ *  something lasting can be bought (owner's call, 2026-11-10: casual players forgot the shop): the good to ask about,
+ *  noted as asked. */
+function askAboutShop(r: BattleRoute, nextId: string): Offer | null {
+  const offer = shopAsk(r.levelId, nextId);
+  if (!offer) return null;
+  const key = shopAskKey(LEVELS[nextId].world);
+  updateSave((d) => {
+    if (!d.asked.includes(key)) d.asked.push(key);
+  });
+  return offer;
+}
+
+/** 「お店へ」: the shop at the good's seller, with the next job's notice under it, which leaving the shop goes on to. */
+function toShop(r: BattleRoute, nextId: string, offer: Offer): void {
+  const world = LEVELS[nextId].world;
+  upThenGo(battleParent(r), { name: 'quest', world, level: nextId }, { name: 'shop', spot: offer.spot, next: { world, level: nextId } });
+}
+
 export function Battle({ r }: { r: BattleRoute }) {
   const level = r.levelId ? LEVELS[r.levelId] : undefined;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -118,6 +140,10 @@ export function Battle({ r }: { r: BattleRoute }) {
   const [wish, setWish] = useState(plan.wish);
   const [ramen, setRamen] = useState(fromNotice && !!r.ramen && plan.tickets > 0);
   const spent = useRef(false);
+  // A new friend's dropped card, once picked up, is shown before the report (NewFriendSheet). `onBack`: what the system
+  // back gesture does meanwhile (picks the card up, then goes on to the report).
+  const [newFriend, setNewFriend] = useState<string | null>(null);
+  const onBack = useRef<(() => void) | null>(null);
 
   const ctl = useMemo(() => {
     const s = save.value;
@@ -149,12 +175,17 @@ export function Battle({ r }: { r: BattleRoute }) {
         flushGallery();
         reward = rewardFor(end);
         applyResult(end, reward);
+        // A friend who has just joined: the last enemy to fall drops their card, and they are shown when it is picked up
+        // (CardDropLayer, NewFriendSheet). The report waits until then.
+        if (!reward.newCard) return;
+        warmCard(reward.newCard);
+        warmNewFriend(reward.newCard);
+        return { drop: reward.newCard };
       },
       onEnd: (end) => {
         if (!reward) return;
         setResult({ end, reward });
-        if (reward.newCard) audio.sfx('sfx_unlock');
-        else if (reward.total > 0) audio.sfx('sfx_coin');
+        if (reward.total > 0) audio.sfx('sfx_coin');
       },
       popUp: () => !!document.querySelector('.dialog'),
     });
@@ -252,8 +283,10 @@ export function Battle({ r }: { r: BattleRoute }) {
         first = false;
         return;
       }
+      // A new friend's card waiting, or on show: the next step toward the report.
+      if (onBack.current) onBack.current();
       // Between endless stages the run so far is at stake: it pauses, as in the battle.
-      if (ctl.phase.value !== 'battle' && !ctl.between.value) leave(r);
+      else if (ctl.phase.value !== 'battle' && !ctl.between.value) leave(r);
       else if (ctl.status.value === 'playing') ctl.setPaused(true);
     });
   }, [ctl]);
@@ -334,6 +367,17 @@ export function Battle({ r }: { r: BattleRoute }) {
         <TeamTray plan={plan} deck={deck} wish={wish} ramen={ramen} between={ctl.between.value} onToggle={toggle} onRamen={setRamen} onGo={depart} onBack={() => leave(r)} />
       ) : null}
       {r.mode === 'sandbox' && ready ? <SandboxPanel ctl={ctl} r={r} /> : null}
+      {ctl.drop.value && !newFriend ? <CardDropLayer drop={ctl.drop.value} rootRef={rootRef} onBack={onBack} onTaken={setNewFriend} /> : null}
+      {newFriend ? (
+        <NewFriendSheet
+          id={newFriend}
+          onBack={onBack}
+          onNext={() => {
+            setNewFriend(null);
+            ctl.reportNow();
+          }}
+        />
+      ) : null}
       {ctl.paused.value && !result ? <PauseSheet ctl={ctl} r={r} /> : null}
       {result ? <ResultSheet r={r} end={result.end} reward={result.reward} /> : null}
     </div>
@@ -509,10 +553,90 @@ function TeamTray(p: {
   );
 }
 
-/** The friend on a card: what will appear on the field, close up (art/spec/cards.ts frames each one). */
-function CardFigure({ card }: { card: CardView }) {
-  const { zoom, x, y } = CARD_LOOKS[card.id];
-  return <img class="figure" src={art.imageUrl(`sprites/${card.sprite}/idle_1`)} style={{ '--zoom': zoom, '--x': x, '--y': y } as Record<string, number>} alt="" draggable={false} />;
+/** The dropped card on the field (CSS px at --ui 1, as in .card-drop): a little bigger than the cards in the column. */
+const DROP_W = 88;
+const DROP_H = 66;
+/** When, in its pop out of the enemy, the card is heard (ms). */
+const DROP_POP_MS = 250;
+/** How long a picked-up card takes to fly to the middle of the screen (ms). */
+const DROP_TAKE_MS = 450;
+
+/** A new friend's card, dropped by the last enemy to fall (owner's call, 2026-11-10, as PvZ's last zombie drops a seed
+ *  packet: casual players skipped the report, and with it who had joined). It pops out of the enemy, lands a little
+ *  nearer the base and waits there, bobbing in a gold glow, until it is tapped (or the system back gesture is made);
+ *  then it flies to the middle of the screen, growing, and the friend is shown (NewFriendSheet). With reduced motion it
+ *  is simply there, and the friend is shown at once. */
+function CardDropLayer({
+  drop,
+  rootRef,
+  onBack,
+  onTaken,
+}: {
+  drop: CardDrop;
+  rootRef: { current: HTMLDivElement | null };
+  onBack: { current: (() => void) | null };
+  onTaken: (id: string) => void;
+}) {
+  const calm = save.value.settings.reducedMotion;
+  const [spot, setSpot] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const [taken, setTaken] = useState(false);
+  const timer = useRef(0);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    // The open field: right of the card column, under the top strip.
+    const box = root.getBoundingClientRect();
+    const rail = root.querySelector('.rail')?.getBoundingClientRect();
+    const hud = root.querySelector('.hud-top')?.getBoundingClientRect();
+    const open = { left: rail ? rail.right - box.left : 0, top: hud ? hud.bottom - box.top : 0, right: box.width, bottom: box.height };
+    const from = drop.from ? { x: drop.from.x - box.left, y: drop.from.y - box.top } : null;
+    // On big screens the card grows with the card column (--ui).
+    const ui = parseFloat(getComputedStyle(root).getPropertyValue('--ui')) || 1;
+    // Not on the win's banner (「討伐完了！」): its full size about its centre, as it is still growing in.
+    const banner = root.querySelector<HTMLElement>('.banner');
+    const b = banner?.getBoundingClientRect();
+    const avoid =
+      banner && b
+        ? {
+            left: b.left + b.width / 2 - banner.offsetWidth / 2 - box.left,
+            right: b.left + b.width / 2 + banner.offsetWidth / 2 - box.left,
+            top: b.top + b.height / 2 - banner.offsetHeight / 2 - box.top,
+            bottom: b.top + b.height / 2 + banner.offsetHeight / 2 - box.top,
+          }
+        : null;
+    const at = dropLanding(from, open, { w: DROP_W * ui, h: DROP_H * ui }, avoid);
+    // Where it pops out, from where it lands (with nowhere to pop out from, it drops in from above).
+    setSpot({ ...at, dx: from ? from.x - at.x : 0, dy: from ? from.y - at.y : -60 });
+    timer.current = window.setTimeout(() => audio.sfx('sfx_sprout'), calm ? 0 : DROP_POP_MS);
+    return () => window.clearTimeout(timer.current);
+  }, []);
+  const take = () => {
+    if (taken) return;
+    setTaken(true);
+    audio.sfx('sfx_card');
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => onTaken(drop.id), calm ? 0 : DROP_TAKE_MS);
+  };
+  useEffect(() => {
+    onBack.current = take;
+    return () => {
+      if (onBack.current === take) onBack.current = null;
+    };
+  });
+  if (!spot) return null;
+  return (
+    <button
+      type="button"
+      class={`card-drop${taken ? ' taken' : ''}`}
+      style={{ left: taken ? '50%' : `${spot.x}px`, top: taken ? '50%' : `${spot.y}px`, '--dx': `${spot.dx}px`, '--dy': `${spot.dy}px` } as Record<string, string>}
+      aria-label={t('drop.card', { name: nameOf(drop.id) })}
+      onClick={take}
+    >
+      <span class="card-drop-glow">
+        <CardLook id={drop.id} />
+      </span>
+    </button>
+  );
 }
 
 /** The cards stand in a column down the left edge, by the thumb. They shrink to fit the team, so none ever scroll out of
@@ -623,7 +747,7 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
             onContextMenu={(e) => e.preventDefault()}
           >
             <span class="face">
-              <CardFigure card={c} />
+              <CardFigure id={c.id} sprite={c.sprite} />
               <span class="cost">{c.cost}</span>
             </span>
             {c.star ? (
@@ -754,8 +878,6 @@ function hintFor(levelId?: string): string {
 const DONE_STAMP = '討伐\n完了';
 /** How long the report is up before the hand stamp comes for it (ms): the stars have popped in by then. */
 const STAMP_AFTER_MS = 900;
-/** How tall a friend who has just joined stands on the report (CSS px). */
-const NEW_FRIEND_PX = 106;
 
 /** 労働の鎧さん beside the report: thanking the player, or scratching his head over a job that went wrong. */
 const yoroiPicture = (sad: boolean) => art.imageUrl(sad ? 'ui/report_yoroi_concerned' : 'ui/report_yoroi_bow');
@@ -776,25 +898,49 @@ function ReportYoroi({ sad, bowed }: { sad: boolean; bowed: boolean }) {
   );
 }
 
-/** Who has just joined: standing as they do in battle (the team of four, who have no one picture, by their card's face),
- *  their name and what they do. A long description is cut short here; a tap opens all of it. */
-function NewFriend({ id }: { id: string }) {
-  const sprite = spriteFor(spriteIdFor('ally', id));
-  const idle = sprite?.anims.idle;
-  const src = sprite && idle ? art.imageUrl(`sprites/${sprite.id}/idle_1`) : art.portraitUrl(id);
-  const ratio = idle ? idle.w / idle.h : 1;
+/** ラーメンの鎧さん beside the question about the shop: the owner's picture, arms folded, in the same frame as 労働の鎧さん's
+ *  beside the report, cut at the waist. */
+const shopYoroiPicture = () => art.imageUrl('ui/shop_reminder_yoroi');
+
+/** ラーメンの鎧さん, the shop's master, beside the question about the shop: he comes up from below the screen and stands
+ *  breathing, as 労働の鎧さん does beside the report. */
+function ShopYoroi() {
   return (
-    <button type="button" class="report-friend" onClick={tap(() => showDetails(id))}>
-      <span class="ink-plate report-tag">
-        <PlatePaper />
-        {t('result.newCard')}
-      </span>
-      <span class="report-friend-pic" style={{ width: `${Math.round(NEW_FRIEND_PX * ratio)}px`, height: `${NEW_FRIEND_PX}px` }}>
-        <CutOut src={src} px={Math.round(NEW_FRIEND_PX * Math.max(1, ratio))} />
-      </span>
-      <span class="report-name">{nameOf(id)}</span>
-      <span class="report-does">{t(`card.${id}.ability`)}</span>
-    </button>
+    <div class="report-yoroi shop-yoroi">
+      <div class="report-yoroi-bow">
+        <div class="report-yoroi-pic">
+          <CutOut src={shopYoroiPicture()} px={yoroiPx()} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The question about the shop: what ラーメンの鎧さん says, then the good it is about as the shop's price list shows it (its
+ *  sticker, name, what it does, and its price run over with the highlighter), then the question. */
+function ShopAsk({ offer }: { offer: Offer }) {
+  const item = offer.item;
+  // Until the owner draws their shop picture, a friend on sale shows their face, as on the price list.
+  const face = !!item.card && !art.isReal(`shop/item_${item.id}`);
+  return (
+    <div class="shop-ask-body">
+      <div class="seller-who">{nameOf('yoroi_ramen')}</div>
+      <p class="seller-says">{t('nudge.says')}</p>
+      <div class="good">
+        <span class={face ? 'good-pic friend' : 'good-pic'}>
+          {face ? <CutOut src={art.portraitUrl(item.card!)} px={84} /> : <StickerIcon k={`shop/item_${item.pic ?? item.id}`} px={72} />}
+        </span>
+        <span class="good-text">
+          <span class="good-name">{goodName(item)}</span>
+          <span class="good-desc">{goodDesc(item, 0)}</span>
+        </span>
+        <span class="good-price">
+          <Icon name="coin" size={18} />
+          <span class="hl">{offer.price.toLocaleString()}</span>
+        </span>
+      </div>
+      <p class="shop-ask-q">{t('nudge.question')}</p>
+    </div>
   );
 }
 
@@ -824,13 +970,42 @@ function ResultSheet({ r, end, reward }: { r: BattleRoute; end: BattleEnd; rewar
   const nextId = level ? nextLevelId(level.id) : null;
   const canNext = end.won && nextId && levelUnlocked(nextId);
   const retry = () => go({ ...r, ramen: false, nonce: Date.now() }, { replace: true });
+  // The question about the shop as 次へ starts a new world (askAboutShop). It takes the report's place, ラーメンの鎧さん in
+  // 労働の鎧さん's, until it is answered; a tap beside it, Escape or the back gesture put it away for the report again.
+  const [asking, setAsking] = useState<Offer | null>(null);
+  const letGo = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    if (!asking) return;
+    letGo.current = closeOnBack(() => setAsking(null));
+    // Its buttons in reach of the keyboard, the report's 次へ having gone.
+    document.querySelector<HTMLElement>('.sheet.shop-ask .sheet-actions .btn.primary')?.focus({ preventScroll: true });
+    return () => {
+      letGo.current?.();
+      letGo.current = null;
+    };
+  }, [asking]);
+  // An answer leaves the battle: the back gesture is let go first, so the step back it takes is not taken for closing.
+  const answer = (fn: () => void) => () => {
+    letGo.current?.();
+    letGo.current = null;
+    fn();
+  };
+  const onNext = () => {
+    const offer = askAboutShop(r, nextId!);
+    if (offer) setAsking(offer);
+    else playOn(r, nextId!);
+  };
+  // ラーメンの鎧さん is cut out while the report is up, so he is there as soon as the question is.
+  useEffect(() => {
+    if (canNext && shopAsk(r.levelId, nextId!)) void warmCutOut(shopYoroiPicture(), yoroiPx());
+  }, []);
   const actions = (
     <>
       <button class="btn grow" onClick={tap(() => leave(r))}>
         <Icon name="back" /> {t('result.map')}
       </button>
       {canNext ? (
-        <button class="btn primary grow" onClick={tap(() => playOn(r, nextId!))}>
+        <button class="btn primary grow" onClick={tap(onNext)}>
           {t('result.next')}
         </button>
       ) : (
@@ -881,9 +1056,30 @@ function ResultSheet({ r, end, reward }: { r: BattleRoute; end: BattleEnd; rewar
   const cars = !!level?.rescues;
   const goals = cars ? ['goalDone', 'goalOneCar', 'goalNoCars'] : ['goalDone', 'goalNobody', 'goalHeld'];
   return (
-    <Sheet class={reward.newCard ? 'report' : 'report solo'} title={t('result.win')} tone="var(--green)" actions={actions} aside={<ReportYoroi sad={false} bowed={bowed} />}>
-      <div class="report-grid">
-        {reward.newCard ? <NewFriend id={reward.newCard} /> : null}
+    <Sheet
+      class={asking ? 'report solo shop-ask' : 'report solo'}
+      title={asking ? t('lobby.shop') : t('result.win')}
+      tone={asking ? SHOP_TONE : 'var(--green)'}
+      actions={
+        asking ? (
+          <>
+            <button class="btn grow" onClick={tap(answer(() => playOn(r, nextId!)))}>
+              {t('nudge.keepGoing')}
+            </button>
+            <button class="btn primary grow" onClick={tap(answer(() => toShop(r, nextId!, asking)))}>
+              {t('nudge.toShop')}
+            </button>
+          </>
+        ) : (
+          actions
+        )
+      }
+      aside={asking ? <ShopYoroi key="shop" /> : <ReportYoroi key="report" sad={false} bowed={bowed} />}
+      onClose={asking ? () => setAsking(null) : undefined}
+    >
+      {asking ? <ShopAsk offer={asking} /> : null}
+      {/* Kept while the question is up, so the report comes back as it was (its stamp pressed once). */}
+      <div class="report-grid" style={asking ? { display: 'none' } : undefined}>
         <div class="report-sum">
           <div class="report-level">{levelName}</div>
           <div class="report-goals" aria-label={`${reward.stars}/3`}>

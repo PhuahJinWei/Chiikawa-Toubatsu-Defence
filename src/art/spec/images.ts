@@ -198,7 +198,8 @@ export const UI_ICONS: ImageSpec[] = [
 ];
 
 /** Things the game shows for a moment: the hand stamp (判子) seen from above, which presses a red stamp onto the paper
- *  the moment one is earned (and is then taken away), and 労働の鎧さん standing beside the report at the end of a job. */
+ *  the moment one is earned (and is then taken away), 労働の鎧さん standing beside the report at the end of a job, and
+ *  ラーメンの鎧さん beside the question about the shop as a new world starts. */
 export const UI_PROPS: ImageSpec[] = [
   {
     key: 'ui/hand_stamp',
@@ -228,6 +229,16 @@ export const UI_PROPS: ImageSpec[] = [
     note: {
       ja: '討伐報告のとなりに立つ労働の鎧さん（討伐失敗）：頭をかいて心配そう。腰から上だけの絵で、腰の線は画面の下にかくれます。背景は透明。ゲームが左右反転して使います。',
       en: 'Labour 鎧さん beside the report when a job has failed: scratching his head, concerned. From the waist up (the waist goes below the bottom of the screen). Transparent background. The game mirrors it.',
+    },
+  },
+  {
+    key: 'ui/shop_reminder_yoroi',
+    kind: 'icon',
+    w: 671,
+    h: 768,
+    note: {
+      ja: 'お店にさそうラーメンの鎧さん（ワールドのさいごの討伐のあと、次のワールドの前に）：腕を組んで。討伐報告の鎧さんと同じ大きさで、腰から上だけの絵。腰の線は画面の下にかくれます。背景は透明。',
+      en: 'Ramen 鎧さん asking whether to stop by the shop (after a world\'s last job, before the next world): arms folded. The same frame as the report\'s 鎧さん, from the waist up (the waist goes below the bottom of the screen). Transparent background.',
     },
   },
 ];

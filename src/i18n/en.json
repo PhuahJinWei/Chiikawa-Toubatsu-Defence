@@ -27,6 +27,7 @@
     "play": "Play",
     "gallery": "Gallery",
     "shop": "Shop",
+    "shopNew": "Shop (something to buy)",
     "settings": "Settings"
   },
   "quests": {
@@ -156,6 +157,16 @@
     "note": "The game reloads; your save stays as it is.",
     "now": "Update",
     "applying": "Updating…"
+  },
+  "nudge": {
+    "says": "You've saved up a fair bit. This is within reach now.",
+    "question": "Stop by the shop before the next world?",
+    "toShop": "To the shop",
+    "keepGoing": "Keep going"
+  },
+  "drop": {
+    "card": "{name}'s card",
+    "next": "Next"
   },
   "banner": {
     "ready": "Ready…",

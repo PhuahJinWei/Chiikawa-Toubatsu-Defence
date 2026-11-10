@@ -4,7 +4,7 @@ import { batch, signal } from '@preact/signals';
 import { spriteIdFor, STAR_SPRITE } from '../art/spec';
 import { audio } from '../audio/audio';
 import { nameOf, t } from '../i18n/i18n';
-import { colOfY, STEP_MS } from './sim/constants';
+import { colOfY, laneX, STEP_MS } from './sim/constants';
 import { fallMsOf } from './sim/tempo';
 import { ENEMIES, summonsOf, UNITS, waterOf, WORLDS } from './sim/defs';
 import { EndlessWaves } from './sim/endless';
@@ -17,6 +17,13 @@ import { WEED_TUG_MS, WeedFlights } from './render/weedFlight';
 import { type SandboxSetup, SandboxWaves, sandboxEnemies, simForSandbox } from './sim/sandbox';
 import { type PlaceCheck, Sim, simForEndless, simForLevel } from './sim/sim';
 import type { Ally, DevRules, Enemy, LevelDef, Pickup, SimEvent, SimStats, SpawnDef } from './sim/types';
+
+/** How high on the fallen enemy a dropped card pops out (field units above the ground). */
+const DROP_FROM_H = 60;
+/** How long after a win the field behind a dropped card goes on being drawn (ms of game time): every fall has played out
+ *  by then (the slowest, a boss's, takes 4.5 s). After that it is left as it is, to spare the battery while the card
+ *  waits. */
+const DROP_STILL_MS = 6000;
 
 export interface CardView {
   /** The friend the card places, whose picture and words it shows (for 星's card, the friend wished for). */
@@ -43,6 +50,13 @@ export interface BattleEnd {
   timeMs: number;
 }
 
+/** A friend who has just joined, as their card dropped by the last enemy to fall (owner's call, 2026-11-10, as PvZ's last
+ *  zombie drops a seed packet). `from`: where it pops out, in client coordinates (null when the field cannot say). */
+export interface CardDrop {
+  id: string;
+  from: { x: number; y: number } | null;
+}
+
 interface BattleConfig {
   /** `sandbox`: dev mode's testing ground (see sim/sandbox.ts), set by `sandbox` with `devRules`. */
   mode: 'level' | 'endless' | 'sandbox';
@@ -63,8 +77,10 @@ interface BattleConfig {
   onDefeated: (enemyId: string) => void;
   onMet: (id: string) => void;
   /** The battle is decided: record it now. The report (onEnd) waits for the last enemy to fall, and the game may be
-   *  closed or left in between (a win was only saved with the report until the 2026-11-10 audit). */
-  onResult: (end: BattleEnd) => void;
+   *  closed or left in between (a win was only saved with the report until the 2026-11-10 audit). A friend who has just
+   *  joined comes back as `drop`: the last enemy to fall drops their card (`drop` signal), and the report waits until
+   *  it has been picked up and looked at (reportNow). */
+  onResult: (end: BattleEnd) => { drop?: string } | void;
   onEnd: (end: BattleEnd) => void;
   /** Whether a pop-up is up over the battle (a question, a friend's page): the keys are its own while it is. */
   popUp?: () => boolean;
@@ -157,6 +173,8 @@ export class BattleController {
   readonly stage = signal(1);
   /** Endless mode: between stages (getting ready for the next), the run so far at stake. */
   readonly between = signal(false);
+  /** A new friend's card, dropped by the last enemy to fall, waiting on the field to be picked up. */
+  readonly drop = signal<CardDrop | null>(null);
   /** The battle has begun once: getting ready again is between endless stages. */
   private began = false;
   /** Endless mode: the run's seed, kept while the team is picked (each pick makes the sim again), so the stages it
@@ -185,6 +203,8 @@ export class BattleController {
   /** The report is up: the field is finished with (see loop). */
   private reported = false;
   private endTimer = 0;
+  /** The battle's end, kept while a dropped card waits to be picked up (see reportNow). */
+  private pending: BattleEnd | null = null;
   /** Time (ms, at the game's speed) since the battle was won: the sim stops, but the last falls play out. */
   private afterMs = 0;
   private playMs = 0;
@@ -325,7 +345,9 @@ export class BattleController {
     } else if (this.ended && this.status.value === 'won' && !this.paused.value) this.afterMs += dt * this.speed.value;
     // A paused field cannot change, so it is drawn once and left alone (the testing ground's panel can still change it);
     // so is a finished one once its report is up (after a loss it was redrawn, unchanging, every frame).
-    const still = (this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox') || this.reported;
+    // So is the field behind a dropped card, once everyone has finished falling: the card may wait there a long time.
+    const still =
+      (this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox') || this.reported || (!!this.drop.value && this.afterMs > DROP_STILL_MS);
     if (!still || !this.stillDrawn || this.renderer?.needsRebuild) {
       this.renderer?.render(this.paused.value || this.hold.value ? 0 : this.acc / STEP_MS, this.renderUi());
     }
@@ -588,9 +610,16 @@ export class BattleController {
       timeMs: this.playMs,
     };
     // Recorded at once. The report waits for the last one still falling (a boss falls slowly).
-    this.cfg.onResult(end);
+    const after = this.cfg.onResult(end);
     // No shaking on past the end: after a loss the field's clock stops, and a shake under way never ended.
     this.renderer?.calmShake();
+    // A friend who has just joined: the last enemy to fall drops their card, and the report waits until it is picked up.
+    const drop = won ? after?.drop : undefined;
+    if (drop) {
+      this.pending = end;
+      this.drop.value = { id: drop, from: this.lastFallen() };
+      return;
+    }
     let falling = 0;
     if (won) {
       for (const e of this.sim.enemies) {
@@ -604,6 +633,23 @@ export class BattleController {
       },
       Math.max(1700, Math.min(4500, falling / this.speed.value + 400)),
     );
+  }
+
+  /** Where the last enemy to fall is, at the height of its body, for the card it drops. */
+  private lastFallen(): { x: number; y: number } | null {
+    let last: Enemy | null = null;
+    for (const e of this.sim.enemies) if (e.state === 'collapse' && (!last || e.collapseAt > last.collapseAt)) last = e;
+    return last && this.renderer ? this.renderer.toClient(laneX(last.lane), last.y, DROP_FROM_H) : null;
+  }
+
+  /** The dropped card has been picked up and its friend looked at: the report comes up. */
+  reportNow(): void {
+    const end = this.pending;
+    if (!end) return;
+    this.pending = null;
+    this.drop.value = null;
+    this.reported = true;
+    this.cfg.onEnd(end);
   }
 
   // ------------------------------------------------------------ getting ready

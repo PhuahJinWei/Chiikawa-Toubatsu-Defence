@@ -14,6 +14,10 @@ export const DARK_SHAPE = '#6B5646';
 /** The red stamp on a boss (the level sheet, the job notice and its details card): Japanese in either language. */
 export const BOSS_STAMP = 'ボス';
 
+/** The red stamp on a friend who has joined (the なかま屋's price list, a new friend's page): Japanese in either
+ *  language, like the game's other stamps. */
+export const JOINED_STAMP = 'なかま\n入り';
+
 /** A loop drawn round something with a pink pen, clockwise from the top and a little past where it began; it draws
  *  itself each time it appears. It means "this one" (the chosen sticker, the level to play), never decoration. */
 export function PenLoop({ class: cls }: { class?: string }) {

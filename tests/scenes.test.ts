@@ -149,8 +149,8 @@ describe('scene specs', () => {
     }
   });
 
-  it('plans the hand stamp that presses each red stamp, with its sound, and 鎧さん beside the job report', () => {
-    expect(UI_PROPS.map((i) => i.key)).toEqual(['ui/hand_stamp', 'ui/report_yoroi_bow', 'ui/report_yoroi_concerned']);
+  it('plans the hand stamp that presses each red stamp, with its sound, 鎧さん beside the job report, and ラーメンの鎧さん beside the question about the shop', () => {
+    expect(UI_PROPS.map((i) => i.key)).toEqual(['ui/hand_stamp', 'ui/report_yoroi_bow', 'ui/report_yoroi_concerned', 'ui/shop_reminder_yoroi']);
     for (const i of UI_PROPS) expect(ALL_IMAGES.some((x) => x.key === i.key)).toBe(true);
     expect(SOUNDS.some((s) => s.id === 'sfx_stamp')).toBe(true);
   });

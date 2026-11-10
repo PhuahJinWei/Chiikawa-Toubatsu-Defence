@@ -10,6 +10,7 @@ import { MoneyPill, tap } from '../components/ui';
 import { canFullscreen, isFullscreen, toggleFullscreen } from '../fullscreen';
 import { installState, promptInstall } from '../install';
 import { applyUpdate, updateLater, updateReady, updating } from '../update';
+import { shopOffer } from '../shopping';
 import { clearedCount, noteMet } from '../progress';
 import { boardMemory, go } from '../router';
 import { Diorama } from '../scene/Diorama';
@@ -44,6 +45,7 @@ export function Lobby() {
   // Offered only where there is a way to do it: the browser's own prompt, or the steps to follow on iOS.
   // A new version waiting comes first: it says so in the install card's place, with a button to take it in now.
   const showUpdate = updateReady.value && !updateLater.value;
+  const buyable = !!shopOffer();
   const showInstall = !showUpdate && clearedCount() > 0 && !s.installDismissed && (installState.value === 'available' || installState.value === 'ios');
   const open = (name: 'book' | 'shop') => tap(() => go({ name }));
   return (
@@ -96,8 +98,14 @@ export function Lobby() {
           <button type="button" class="game-btn gallery" style={shape('ui/button_book')} aria-label={t('lobby.gallery')} onClick={open('book')}>
             <StickerIcon k="ui/button_book" px={180} />
           </button>
-          <button type="button" class="game-btn shop" style={shape('ui/button_shop')} aria-label={t('lobby.shop')} onClick={open('shop')}>
+          <button type="button" class="game-btn shop" style={shape('ui/button_shop')} aria-label={buyable ? t('lobby.shopNew') : t('lobby.shop')} onClick={open('shop')}>
             <StickerIcon k="ui/button_shop" px={180} />
+            {/* Something lasting there can be bought now (owner's call, 2026-11-10: casual players forgot the shop). */}
+            {buyable ? (
+              <span class="shop-badge" aria-hidden="true">
+                <Icon name="coin" />
+              </span>
+            ) : null}
           </button>
           <button
             type="button"

@@ -47,6 +47,8 @@ export interface SaveData {
   /** The friend 星 last turned into (its wish, picked when it joins the team), kept with the team. */
   wish: string | null;
   installDismissed: boolean;
+  /** Questions asked once already: shop:<world>, whether to stop by the shop as that world starts (app/shopping.ts). */
+  asked: string[];
 }
 
 export function defaultSave(lang: 'ja' | 'en' = 'ja'): SaveData {
@@ -70,6 +72,7 @@ export function defaultSave(lang: 'ja' | 'en' = 'ja'): SaveData {
     lastDeck: [],
     wish: null,
     installDismissed: false,
+    asked: [],
   };
 }
 
