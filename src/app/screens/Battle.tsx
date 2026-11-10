@@ -16,10 +16,12 @@ import { StarMark } from '../components/PaperMarks';
 import { PlatePaper } from '../components/Plate';
 import { BackButton, confirm, Notice, Sheet, Switch, tap, toast } from '../components/ui';
 import { SANDBOX_RULES, SandboxPanel, sandboxWish } from '../components/SandboxPanel';
+import { DEBUG_ON } from '../../dev';
 import { askWish } from '../components/Wish';
 import { sandboxTeam, worldHasCars } from '../../game/sim/sandbox';
 import {
   applyResult,
+  attemptOf,
   deckSize,
   defaultDeck,
   endlessPool,
@@ -33,14 +35,13 @@ import {
   noteMet,
   noteSeen,
   ownedCards,
-  recordAttemptStart,
   type Reward,
   rewardFor,
   startBonus,
   wishable,
   wishFor,
 } from '../progress';
-import { backInBattle, ENDLESS_PAPER, go, type Route, up } from '../router';
+import { backInBattle, battleParent, go, type Route, up, upThen } from '../router';
 
 type BattleRoute = Extract<Route, { name: 'battle' }>;
 
@@ -88,15 +89,14 @@ function planFor(r: BattleRoute): Plan {
   };
 }
 
-/** Back to where the job was picked: its job notice (or the world's quest), the quest board for endless mode, or the
- *  lobby from the testing ground. */
+/** Back to where the job was picked. */
 function leave(r: BattleRoute): void {
-  if (r.mode === 'sandbox') {
-    up({ name: 'lobby' });
-    return;
-  }
-  const level = r.levelId ? LEVELS[r.levelId] : undefined;
-  up(level ? { name: 'quest', world: level.world, ...(r.team ? { level: level.id } : {}) } : { name: 'quests', focus: ENDLESS_PAPER });
+  up(battleParent(r));
+}
+
+/** On to the next job: its notice, in the place of the one this battle was set off from. */
+function playOn(r: BattleRoute, nextId: string): void {
+  upThen(battleParent(r), { name: 'quest', world: LEVELS[nextId].world, level: nextId });
 }
 
 export function Battle({ r }: { r: BattleRoute }) {
@@ -120,6 +120,8 @@ export function Battle({ r }: { r: BattleRoute }) {
     const sandbox = r.mode === 'sandbox';
     // The testing ground records nothing: what is met or beaten there is not noted, and it never ends.
     const quiet = () => {};
+    // What the battle earned, worked out and saved the moment it is decided, shown when the report comes up.
+    let reward: Reward | null = null;
     return new BattleController({
       mode: r.mode,
       level,
@@ -132,20 +134,24 @@ export function Battle({ r }: { r: BattleRoute }) {
       lineup: plan.lineup,
       picking: !fromNotice && (plan.choose || plan.tickets > 0),
       autoCollect: s.settings.autoCollect,
-      attempt: level ? recordAttemptStart(level.id) : 0,
+      attempt: level ? attemptOf(level.id) : 0,
       endlessPool: r.mode === 'endless' ? endlessPool() : undefined,
       settings: () => save.value.settings,
       onSeen: sandbox ? quiet : noteSeen,
       onDefeated: sandbox ? quiet : noteDefeated,
       onMet: sandbox ? quiet : noteMet,
-      onEnd: (end) => {
+      onResult: (end) => {
         flushGallery();
-        const reward = rewardFor(end);
+        reward = rewardFor(end);
         applyResult(end, reward);
+      },
+      onEnd: (end) => {
+        if (!reward) return;
         setResult({ end, reward });
         if (reward.newCard) audio.sfx('sfx_unlock');
         else if (reward.total > 0) audio.sfx('sfx_coin');
       },
+      popUp: () => !!document.querySelector('.dialog'),
     });
     // The route nonce makes "retry" build a fresh controller.
   }, [r.nonce]);
@@ -154,13 +160,23 @@ export function Battle({ r }: { r: BattleRoute }) {
   useEffect(() => {
     let alive = true;
     const canvas = canvasRef.current;
-    art.load(ctl.artKeys()).then(() => {
-      if (!alive || !canvas) return;
-      ctl.speed.value = r.mode !== 'sandbox' && save.value.features.speed ? save.value.settings.speed : 1;
-      ctl.attach(canvas);
-      window.__ctdBattle = ctl;
-      setReady(true);
-    });
+    art
+      .load(ctl.artKeys())
+      .then(() => {
+        if (!alive || !canvas) return;
+        ctl.speed.value = r.mode !== 'sandbox' && save.value.features.speed ? save.value.settings.speed : 1;
+        ctl.attach(canvas);
+        if (DEBUG_ON) window.__ctdBattle = ctl;
+        setReady(true);
+      })
+      .catch((err: unknown) => {
+        // The field could not be set up (no canvas drawing on this device): say so and go back, rather than leave the
+        // loading screen up for good.
+        console.error(err);
+        if (!alive) return;
+        toast(t('battle.failed'), 'bad');
+        leave(r);
+      });
     audio.playMusic(ctl.worldBgm());
     return () => {
       alive = false;
@@ -496,11 +512,33 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
   const cards = ctl.cards.value;
   const sel = ctl.selected.value;
   const [info, setInfo] = useState<number | null>(null);
-  const press = useRef<{ i: number; timer: number; long: boolean } | null>(null);
+  /** The card being pressed, by the finger (`id`) pressing it. */
+  const press = useRef<{ i: number; timer: number; long: boolean; id: number } | null>(null);
+
+  // However the finger that pressed a card leaves (let go anywhere, or taken over by the browser), the press is over.
+  // The card's own handlers come first; this tidies up after a finger let go somewhere else.
+  useEffect(() => {
+    const over = (ev: PointerEvent) => {
+      const p = press.current;
+      if (!p || p.id !== ev.pointerId) return;
+      press.current = null;
+      window.clearTimeout(p.timer);
+      if (p.long) setInfo(null);
+    };
+    window.addEventListener('pointerup', over);
+    window.addEventListener('pointercancel', over);
+    return () => {
+      window.removeEventListener('pointerup', over);
+      window.removeEventListener('pointercancel', over);
+    };
+  }, []);
 
   const down = (i: number) => (ev: PointerEvent) => {
     audio.unlock();
-    const p = { i, timer: 0, long: false };
+    // One card at a time: a second finger on the column while one is down does nothing.
+    if (press.current && press.current.id !== ev.pointerId) return;
+    if (press.current) window.clearTimeout(press.current.timer);
+    const p = { i, timer: 0, long: false, id: ev.pointerId };
     p.timer = window.setTimeout(() => {
       if (ctl.cardDragged) return;
       p.long = true;
@@ -509,24 +547,26 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
     press.current = p;
     ctl.beginCardDrag(i, ev);
   };
-  const up = (i: number) => () => {
+  const up = (i: number) => (ev: PointerEvent) => {
     const p = press.current;
+    // Only the finger that pressed the card lets it go.
+    if (!p || p.id !== ev.pointerId) return;
     press.current = null;
-    if (!p || p.i !== i) return;
     window.clearTimeout(p.timer);
     if (p.long) {
       setInfo(null);
       return;
     }
     // A tap picks the card up. A drag picked it up as it left the card, and goes down where it is let go.
-    if (!ctl.cardDragged) ctl.selectCard(i);
+    if (p.i === i && !ctl.cardDragged) ctl.selectCard(i);
   };
-  const cancel = () => {
+  const cancel = (ev: PointerEvent) => {
     const p = press.current;
+    if (p && p.id !== ev.pointerId) return;
     if (p) window.clearTimeout(p.timer);
     press.current = null;
     setInfo(null);
-    ctl.cancelCardDrag();
+    ctl.cancelCardDrag(ev.pointerId);
   };
 
   const infoCard = info !== null ? cards[info] : null;
@@ -553,9 +593,9 @@ function CardRail({ ctl, onRemove, offstage }: { ctl: BattleController; onRemove
             onPointerDown={onRemove ? undefined : down(i)}
             onPointerUp={onRemove ? undefined : up(i)}
             onPointerCancel={cancel}
-            onPointerLeave={() => {
+            onPointerLeave={(ev) => {
               const p = press.current;
-              if (p && !p.long) window.clearTimeout(p.timer);
+              if (p && p.id === ev.pointerId && !p.long) window.clearTimeout(p.timer);
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
@@ -757,7 +797,7 @@ function ResultSheet({ r, end, reward }: { r: BattleRoute; end: BattleEnd; rewar
         <Icon name="back" /> {t('result.map')}
       </button>
       {canNext ? (
-        <button class="btn primary grow" onClick={tap(() => go({ name: 'quest', world: LEVELS[nextId!].world, level: nextId! }, { replace: true }))}>
+        <button class="btn primary grow" onClick={tap(() => playOn(r, nextId!))}>
           {t('result.next')}
         </button>
       ) : (

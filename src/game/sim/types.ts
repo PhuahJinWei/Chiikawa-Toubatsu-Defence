@@ -17,8 +17,6 @@ interface AllyAttackDef {
   rangeTiles?: number;
   /** Visual id of the projectile or jab effect. */
   fx?: string;
-  /** Extra damage to every enemy in the tile directly behind the target. */
-  splashBehind?: number;
   /** A lob that splashes where it lands (栗まんじゅう's can, owner's call 2026-11-07: PvZ's melon-pult): every enemy
    *  within this many lanes and tiles of the spot takes the blow (1: the 3×3 tiles round it). */
   splashTiles?: number;
@@ -32,8 +30,9 @@ interface AllyAttackDef {
   /** Its blows go straight through armour (ラッコ, who once beat the horned bug Chiikawa could not, v2). */
   ignoresArmor?: boolean;
   /** A hitscan sweep (ラッコ's sword, owner's call 2026-11-07): each blow also strikes every enemy within reach in this
-   *  many lanes either side of its own, each enemy once; it swings when any of those lanes has one. Only what is in front
-   *  of him (owner's call 2026-11-09): the tile ahead, and whoever is at his tile's front edge, never anyone level with him. */
+   *  many lanes either side of its own, each enemy once; it swings when any of those lanes has one. Its reach is the same
+   *  in every lane it cuts: from his own tile, so whoever is level with him, to the tiles ahead (owner's call 2026-11-10,
+   *  in place of the 2026-11-09 rule that spared anyone level with him). */
   sweepLanes?: number;
   /** Shots in each attack, one after another a moment apart (古本屋, owner's call 2026-11-08: two at a time). */
   volley?: number;
@@ -76,17 +75,17 @@ type OneUseDef =
    *  sprints the whole length of it, like Rakko's car: every enemy on the ground he runs into is defeated (a boss takes RESCUE_BOSS_DAMAGE, as from
    *  the car). Fliers are overhead: he runs under them. */
   | { kind: 'charge' }
-  /** むちゃうマン (owner's call, 2026-11-08): he appears on the tile and strikes a pose, and then every enemy on the
-   *  field freezes for `freezeMs` (no walking, biting or abilities; they can still be hit); then he is gone. */
+  /** むちゃうマン (owner's call, 2026-11-08): he appears on the tile and strikes a pose, and then every enemy in play
+   *  freezes for `freezeMs`, those on the road just before the field too, as all of them are on the screen (no walking,
+   *  biting or abilities; they can still be hit); then he is gone. */
   | { kind: 'freeze'; freezeMs: number };
 
 /** Stronger beside a partner (ヒトハ and フタバ, v2): while a friend whose id is `with` stands on the tile right in front
- *  or right behind in its lane, it attacks `attackMul` times as fast and takes `damageMul` times the damage. Both of
- *  the pair throw 1.5× as fast side by side (2026-11-06). */
+ *  or right behind in its lane, it attacks `attackMul` times as fast. Both of the pair throw 1.5× as fast side by side
+ *  (2026-11-06). */
 export interface BondDef {
   with: string;
   attackMul?: number;
-  damageMul?: number;
 }
 
 /** 星 (v2), like PvZ's Imitater: it grants a wish. The player picks a friend for it before setting off, and its card is
@@ -133,7 +132,7 @@ interface EnemyAttackDef {
   kind: 'none' | 'melee' | 'ranged' | 'stomp';
   damage?: number;
   intervalMs?: number;
-  /** 1 = melee contact. 2 = stops one tile earlier (フグ). */
+  /** 1 = melee contact. 3 = stops two tiles earlier (フグ). */
   rangeTiles?: number;
   fx?: string;
   /** How long one swing takes (ms); otherwise by its size (see tempo.ts). */
@@ -149,7 +148,7 @@ export type EnemyAbility =
   /** Heals the enemies within `radiusTiles` lanes and tiles of it: 1 is the 3×3 tiles round it, it in the middle.
    *  `pauseMs`: it stops for this long each time it heals, then moves on; its cooldown starts once the stop is over
    *  (黒い星). */
-  | { kind: 'heal_aura'; amount: number; cooldownMs: number; radiusTiles: number; pauseMs?: number }
+  | { kind: 'heal_aura'; amount: number; cooldownMs: number; radiusTiles: number; pauseMs: number }
   /** 擬態型's lure song: `firstMs` after it comes onto the field, and again `cooldownMs` after each song is over, it
    *  sings as it goes (not a stop), and up to `targets` friends in its lane, however far, picked at random, sway for
    *  `durationMs` (no attacks, no 草, no support). Its blows land `relaxedDamageMul` times as hard on a swaying
@@ -396,6 +395,13 @@ export interface Enemy {
   frozenUntil: number;
   /** How much further it is still being pushed back (travel px), by ハチワレ（パジャマ）'s jab. */
   pushLeft: number;
+  /** The friend ちゅーしです has pounced on (its uid, or -1): it never lunges at that one again. */
+  lungedAt: number;
+  /** The friend it is up against (its uid, or -1), and since when (sim ms). */
+  heldBy: number;
+  heldSince: number;
+  /** The friend an enemy that never attacks (黒い流れ星) is drifting past, held up too long by it (uid, or -1). */
+  driftedPast: number;
 }
 
 export interface Projectile {
@@ -410,7 +416,6 @@ export interface Projectile {
   vy: number;
   damage: number;
   source: string;
-  splashBehind?: number;
   splashTiles?: number;
   slowMs?: number;
   /** `stump`: the column of the stump it was thrown at, when there was no enemy to throw it at. */

@@ -45,7 +45,7 @@ const MORE_SLACK = 4;
  *  Japanese game): it hops now and then, goes once the page is read to its end and comes back if it is scrolled up.
  *  Tapping it scrolls on by most of a page. Put it beside the scrolling element (`scroller`), in a positioned box, and
  *  key it with the page so it measures the new one. */
-export function MoreBelow({ scroller, label }: { scroller: RefObject<HTMLElement>; label: string }) {
+export function MoreBelow({ scroller, label }: { scroller: RefObject<HTMLElement | null>; label: string }) {
   const [more, setMore] = useState(false);
   useEffect(() => {
     const el = scroller.current;

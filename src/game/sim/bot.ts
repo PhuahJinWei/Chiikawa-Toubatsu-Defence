@@ -273,7 +273,12 @@ export class Bot {
   private place(id: string, lane: number, cols: number[]): boolean {
     const i = this.cardIndex(id);
     if (i < 0) return false;
-    for (const col of cols) if (this.sim.canPlace(i, lane, col) === 'ok') return !!this.sim.place(i, lane, col);
+    for (const col of cols) {
+      if (this.sim.canPlace(i, lane, col) !== 'ok') continue;
+      // It goes down: a one-use card stands nowhere afterwards, so place()'s answer does not say whether it went.
+      this.sim.place(i, lane, col);
+      return true;
+    }
     return false;
   }
 

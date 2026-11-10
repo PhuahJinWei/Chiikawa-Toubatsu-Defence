@@ -12,15 +12,18 @@ interface Sticker {
 /** Sticker canvases (border and shadow added) at the resolution the screen needs, built once per picture. */
 export class StickerCache {
   private cache = new Map<string, Sticker>();
-  /** Device pixels per field pixel. */
+  /** Device pixels per field pixel: what the stickers in the cache were cut for. */
   private device = 1;
 
   /** The screen's scale changed: stickers cut for the old one are dropped when it differs enough to show. True when
-   *  they were, so whoever cuts ahead of time (the battle renderer) can start again. */
+   *  they were, so whoever cuts ahead of time (the battle renderer) can start again. Measured from the scale they were
+   *  cut for, not the last one asked about: a window dragged larger a little at a time never counted as changed, and
+   *  kept every sticker cut for its first size (2026-11-10 audit). */
   setDeviceScale(k: number): boolean {
-    const changed = Math.abs(k - this.device) / this.device > 0.12;
-    if (changed) this.cache.clear();
-    this.device = k;
+    // With nothing cut yet there is nothing to drop, or to keep in step with.
+    const changed = this.cache.size > 0 && Math.abs(k - this.device) / this.device > 0.12;
+    if (changed) this.dispose();
+    if (!this.cache.size) this.device = k;
     return changed;
   }
 
@@ -43,7 +46,10 @@ export class StickerCache {
     return st;
   }
 
-  clear(): void {
+  /** Drop every sticker, letting go of its canvas at once (sized to nothing) rather than when the garbage collector
+   *  gets round to it. */
+  dispose(): void {
+    for (const s of this.cache.values()) s.el.width = s.el.height = 0;
     this.cache.clear();
   }
 }

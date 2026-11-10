@@ -5,5 +5,5 @@ dist/
 Thumbs.db
 # Temporary reference images from early brainstorming. Not shipped, not committed (see GDD §20).
 image/
-# Regenerate with `npm run art:kit`.
+# Written by `npm run art:kit`, retired on 2026-11-09 (the in-game Art Kit's ZIP holds the size templates now).
 art-kit/

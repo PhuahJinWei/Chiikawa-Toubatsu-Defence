@@ -3,6 +3,11 @@ import { ENEMIES } from './defs';
 import { expandSpawns, LanePicker, type WaveHost, type WaveSource } from './waves';
 import type { EnemyDef, SpawnDef } from './types';
 
+/** The most enemies one endless wave picks (reached around wave 90): past it, what a wave's growing budget cannot spend
+ *  on more of them makes them tougher instead, so a long run keeps getting harder without crowding a phone's screen.
+ *  (It used to be a loop guard that quietly stopped waves growing at all: 2026-11-10 audit.) */
+const MOST_PER_WAVE = 60;
+
 /** Endless mode (討伐ランキング): procedurally generated waves that never stop. */
 export class EndlessWaves implements WaveSource {
   private wave = 0;
@@ -59,13 +64,19 @@ export class EndlessWaves implements WaveSource {
     const cap = 1 + wave * 0.45;
     const options = this.regular.filter((d) => d.weight <= cap);
     const pool = options.length ? options : [this.regular[0]];
-    let guard = 0;
-    while (budget > 0.5 && guard++ < 60) {
+    const toughness = 1 + Math.max(0, wave - 15) * 0.03;
+    let picked = 0;
+    let spent = 0;
+    for (let tries = 0; budget > 0.5 && picked < MOST_PER_WAVE && tries < MOST_PER_WAVE * 10; tries++) {
       const def = pool[Math.floor(rng.next() * pool.length)];
       if (def.id === 'kuroi_nagareboshi' && spawns.filter((s) => s.enemy === def.id).length >= 2) continue;
-      spawns.push({ enemy: def.id, count: 1, hpMul: 1 + Math.max(0, wave - 15) * 0.03 });
+      spawns.push({ enemy: def.id, count: 1, hpMul: toughness });
       budget -= def.weight;
+      spent += def.weight;
+      picked++;
     }
+    // A full wave: what is left of its budget goes into its enemies' health.
+    if (budget > 0.5 && spent > 0) for (const s of spawns) if (!s.boss) s.hpMul = (s.hpMul ?? 1) * (1 + budget / spent);
     return spawns;
   }
 

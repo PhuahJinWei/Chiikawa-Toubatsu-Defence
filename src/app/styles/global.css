@@ -170,39 +170,16 @@ p {
   display: none;
 }
 .scroll,
-.split > .pane,
 .sheet .sheet-body {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent);
 }
 .scroll::after,
-.split > .pane::after,
 .sheet .sheet-body::after {
   content: '';
   display: block;
   flex: none;
   height: 14px;
-}
-/* Two panes side by side, each scrolling on its own. */
-.split {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 14px;
-  padding: 2px 16px calc(var(--safe-b) + 14px);
-}
-.split > .pane {
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-/* Two columns inside a scrolling page. */
-.duo {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
-  align-items: start;
 }
 @keyframes screen-in {
   from {
@@ -253,16 +230,6 @@ p {
 }
 .bold {
   font-weight: 700;
-}
-.center {
-  text-align: center;
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
 }
 
 /* ------------------------------------------------------------------ header */
@@ -495,53 +462,6 @@ p {
   margin: 8px 4px 0;
 }
 
-.speech {
-  position: relative;
-  background: var(--surface);
-  border: 2px solid var(--line);
-  border-radius: 18px;
-  padding: 12px 14px;
-  font-size: 15px;
-  line-height: 1.55;
-  box-shadow: var(--shadow-1);
-}
-.speech::before {
-  content: '';
-  position: absolute;
-  left: -9px;
-  top: 18px;
-  width: 14px;
-  height: 14px;
-  background: var(--surface);
-  border-left: 2px solid var(--line);
-  border-bottom: 2px solid var(--line);
-  transform: rotate(45deg);
-}
-.npc {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-}
-.avatar {
-  flex: none;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  border: 2px solid var(--outline);
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-}
-.avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.avatar.sm {
-  width: 44px;
-  height: 44px;
-}
 
 /* ------------------------------------------------------------------ sheets & dialogs */
 .backdrop {
@@ -629,7 +549,8 @@ p {
   flex: none;
 }
 /* A pop-up question: a line-art card (.ink-card) in the middle of the screen, a little crooked, what it is about on
-   the plate across its top. */
+   the plate across its top. Always over whatever panel it was asked from (a yes or no, a wish, a friend's page), the
+   settings' import panel included, with its shade (.dialog-backdrop, below) dimming that panel too. */
 .dialog {
   zoom: var(--z);
   position: absolute;
@@ -638,7 +559,7 @@ p {
   width: min(88%, 380px);
   translate: -50% -50%;
   rotate: -1deg;
-  z-index: 41;
+  z-index: 45;
   animation: card-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
 }
 /* Put down on the screen: a touch bigger and more crooked as it comes, then still. */
@@ -2063,30 +1984,6 @@ input[type='range'] {
   font-size: calc(var(--h) * 0.046);
   color: var(--ink-2);
 }
-/* 労働の鎧さん's note for the next job here, written on ruled lines at the foot of the sheet. */
-.ls-job {
-  --lh: 1.65em;
-  margin: auto 0 0;
-  width: 100%;
-  font-size: calc(var(--h) * 0.036);
-  line-height: var(--lh);
-  color: var(--ink-2);
-  text-wrap: pretty;
-  background: linear-gradient(to bottom, transparent calc(var(--lh) - 1.5px), rgba(74, 42, 18, 0.14) calc(var(--lh) - 1.5px)) 0 0 / 100% var(--lh);
-}
-/* The job's level, on a little label sticker. */
-.ls-job-id {
-  display: inline-block;
-  margin-right: 0.5em;
-  padding: 0 0.55em;
-  line-height: 1.45;
-  border: 1.5px solid var(--outline);
-  border-radius: 4px;
-  background: #d3e79f;
-  color: var(--ink);
-  rotate: -3deg;
-  box-shadow: 0 2px 0 rgba(74, 42, 18, 0.2);
-}
 /* A level's job notice, pinned on the right once a level is tapped (the same blank paper as the sheet): 労働の鎧さん's
    note, who is coming, the team (circled with the pink pen), the ramen ticket and 出発. */
 /* The back of the level sheet card: a level's job notice (see .ls-card). */
@@ -2649,11 +2546,6 @@ input[type='range'] {
   .tt-card .cost {
     font-size: 12px;
   }
-}
-.sticky-actions {
-  flex: none;
-  padding: 12px 16px calc(var(--safe-b) + 14px);
-  background: linear-gradient(rgba(255, 246, 233, 0), var(--bg) 30%);
 }
 
 /* ------------------------------------------------------------------ battle */
@@ -4226,6 +4118,10 @@ input[type='range'] {
 .settings-dialog ~ .sheet {
   z-index: 43;
 }
+/* A pop-up question's shade: over any panel, under the question (.dialog). After the rule above, which it overrides. */
+.backdrop.dialog-backdrop {
+  z-index: 44;
+}
 
 /* ------------------------------------------------------------------ gallery */
 /* 古本屋's table (the scene) with the open gallery book on the right: bookmark tabs along its top, the list on the
@@ -4751,30 +4647,6 @@ input[type='range'] {
 .asset-thumb canvas {
   max-width: 100%;
   max-height: 100%;
-}
-.frame-strip {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-}
-.frame-strip figure {
-  margin: 0;
-  flex: none;
-  text-align: center;
-  font-size: 10px;
-  color: var(--ink-2);
-}
-.frame-strip img {
-  display: block;
-  width: 110px;
-  height: auto;
-  border-radius: 10px;
-  border: 1.5px solid var(--line);
-  background:
-    linear-gradient(45deg, #f2ebe2 25%, transparent 25%, transparent 75%, #f2ebe2 75%) 0 0 / 16px 16px,
-    linear-gradient(45deg, #f2ebe2 25%, transparent 25%, transparent 75%, #f2ebe2 75%) 8px 8px / 16px 16px,
-    #fff;
 }
 
 /* ------------------------------------------------------------------ overlays */

@@ -231,14 +231,15 @@ describe('World 6 (the big hunt)', () => {
 });
 
 describe('balance', () => {
-  // The bots stand in for players: the good one (quick taps, a full build) must win every level on every seed, and
-  // the casual one (3.5 s to tap a sprout, a shallower build), closer to a person on a phone, on two seeds in three.
-  it('every level is won by the good bot on every seed and by the casual bot on two seeds in three', { timeout: 480000 }, () => {
+  // The bots stand in for players: the good one (quick taps, a full build) must win every level on each of its first
+  // three tries, and the casual one (3.5 s to tap a sprout, a shallower build), closer to a person on a phone, on two of
+  // them. A try's randomness is the one the game gives it (attempt 0 is the first: see simForLevel), not a made-up seed.
+  it('every level is won by the good bot on each of its first three tries and by the casual bot on two', { timeout: 480000 }, () => {
     const failures: string[] = [];
     for (const level of LEVEL_LIST) {
       const deck = botDeck(level);
-      const good = [1, 2, 3].filter((seed) => runBot(simForLevel(level, deck, { seed }), BOT_GOOD).won).length;
-      const casual = [1, 2, 3].filter((seed) => runBot(simForLevel(level, deck, { seed }), BOT_CASUAL).won).length;
+      const good = [0, 1, 2].filter((attempt) => runBot(simForLevel(level, deck, { attempt }), BOT_GOOD).won).length;
+      const casual = [0, 1, 2].filter((attempt) => runBot(simForLevel(level, deck, { attempt }), BOT_CASUAL).won).length;
       if (good < 3 || casual < 2) failures.push(`${level.id} good ${good}/3 casual ${casual}/3`);
     }
     expect(failures).toEqual([]);

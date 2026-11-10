@@ -2,12 +2,11 @@
 
 import { batch, signal } from '@preact/signals';
 import { spriteIdFor, STAR_SPRITE } from '../art/spec';
-import { art } from '../art/store';
 import { audio } from '../audio/audio';
 import { nameOf, t } from '../i18n/i18n';
-import { allyFeetY, colOfY, laneX, STEP_MS } from './sim/constants';
+import { colOfY, STEP_MS } from './sim/constants';
 import { fallMsOf } from './sim/tempo';
-import { ENEMIES, summonsOf, UNITS, waterOf, WORLDS } from './sim/defs';
+import { summonsOf, UNITS, waterOf, WORLDS } from './sim/defs';
 import { EndlessWaves } from './sim/endless';
 import { FrameCap } from './frameCap';
 import { arrivalMs } from './render/arrival';
@@ -62,7 +61,12 @@ interface BattleConfig {
   onSeen: (enemyId: string) => void;
   onDefeated: (enemyId: string) => void;
   onMet: (id: string) => void;
+  /** The battle is decided: record it now. The report (onEnd) waits for the last enemy to fall, and the game may be
+   *  closed or left in between (a win was only saved with the report until the 2026-11-10 audit). */
+  onResult: (end: BattleEnd) => void;
   onEnd: (end: BattleEnd) => void;
+  /** Whether a pop-up is up over the battle (a question, a friend's page): the keys are its own while it is. */
+  popUp?: () => boolean;
   /** Cards the player may still pick before the battle (their art loads with it). */
   pool?: string[];
   /** The enemies waiting on the road before the battle, one of each kind. */
@@ -160,10 +164,13 @@ export class BattleController {
   private bannerSeq = 1;
   private hover: { lane: number; col: number } | null = null;
   private down: { x: number; y: number; t: number; id: number } | null = null;
-  private drag: { card: number; x: number; y: number; moved: boolean } | null = null;
+  /** A card being pressed or dragged, by the finger (`id`) that pressed it. */
+  private drag: { card: number; x: number; y: number; moved: boolean; id: number } | null = null;
   private portraitMq: MediaQueryList | null = null;
   private insets: { left: number; top: number; right?: number } = { left: 0, top: 0 };
   private ended = false;
+  /** The report is up: the field is finished with (see loop). */
+  private reported = false;
   private endTimer = 0;
   /** Time (ms, at the game's speed) since the battle was won: the sim stops, but the last falls play out. */
   private afterMs = 0;
@@ -231,6 +238,7 @@ export class BattleController {
     canvas.addEventListener('pointermove', this.onMove);
     canvas.addEventListener('pointerleave', this.onLeave);
     window.addEventListener('pointerup', this.onUp);
+    window.addEventListener('pointercancel', this.onCancel);
     window.addEventListener('pointermove', this.onWindowMove);
     window.addEventListener('keydown', this.onKey);
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -247,10 +255,6 @@ export class BattleController {
     this.raf = requestAnimationFrame(this.loop);
   }
 
-  resize(): void {
-    this.renderer?.resize();
-  }
-
   /** Screen space (CSS px) covered by the HUD on the left and top (and the testing ground's panel on the right); the
    *  camera keeps the field out of it. */
   setInsets(i: { left: number; top: number; right?: number }): void {
@@ -260,7 +264,8 @@ export class BattleController {
 
   destroy(): void {
     cancelAnimationFrame(this.raf);
-    this.renderer?.stopWarming();
+    // Its canvases go now, not whenever the garbage collector gets round to them (see BattleRenderer.dispose).
+    this.renderer?.dispose();
     window.clearTimeout(this.endTimer);
     this.flights.clear();
     const c = this.canvas;
@@ -270,6 +275,7 @@ export class BattleController {
       c.removeEventListener('pointerleave', this.onLeave);
     }
     window.removeEventListener('pointerup', this.onUp);
+    window.removeEventListener('pointercancel', this.onCancel);
     window.removeEventListener('pointermove', this.onWindowMove);
     window.removeEventListener('keydown', this.onKey);
     document.removeEventListener('visibilitychange', this.onVisibility);
@@ -279,11 +285,10 @@ export class BattleController {
   // ------------------------------------------------------------ loop
 
   private loop = (ts: number): void => {
+    // The next frame is asked for first, so one frame that throws does not stop the battle for good (2026-11-10 audit).
+    this.raf = requestAnimationFrame(this.loop);
     // The game changes 60 times a second, so a faster screen is not asked for more pictures than that.
-    if (!this.frameCap.due(ts)) {
-      this.raf = requestAnimationFrame(this.loop);
-      return;
-    }
+    if (!this.frameCap.due(ts)) return;
     const dt = this.lastTs ? Math.min(50, ts - this.lastTs) : 16;
     this.lastTs = ts;
     // A tap collects between frames, and its 草 must be in the air before the counter is next read.
@@ -302,8 +307,9 @@ export class BattleController {
       }
       if (steps >= 10) this.acc = 0;
     } else if (this.ended && this.status.value === 'won' && !this.paused.value) this.afterMs += dt * this.speed.value;
-    // A paused field cannot change, so it is drawn once and left alone (the testing ground's panel can still change it).
-    const still = this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox';
+    // A paused field cannot change, so it is drawn once and left alone (the testing ground's panel can still change it);
+    // so is a finished one once its report is up (after a loss it was redrawn, unchanging, every frame).
+    const still = (this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox') || this.reported;
     if (!still || !this.stillDrawn || this.renderer?.needsRebuild) {
       this.renderer?.render(this.paused.value || this.hold.value ? 0 : this.acc / STEP_MS, this.renderUi());
     }
@@ -312,7 +318,6 @@ export class BattleController {
       this.hudAt = ts;
       this.refreshHud(false);
     }
-    this.raf = requestAnimationFrame(this.loop);
   };
 
   private renderUi(): RenderUi {
@@ -565,14 +570,23 @@ export class BattleController {
       wavesCleared: waves,
       timeMs: this.playMs,
     };
-    // A win waits for the last one still falling (a boss falls slowly) before the result comes up.
+    // Recorded at once. The report waits for the last one still falling (a boss falls slowly).
+    this.cfg.onResult(end);
+    // No shaking on past the end: after a loss the field's clock stops, and a shake under way never ended.
+    this.renderer?.calmShake();
     let falling = 0;
     if (won) {
       for (const e of this.sim.enemies) {
         if (e.state === 'collapse') falling = Math.max(falling, fallMsOf(e.def, e.form, e.boss) - (this.sim.t - e.collapseAt));
       }
     }
-    this.endTimer = window.setTimeout(() => this.cfg.onEnd(end), Math.max(1700, Math.min(4500, falling / this.speed.value + 400)));
+    this.endTimer = window.setTimeout(
+      () => {
+        this.reported = true;
+        this.cfg.onEnd(end);
+      },
+      Math.max(1700, Math.min(4500, falling / this.speed.value + 400)),
+    );
   }
 
   // ------------------------------------------------------------ getting ready
@@ -691,6 +705,9 @@ export class BattleController {
     // Takes over from 「よーい…」 at once.
     this.bannerUntil = 0;
     this.pushBanner('start', this.cfg.mode === 'sandbox' ? t('sandbox.title') : this.cfg.mode === 'endless' ? t('endless.title') : t('banner.start'));
+    // Turned upright or put away while getting ready: the battle starts paused, behind the rotate prompt, as it would
+    // have paused had it already been on.
+    if (this.portraitMq?.matches || document.hidden) this.setPaused(true);
   }
 
   // ------------------------------------------------------------ banners
@@ -740,6 +757,8 @@ export class BattleController {
   }
 
   setPaused(p: boolean): void {
+    // Once the battle is decided there is nothing to pause: the report is on its way.
+    if (p && this.ended) return;
     // Getting ready waits too: its clock is moved on by however long the pause lasted.
     if (p && !this.paused.value) this.pausedAt = performance.now();
     else if (!p && this.paused.value && this.phase.value !== 'battle') this.prep.t0 += performance.now() - this.pausedAt;
@@ -948,7 +967,8 @@ export class BattleController {
 
   private onWindowMove = (ev: PointerEvent): void => {
     const d = this.drag;
-    if (!d || !this.renderer) return;
+    // Only the finger that took the card moves it: another one on the screen is not this drag.
+    if (!d || d.id !== ev.pointerId || !this.renderer) return;
     if (!d.moved && Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 12) {
       d.moved = true;
       // Dragged off its card it is picked up: the tiles it can go on light up, and its ghost follows the finger.
@@ -961,6 +981,8 @@ export class BattleController {
   private onUp = (ev: PointerEvent): void => {
     if (this.drag) {
       const d = this.drag;
+      // Another finger let go: neither the end of this drag nor a tap of its own, with a card in hand.
+      if (d.id !== ev.pointerId) return;
       this.drag = null;
       if (d.moved && this.renderer) {
         const w = this.renderer.toWorld(ev.clientX, ev.clientY);
@@ -985,13 +1007,21 @@ export class BattleController {
   beginCardDrag(card: number, ev: PointerEvent): void {
     audio.unlock();
     if (this.phase.value !== 'battle') return;
-    this.drag = { card, x: ev.clientX, y: ev.clientY, moved: false };
+    // One card in hand at a time: a second finger on the column does not take it over.
+    if (this.drag && this.drag.id !== ev.pointerId) return;
+    this.drag = { card, x: ev.clientX, y: ev.clientY, moved: false, id: ev.pointerId };
   }
 
   /** The press on a card was taken over (the testing ground's column scrolled under the finger): no drag after all. */
-  cancelCardDrag(): void {
-    this.drag = null;
+  cancelCardDrag(id: number): void {
+    if (this.drag?.id === id) this.drag = null;
   }
+
+  /** A finger taken over by the browser (a scroll, a system gesture): whatever it was doing is called off. */
+  private onCancel = (ev: PointerEvent): void => {
+    if (this.drag?.id === ev.pointerId) this.drag = null;
+    if (this.down?.id === ev.pointerId) this.down = null;
+  };
 
   /** Whether the card just pressed has been dragged off it: it is being placed, not tapped or looked at. */
   get cardDragged(): boolean {
@@ -1000,11 +1030,23 @@ export class BattleController {
 
   private onKey = (ev: KeyboardEvent): void => {
     if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement || ev.target instanceof HTMLSelectElement) return;
+    // A held key repeats, and with Ctrl, ⌘ or Alt it is the browser's (Ctrl+1 changes tab). A pop-up over the battle has
+    // the keys to itself, and once the battle is decided there is nothing left to do but wait for the report.
+    if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey || this.cfg.popUp?.() || this.ended) return;
+    const pauseKey = ev.key === ' ' || ev.key === 'Escape';
+    if (this.paused.value) {
+      // Paused, a key only takes the game up again.
+      if (pauseKey) {
+        ev.preventDefault();
+        this.setPaused(false);
+      }
+      return;
+    }
     if (this.phase.value !== 'battle') {
       // Getting ready, the only thing to do is stop and get out.
-      if (ev.key === 'Escape' || ev.key === ' ') {
+      if (pauseKey) {
         ev.preventDefault();
-        this.setPaused(!this.paused.value);
+        this.setPaused(true);
       }
       return;
     }
@@ -1017,7 +1059,7 @@ export class BattleController {
     } else if (ev.key === 's' || ev.key === 'S') this.toggleShovel();
     else if (ev.key === ' ') {
       ev.preventDefault();
-      this.setPaused(!this.paused.value);
+      this.setPaused(true);
     }
   };
 
@@ -1049,29 +1091,7 @@ export class BattleController {
 
   // ------------------------------------------------------------ queries for the HUD
 
-  enemyName(id: string): string {
-    return nameOf(id);
-  }
-
-  portrait(id: string): string {
-    return art.portraitUrl(id);
-  }
-
-  worldName(): string {
-    return t(`world.${this.world}.name`);
-  }
-
   worldBgm(): string {
     return WORLDS[this.world]?.bgm ?? 'bgm_world1';
-  }
-
-  isBossLevel(): boolean {
-    return !!this.cfg.level?.waves.some((w) => w.boss || w.spawns.some((s) => s.boss || ENEMIES[s.enemy]?.boss));
-  }
-
-  /** Screen position of a lane/col, for DOM overlays. */
-  tileClient(lane: number, col: number): { x: number; y: number } | null {
-    if (!this.renderer) return null;
-    return this.renderer.toClient(laneX(lane), allyFeetY(col), 80);
   }
 }

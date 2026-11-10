@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import { LEVELS } from '../game/sim/defs';
 
 export type Route =
   /** The lobby. `settings` opens the settings pop-up over it: a step of its own (like a seller in the shop), so the
@@ -44,6 +45,10 @@ export const backInBattle = signal(0);
 const stack: Route[] = [];
 /** Set while the game itself steps back out of a battle, so the back guard below lets it go. */
 let leavingBattle = false;
+/** Where a step back the game took is to land instead (see upThen). */
+let landOn: Route | null = null;
+/** Set while the game undoes a step forward into a battle (see the popstate handler), so that step back is let be. */
+let undoingForward = false;
 /** The pop-ups that are up and asked to be closed by the system back gesture, the top one last (see closeOnBack). */
 const backCloses: (() => void)[] = [];
 
@@ -82,10 +87,41 @@ export function initRouter(): void {
       return;
     }
     leavingBattle = false;
+    if (undoingForward) {
+      undoingForward = false;
+      return;
+    }
     const r = (ev.state as { route?: Route } | null)?.route;
-    const next = r && SCREENS.has(r.name) ? r : { name: 'lobby' as const };
+    let next: Route = r && SCREENS.has(r.name) ? r : { name: 'lobby' };
+    // A battle is never entered from history (the browser's forward button, iOS's forward swipe): it would start again,
+    // with no notice and maybe another ramen ticket (2026-11-10 audit). From its own notice the step is undone; reached
+    // any other way, the entry becomes that notice.
+    if (next.name === 'battle') {
+      const parent = battleParent(next);
+      if (sameScreen(parent, route.value)) {
+        undoingForward = true;
+        history.back();
+        return;
+      }
+      next = parent;
+      try {
+        history.replaceState({ route: next }, '');
+      } catch {
+        /* ignore */
+      }
+    }
     if (stack.length >= 2 && sameScreen(stack[stack.length - 2], next)) stack.pop();
     else stack.splice(0, stack.length, next);
+    // A step back asked to land somewhere else (upThen): the entry it landed on becomes that screen.
+    if (landOn) {
+      next = landOn;
+      landOn = null;
+      try {
+        history.replaceState({ route: next }, '');
+      } catch {
+        /* ignore */
+      }
+    }
     stack[stack.length - 1] = next;
     route.value = next;
   });
@@ -130,6 +166,28 @@ export function up(parent: Route): void {
   go(parent, { replace: true });
 }
 
-export function back(fallback: Route = { name: 'lobby' }): void {
-  up(fallback);
+/** Where a battle was set off from: its job notice (or the world's quest), the quest board for endless mode, or the
+ *  lobby for the testing ground. */
+export function battleParent(r: Extract<Route, { name: 'battle' }>): Route {
+  if (r.mode === 'sandbox') return { name: 'lobby' };
+  const level = r.levelId ? LEVELS[r.levelId] : undefined;
+  return level ? { name: 'quest', world: level.world, ...(r.team ? { level: level.id } : {}) } : { name: 'quests', focus: ENDLESS_PAPER };
+}
+
+/** Go up to `parent` as up() does, then show `then` in its place. The battle report's 次へ leaves the battle for the job
+ *  notice it was set off from and turns that notice into the next job's, so playing on never piles up history (each
+ *  次へ left one more step for the back gesture to walk through: 2026-11-10 audit). */
+export function upThen(parent: Route, then: Route): void {
+  if (stack.length >= 2 && sameScreen(stack[stack.length - 2], parent)) {
+    try {
+      leavingBattle = route.value.name === 'battle';
+      landOn = then;
+      history.back();
+      return;
+    } catch {
+      leavingBattle = false;
+      landOn = null;
+    }
+  }
+  go(then, { replace: true });
 }

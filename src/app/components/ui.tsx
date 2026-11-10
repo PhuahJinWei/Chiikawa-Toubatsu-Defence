@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
-import { useLayoutEffect } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import { art } from '../../art/store';
 import { audio } from '../../audio/audio';
 import { t } from '../../i18n/i18n';
@@ -13,7 +13,7 @@ import { PlatePaper } from './Plate';
 
 /** What a notice says about what just happened: `bad`, it could not be done (a red !); `ok`, it was (a green tick). Plain
  *  news has neither. */
-export type NoticeTone = 'bad' | 'ok';
+type NoticeTone = 'bad' | 'ok';
 
 const toastMsg = signal<{ key: number; text: string; tone?: NoticeTone } | null>(null);
 let toastTimer = 0;
@@ -93,8 +93,63 @@ export function MoneyPill() {
 
 // ---------------------------------------------------------------- sheets & dialogs
 
+/** The pop-ups open now, the top one last: only the top one answers the keyboard. */
+const openPopUps: HTMLElement[] = [];
+
+/**
+ * What a pop-up does for the keyboard (2026-11-10 audit: none of them did): focus moves into it as it opens (to its first
+ * button, so a phone's keyboard does not jump up for a text field), Tab and Shift+Tab go round inside it, Escape closes
+ * it when `close` is given, and focus goes back to where it was once it closes. Only the top pop-up answers, and an
+ * Escape it takes goes no further (a battle under it does not also take it).
+ */
+export function usePopUpKeys(ref: { current: HTMLElement | null }, close?: () => void): void {
+  const latest = useRef(close);
+  latest.current = close;
+  useLayoutEffect(() => {
+    const box = ref.current;
+    if (!box) return;
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    openPopUps.push(box);
+    const stops = () => [...box.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.getClientRects().length > 0);
+    if (!box.contains(document.activeElement)) (stops().find((el) => el.tagName === 'BUTTON') ?? box).focus({ preventScroll: true });
+    const onKey = (ev: KeyboardEvent) => {
+      if (openPopUps[openPopUps.length - 1] !== box) return;
+      if (ev.key === 'Escape') {
+        if (!latest.current) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        latest.current();
+        return;
+      }
+      if (ev.key !== 'Tab') return;
+      const all = stops();
+      if (!all.length) {
+        ev.preventDefault();
+        return;
+      }
+      const first = all[0];
+      const last = all[all.length - 1];
+      const at = document.activeElement;
+      if (!box.contains(at) || at === (ev.shiftKey ? first : last)) {
+        ev.preventDefault();
+        (ev.shiftKey ? last : first).focus({ preventScroll: true });
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      const i = openPopUps.lastIndexOf(box);
+      if (i >= 0) openPopUps.splice(i, 1);
+      if (before?.isConnected) before.focus({ preventScroll: true });
+    };
+  }, []);
+}
+
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /** A pop-up panel: a line-art card (like .ink-card) in the middle of the screen over a dimmed backdrop, its name on a
- *  plate across its top when it has a `title` (`tone` is the plate's colour). */
+ *  plate across its top when it has a `title` (`tone` is the plate's colour). `closer`: a close button (×) in its corner,
+ *  for a panel with no other button that closes it. */
 export function Sheet({
   onClose,
   children,
@@ -104,6 +159,7 @@ export function Sheet({
   tone,
   aside,
   class: extra,
+  closer,
 }: {
   onClose?: () => void;
   children: ComponentChildren;
@@ -114,14 +170,22 @@ export function Sheet({
   /** Someone standing beside the panel (see .sheet-stage). */
   aside?: ComponentChildren;
   class?: string;
+  closer?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  usePopUpKeys(ref, onClose);
   const sheet = (
-    <div class={`${title ? 'sheet titled' : 'sheet'}${extra ? ` ${extra}` : ''}`} role="dialog" aria-modal="true" aria-label={label ?? title}>
+    <div ref={ref} tabIndex={-1} class={`${title ? 'sheet titled' : 'sheet'}${extra ? ` ${extra}` : ''}`} role="dialog" aria-modal="true" aria-label={label ?? title}>
       {title ? (
         <div class="ink-plate sheet-plate" style={tone ? { '--plate': tone } : undefined}>
           <PlatePaper />
           {title}
         </div>
+      ) : null}
+      {closer && onClose ? (
+        <button type="button" class="card-x" aria-label={t('common.close')} onClick={tap(onClose, 'sfx_cancel')}>
+          <Icon name="close" size={18} />
+        </button>
       ) : null}
       <div class="grip" />
       <div class="sheet-body">{children}</div>
@@ -156,10 +220,12 @@ export function Dialog({
   children: ComponentChildren;
   class?: string;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  usePopUpKeys(ref, onClose);
   return (
     <>
-      <div class="backdrop" onClick={onClose} />
-      <div class={extra ? `dialog ${extra}` : 'dialog'} role="dialog" aria-modal="true" aria-label={title}>
+      <div class="backdrop dialog-backdrop" onClick={onClose} />
+      <div ref={ref} tabIndex={-1} class={extra ? `dialog ${extra}` : 'dialog'} role="dialog" aria-modal="true" aria-label={title}>
         <div class={title ? 'ink-card dialog-card titled' : 'ink-card dialog-card'}>
           {title ? (
             <div class="ink-plate dialog-plate">
@@ -212,14 +278,3 @@ export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boo
   return <button class={`switch ${on ? 'on' : ''}`} role="switch" aria-checked={on} aria-label={label} onClick={tap(() => onChange(!on))} />;
 }
 
-export function Stars({ n, max = 3 }: { n: number; max?: number }) {
-  return (
-    <span class="stars" aria-label={`${n}/${max}`}>
-      {Array.from({ length: max }, (_, i) => (
-        <span key={i} class={i < n ? '' : 'off'}>
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}

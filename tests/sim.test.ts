@@ -762,7 +762,7 @@ describe('Rakko (v2 friend)', () => {
     expect(hit).toBe(false);
   });
 
-  it('sweeps his sword through his lane and the lanes either side: everyone within two tiles in front of him, each once', () => {
+  it('sweeps his sword through his lane and the lanes either side: everyone from his own tile to two in front of him, each once', () => {
     // Enemies held still (the testing ground's freeze): how often each is struck, and the most any is struck in a step.
     const sweep = (spawns: [string, number, number][]) => {
       const sim = makeSim(['rakko'], { dev: { free: false, freeze: true, safeFriends: false, safeEnemies: false } });
@@ -792,8 +792,8 @@ describe('Rakko (v2 friend)', () => {
     const second = colY(5) + TILE / 2;
     const far = colY(6) + TILE / 2;
     const level = colY(3) + TILE / 2;
-    // A tile ahead in the lane above, up close in the lane below, two in his own lane and two tiles ahead in the lane above
-    // (all cut); none two lanes off, nor three tiles ahead, nor level with him in the lanes either side.
+    // A tile ahead in the lane above, up close in the lane below, two in his own lane, two tiles ahead in the lane above and
+    // level with him in the lanes either side (all cut); none two lanes off, nor three tiles ahead.
     const r = sweep([
       ['mushi_twolegs', 1, ahead],
       ['mushi_twolegs', 3, near],
@@ -807,9 +807,9 @@ describe('Rakko (v2 friend)', () => {
       ['mushi_twolegs', 1, second],
     ]);
     const [above, below, mine, alsoMine, twoUp, twoDown, belowFar, besideUp, besideDown, aboveSecond] = r.list;
-    for (const e of [above, below, mine, alsoMine, aboveSecond]) expect(r.got.get(e.uid) ?? 0).toBeGreaterThan(1);
+    for (const e of [above, below, mine, alsoMine, aboveSecond, besideUp, besideDown]) expect(r.got.get(e.uid) ?? 0).toBeGreaterThan(1);
     expect(r.got.get(above.uid)).toBe(r.got.get(mine.uid));
-    for (const e of [twoUp, twoDown, belowFar, besideUp, besideDown]) expect(r.got.get(e.uid) ?? 0).toBe(0);
+    for (const e of [twoUp, twoDown, belowFar]) expect(r.got.get(e.uid) ?? 0).toBe(0);
     // He swings for an enemy in a lane beside his, with his own lane empty.
     const side = sweep([['mushi_twolegs', 3, ahead]]);
     expect(side.got.get(side.list[0].uid) ?? 0).toBeGreaterThan(0);

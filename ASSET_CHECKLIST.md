@@ -4,7 +4,7 @@
 
 Every picture and sound the game uses. The whole game is stacked paper cut-outs: flat pictures that the game layers,
 borders, shades and moves. Until a file exists the game shows a plain card with the picture name and size in its place.
-In the game, **設定 → アートキット** shows the same list with live previews (characters move) and a ZIP of size templates.
+In the game's dev mode (`?dev` in the address), **設定 → アートキット** shows the same list with live previews (characters move) and a ZIP of size templates.
 
 ## Rules for every picture
 
@@ -32,7 +32,7 @@ In the game, **設定 → アートキット** shows the same list with live pre
    **Quest board pictures**: put the blank paper (a file with `paper` in its name), the 準備中 stamp (`stamp` in its
    name) and the world pictures numbered `01-…` to `06-…` in one folder and run `npm run art:quests -- <folder>`;
    it scales them to the listed size.
-4. Open the game (`npm run dev`); turn on 設定 → アートガイド to see every piece outlined, the safe area, and (in scenes)
+4. Open the game in dev mode (`npm run dev`, then `?dev` in the address); turn on 設定 → アートガイド to see every piece outlined, the safe area, and (in scenes)
    the pieces pulled apart in 3D.
 
 ## Scenes

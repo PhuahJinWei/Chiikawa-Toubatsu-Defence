@@ -326,6 +326,8 @@ export class BattleRenderer {
   private freezeAt = -1e9;
   private shakeUntil = 0;
   private shakeAmp = 0;
+  /** Pictures drawn, for tidying up now and then (see forgetGone). */
+  private frames = 0;
   private stickers = new StickerCache();
   private scene: SceneSpec;
   private picture: { q: number; tall: number; built: BuiltPiece } | null = null;
@@ -493,11 +495,6 @@ export class BattleRenderer {
     const p = S(x, y);
     if (p.x < 0 || p.x >= FIELD_W || p.y < 0 || p.y >= FIELD_H) return null;
     return { lane: Math.floor(p.y / TILE), col: Math.floor(p.x / TILE) };
-  }
-
-  /** Size of one tile on screen, in CSS pixels. */
-  tilePx(): number {
-    return TILE * this.scale;
   }
 
   private worldTransform(ctx: CanvasRenderingContext2D, shakeX = 0, shakeY = 0): void {
@@ -1135,9 +1132,37 @@ export class BattleRenderer {
     window.clearTimeout(this.pictureTimer);
   }
 
+  /** The battle is decided: no shaking on (after a loss the field's clock stops, and a shake under way never ended). */
+  calmShake(): void {
+    this.shakeAmp = 0;
+    this.shakeUntil = 0;
+  }
+
+  /** The battle is gone: its canvases are let go at once (sized to nothing), not whenever the garbage collector gets
+   *  round to them. iOS Safari caps a page's canvas memory, and a battle makes tens of MB of it (2026-11-10 audit). */
+  dispose(): void {
+    this.stopWarming();
+    for (const c of [this.bg, this.picture?.built.el, this.scratch, this.scratch2]) if (c) c.width = c.height = 0;
+    this.bg = null;
+    this.picture = null;
+    this.stickers.dispose();
+  }
+
+  /** Forget what was noted about enemies, friends and charges that are gone (a long endless run kept every one). */
+  private forgetGone(): void {
+    const here = new Set<number>();
+    for (const e of this.sim.enemies) here.add(e.uid);
+    for (const a of this.sim.allies) here.add(a.uid);
+    for (const s of this.sim.sweeps) here.add(s.uid);
+    for (const notes of [this.healUntil, this.singAt, this.heldAt, this.dustAt, this.lateFlash]) {
+      for (const uid of notes.keys()) if (!here.has(uid)) notes.delete(uid);
+    }
+  }
+
   // ------------------------------------------------------------ frame
 
   render(alpha: number, ui: RenderUi): void {
+    if (++this.frames % 240 === 0) this.forgetGone();
     const sim = this.sim;
     const ctx = this.ctx;
     const now = sim.t + alpha * STEP_MS + (ui.afterMs ?? 0);

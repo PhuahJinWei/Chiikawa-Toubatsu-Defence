@@ -3,7 +3,7 @@
 import galleryJson from '../data/gallery.json';
 import shopJson from '../data/shop.json';
 import type { BattleEnd } from '../game/controller';
-import { ENEMIES, ENEMY_LIST, fitsJob, LEVEL_LIST, LEVELS, levelsOfWorld, UNIT_LIST, UNITS, waterOf } from '../game/sim/defs';
+import { ENEMIES, ENEMY_LIST, fitsJob, LEVEL_LIST, LEVELS, levelsOfWorld, rewardsOwed, UNIT_LIST, UNITS, waterOf } from '../game/sim/defs';
 import type { LevelDef } from '../game/sim/types';
 import { FIRST_FRIEND, save, updateSave } from '../save/save';
 
@@ -23,7 +23,7 @@ export const SHOP = shopJson as {
   }[];
 };
 
-export const CARD_ORDER = UNIT_LIST.map((u) => u.id);
+const CARD_ORDER = UNIT_LIST.map((u) => u.id);
 
 export function isCleared(id: string): boolean {
   return !!save.value.cleared[id];
@@ -117,7 +117,7 @@ export function endlessPool(): string[] {
   return pool.length ? pool : ['mushi_twolegs'];
 }
 
-export function starsFor(rescuesUsed: number): number {
+function starsFor(rescuesUsed: number): number {
   return rescuesUsed === 0 ? 3 : rescuesUsed === 1 ? 2 : 1;
 }
 
@@ -173,7 +173,16 @@ export function applyResult(end: BattleEnd, reward: Reward): void {
   });
 }
 
-export function recordAttemptStart(levelId: string): number {
+/** Friends owed for jobs cleared before they became those jobs' rewards: an older save, at start-up or just imported
+ *  (an import used to wait for the next start for them: 2026-11-10 audit). */
+export function payOwedFriends(): void {
+  const owed = rewardsOwed(save.value.cleared, save.value.cards);
+  if (owed.length) updateSave((d) => void d.cards.push(...owed.filter((id) => !d.cards.includes(id))));
+}
+
+/** Which try at a job this battle is (0 the first): it picks the job's randomness. Tries are counted when they end
+ *  (applyResult), so this only reads. */
+export function attemptOf(levelId: string): number {
   return save.value.attempts[levelId] ?? 0;
 }
 

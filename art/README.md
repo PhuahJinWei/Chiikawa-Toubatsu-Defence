@@ -78,7 +78,7 @@ are left out (listed too).
   the white cut edge and shadow. Big ones (XL and the giants) are drawn 1.5–2.3 times their frames' size on a phone,
   so frames drawn larger stay sharper.
 - The importer cuts each motion to the box its frames share and writes `sprite.json` (where the feet stand, how tall
-  the character is). Turn on 設定 → アートガイド in the game to see each frame's box and feet point.
+  the character is). Turn on 設定 → アートガイド in the game's dev mode (`?dev`) to see each frame's box and feet point.
 - The gallery and the art kit show every character on one stage at one scale, true to its size on the field, so a
   character that looks too big or too small there is too big or too small in battle. The stage fits everyone but the
   two giants, who are too big for the page: their heads and fronts stay in view and the rest runs off its edge. A
@@ -101,7 +101,8 @@ World 5's water lane (the bottom lane, y 1040–1210) is painted in the picture,
    layer to its piece (by name, else by order when the counts agree; a `map.json` in the folder can name them),
    measures where it sits against the preview, notes the sides that run off the picture, and writes everything here
    with a `layout.json`.
-4. Open the game (`npm run dev`) and turn on 設定 → アートガイド to see every piece outlined in place.
+4. Open the game in dev mode (`npm run dev`, then `?dev` in the address) and turn on 設定 → アートガイド to see every
+   piece outlined in place.
 
 Scenes keep their planned size (menus 1620 × 972, battle worlds 3360 × 1500 with the field at x 900–2430,
 y 360–1210; 2× is fine). In a battle world, x 0–300 on the left only shows a little, under the cards and beside them (a
@@ -132,5 +133,5 @@ A button, an icon, a logo, a face or a sticker is one picture: run `npm run art:
 here under that name. Saving a file of the right name straight into this folder works too, just at full size.
 
 Everything to draw, with sizes, positions and depths: `ASSET_CHECKLIST.md` (regenerate with
-`npm run checklist`), or 設定 → アートキット in the game (characters move there; its ZIP holds a size template for
-every picture).
+`npm run checklist`), or 設定 → アートキット in the game's dev mode (`?dev`; characters move there; its ZIP holds a size
+template for every picture).

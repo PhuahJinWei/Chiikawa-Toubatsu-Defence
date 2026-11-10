@@ -5,7 +5,7 @@
 
 import { mergeScene, type SceneLayout } from './layout';
 import { drawImage } from './fallback';
-import { ALL_IMAGES, imageSpec, PORTRAITS, type SceneSpec } from './spec';
+import { ALL_IMAGES, imageSpec, type SceneSpec } from './spec';
 
 const IMAGE_URLS = import.meta.glob('/art/**/*.{png,webp,jpg,jpeg}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
 const LAYOUTS = import.meta.glob('/art/scenes/*/layout.json', { eager: true, import: 'default' }) as Record<string, SceneLayout>;
@@ -38,6 +38,10 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+/** How long a picture is waited for before the game goes on with its placeholder (ms). The picture is used from when it
+ *  does arrive; a stalled request used to leave a loading screen up for good (2026-11-10 audit). */
+const LOAD_PATIENCE_MS = 30000;
+
 class ArtStore {
   private real = new Map<string, HTMLImageElement>();
   private pending = new Map<string, Promise<void>>();
@@ -57,10 +61,11 @@ class ArtStore {
       if (!url) continue;
       let job = this.pending.get(key);
       if (!job) {
-        job = loadImage(url)
+        const loading = loadImage(url)
           .then((img) => void this.real.set(key, img))
           .catch((err) => console.warn(err))
           .finally(() => this.pending.delete(key));
+        job = Promise.race([loading, new Promise<void>((done) => window.setTimeout(done, LOAD_PATIENCE_MS))]);
         this.pending.set(key, job);
       }
       jobs.push(job);
@@ -126,6 +131,3 @@ class ArtStore {
 }
 
 export const art = new ArtStore();
-
-/** Portrait keys, for screens that list many faces. */
-export const PORTRAIT_KEYS = PORTRAITS.map((p) => p.key);

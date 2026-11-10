@@ -29,7 +29,7 @@ import {
   wishFor,
   worldUnlocked,
 } from '../progress';
-import { boardMemory, ENDLESS_PAPER, go, type Route, up } from '../router';
+import { boardMemory, ENDLESS_PAPER, go, route, type Route, up } from '../router';
 import { Diorama } from '../scene/Diorama';
 
 /** One paper per world (World 4–6 show as coming soon until they are built), then endless mode. */
@@ -503,6 +503,13 @@ function TeamPage({ job }: { job: Job }) {
       leaving.current = null;
       // The hand goes with the notice, before or after its ink is on (it follows its stamp, and the stamp leaves).
       callOff(el);
+      // Gone back while the stamp came down (the system back gesture): no battle after all (it started regardless:
+      // 2026-11-10 audit), and the notice can be set off from again.
+      const now = route.value;
+      if (now.name !== 'quest' || now.level !== level.id) {
+        job.taking.value = false;
+        return;
+      }
       go(battle);
     };
     const skip = (e: Event) => {

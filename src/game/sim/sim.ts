@@ -99,6 +99,11 @@ const STEAL_REACH = TILE * 0.55;
 const STEAL_SPAN = TILE * 0.3;
 /** How soon an enemy that has just come up against a friend swings at it (ms). */
 const FIRST_SWING_MS = 380;
+/** A friend's time between attacks when its data gives none (only friends that never attack: validateContent). */
+const DEFAULT_INTERVAL_MS = 1500;
+/** How long a friend holds up an enemy that never attacks (黒い流れ星) before it drifts on over that friend (ms). Held
+ *  for good, it stalled a job no attacker could reach (2026-11-10 audit). */
+const DRIFT_PAST_MS = 10000;
 /** ちいかわ's find, on her weed_found frames: the 草 is hers this long after they start (as her hand comes up with it, on
  *  the last frame), and she holds it up this long after that. */
 const FOUND_LEAD_MS = 480;
@@ -211,8 +216,11 @@ export class Sim implements WaveHost {
   private readonly rescuesEnabled: boolean;
   /** The testing ground's rules, or null in a real battle. */
   readonly dev: DevRules | null;
+  /** Where its randomness starts: the same seed and the same moves play the same battle again. */
+  readonly seed: number;
 
   constructor(cfg: SimConfig) {
+    this.seed = cfg.seed;
     this.rng = new Rng(cfg.seed);
     this.weeds = cfg.startWeeds;
     this.activeLanes = [...cfg.lanes].sort((a, b) => a - b);
@@ -338,6 +346,8 @@ export class Sim implements WaveHost {
 
   // ------------------------------------------------------------ commands
 
+  /** Put a card down. The friend now standing there, or null: it could not be put down (canPlace says why), or it was a
+   *  one-use friend, who acts at once and stands nowhere. Ask canPlace first to know whether it can be. */
   place(cardIndex: number, lane: number, col: number): Ally | null {
     if (this.canPlace(cardIndex, lane, col) !== 'ok') return null;
     const card = this.cards[cardIndex];
@@ -353,7 +363,7 @@ export class Sim implements WaveHost {
       this.useOneUse(def, lane, col);
       return null;
     }
-    const interval = def.attack.intervalMs ?? 1000;
+    const interval = def.attack.intervalMs ?? DEFAULT_INTERVAL_MS;
     // A star stands with its friend's HP, or its own if its friend has none (a one-use friend).
     const hp = def.hp || (card.star?.hp ?? 0);
     const a: Ally = {
@@ -563,6 +573,10 @@ export class Sim implements WaveHost {
       calls: [],
       frozenUntil: 0,
       pushLeft: 0,
+      lungedAt: -1,
+      heldBy: -1,
+      heldSince: 0,
+      driftedPast: -1,
     };
     // Its first use. 擬態型 sings, 山姥 chants and セイレーン calls `firstMs` after coming onto the field (their timers fill only there,
     // from below 0 when that is further off than a cooldown); 黒い星 first heals its stop and its cooldown after it
@@ -714,7 +728,7 @@ export class Sim implements WaveHost {
       // Its attack is a mode: it plays out whole (even silenced or held midway), and the next waits for it.
       if (a.state === 'attack' && this.t - a.animStart >= ALLY_ATTACK_MS) this.setAllyAnim(a, 'idle');
       if (silenced) continue;
-      const interval = a.def.attack.intervalMs ?? 1400;
+      const interval = a.def.attack.intervalMs ?? DEFAULT_INTERVAL_MS;
       // A faster lane (パジャマパーティーズ) and a partner beside it (フタバ and ヒトハ, each with the other) quicken the
       // whole attack, the wind-up too.
       const speed = pace[a.lane] * (a.def.bond?.attackMul && this.bonded(a) ? a.def.bond.attackMul : 1);
@@ -785,7 +799,8 @@ export class Sim implements WaveHost {
 
   /** A taiyaki (MineDef): cooking until it is ready (enemies bite it like anyone), then waiting for the first enemy on
    *  the ground to reach it, which sets it off (see mineGoesOff). One that has gone past it (六足の虫 in the air over it)
-   *  is not on it. */
+   *  is not on it, and ちいかぶ in disguise does not set it off: it shows its true form there first (nothing harms it
+   *  disguised, GDD §9.1), and the taiyaki goes off under that. */
   private stepMine(a: Ally): void {
     if (this.t < a.readyAt) return;
     if (a.anim === 'cook') {
@@ -796,7 +811,7 @@ export class Sim implements WaveHost {
     const front = colY(a.col) + CONTACT - 0.5;
     const back = colY(a.col) + TILE;
     for (const e of this.enemies) {
-      if (!this.onGround(e) || !this.covers(e, a.lane) || e.y < front || e.y > back) continue;
+      if (e.disguised || !this.onGround(e) || !this.covers(e, a.lane) || e.y < front || e.y > back) continue;
       this.mineGoesOff(a);
       return;
     }
@@ -822,7 +837,7 @@ export class Sim implements WaveHost {
     a.pendingRelease = -1;
     this.events.push({ type: 'mine', ally: a });
     for (const e of this.enemies) {
-      if (!this.onGround(e) || !this.covers(e, a.lane) || e.y < front || e.y > back) continue;
+      if (e.disguised || !this.onGround(e) || !this.covers(e, a.lane) || e.y < front || e.y > back) continue;
       this.damageEnemy(e, m.damage, a.def.id, 'fx_hit', true, a.lane);
     }
   }
@@ -998,14 +1013,14 @@ export class Sim implements WaveHost {
     return best;
   }
 
-  /** The stretch of a lane a friend's attack covers, as where an enemy's front (its `y`) may be. A reach of N tiles is the N
-   *  tiles ahead of the friend's own, and an enemy is in it once its hit line is, as for every other attack (by its nose
-   *  alone, one still standing a whole tile further off was being hit). The near end is the back of the friend's own tile;
-   *  a sweep (ラッコ's sword) only cuts what is in front of him, up to whoever is at his tile's front edge. */
+  /** The stretch of a lane a friend's attack covers, as where an enemy's front (its `y`) may be. A reach of N tiles is the
+   *  N tiles ahead of the friend's own, and an enemy is in it once its hit line is, as for every other attack (by its nose
+   *  alone, one still standing a whole tile further off was being hit). The near end is the back of the friend's own tile,
+   *  in every lane a sweep (ラッコ's sword) cuts too, so whoever is level with him is cut (owner's call, 2026-11-10). */
   private reachOf(a: Ally): { minY: number; maxY: number } {
     const top = colY(a.col);
-    const { rangeTiles: range, sweepLanes } = a.def.attack;
-    return { minY: range !== undefined ? top - range * TILE + HIT_LINE : FIELD_ENTRY_Y, maxY: sweepLanes ? top + CONTACT : top + TILE };
+    const range = a.def.attack.rangeTiles;
+    return { minY: range !== undefined ? top - range * TILE + HIT_LINE : FIELD_ENTRY_Y, maxY: top + TILE };
   }
 
   /** What a melee friend's blow covers, for showing it: the open lanes it cuts, and the last column it reaches. */
@@ -1073,7 +1088,6 @@ export class Sim implements WaveHost {
       }
       case 'projectile': {
         const p = this.spawnProjectile(a, a.lane, muzzleY, damage);
-        p.splashBehind = atk.splashBehind;
         p.slowMs = atk.slowMs;
         if (atk.passThrough) p.passed = new Set();
         // A volley (古本屋's two books): the next shot follows a moment later, whatever it finds then.
@@ -1191,8 +1205,7 @@ export class Sim implements WaveHost {
     this.events.push({ type: 'enemyCollapse', enemy: e });
   }
 
-  /** Hurt a friend. A partner beside it can soften ordinary hits (BondDef.damageMul; none does at the moment); `crush`
-   *  (ゾウ's stomp) is never softened. */
+  /** Hurt a friend (`crush`: ゾウ's stomp, which the testing ground's safe friends feel no more than any other blow). */
   damageAlly(a: Ally, dmg: number, source: string, crush = false): void {
     if (a.state === 'collapse') return;
     if (this.dev?.safeFriends) {
@@ -1201,7 +1214,6 @@ export class Sim implements WaveHost {
       this.events.push({ type: 'allyHit', ally: a, damage: 0, source });
       return;
     }
-    if (!crush && a.def.bond?.damageMul !== undefined && this.bonded(a)) dmg *= a.def.bond.damageMul;
     a.hp -= dmg;
     a.hitFlashUntil = this.t + 110;
     this.events.push({ type: 'allyHit', ally: a, damage: dmg, source });
@@ -1258,13 +1270,13 @@ export class Sim implements WaveHost {
 
   /** The nearest ally ahead of an enemy in one lane: the next it would run into there. One put down on the tile the
    *  enemy's front is already in counts too: the enemy stops where it is and goes for it (like planting on a zombie).
-   *  Friends on tiles it has passed are behind it. */
+   *  Friends on tiles it has passed are behind it, and so is one it is drifting past (see engage). */
   private aheadIn(e: Enemy, lane: number): Ally | null {
     const row = this.grid[lane];
     if (!row) return null;
     for (let col = COLS - 1; col >= 0; col--) {
       const a = row[col];
-      if (a && colY(col) + TILE > e.y) return a;
+      if (a && a.uid !== e.driftedPast && colY(col) + TILE > e.y) return a;
     }
     return null;
   }
@@ -1420,7 +1432,8 @@ export class Sim implements WaveHost {
       return;
     }
     const lunge = this.lungeOf(e);
-    if (blocker && lunge && stopY - e.y <= lunge.tiles * TILE) {
+    // Once at each friend: pushed back off one it has pounced on (ハチワレ（パジャマ）'s jab), it walks up to it again.
+    if (blocker && lunge && e.lungedAt !== blocker.uid && stopY - e.y <= lunge.tiles * TILE) {
       this.startAim(e, blocker, rate);
       return;
     }
@@ -1458,6 +1471,7 @@ export class Sim implements WaveHost {
     e.anim = 'attack';
     e.animStart = this.t;
     e.targetUid = target.uid;
+    e.lungedAt = target.uid;
     e.attackT = 0;
     e.moveFrom = e.y;
     e.moveTo = this.stopYFor(e, target);
@@ -1638,7 +1652,8 @@ export class Sim implements WaveHost {
     a.state = 'carried';
     a.carriedBy = e.uid;
     a.pendingRelease = -1;
-    a.anim = 'idle';
+    // A taiyaki keeps its 'cook' mark, so it still says it is done once it is down again (see stepMine).
+    if (!a.def.mine) a.anim = 'idle';
     a.animStart = this.t;
     e.flight!.carry = a.uid;
     this.events.push({ type: 'grab', enemy: e, ally: a });
@@ -1675,11 +1690,12 @@ export class Sim implements WaveHost {
     }
     if (col < 0) {
       this.loseCarried(a);
+      this.events.push({ type: 'carriedOff', enemy: e, ally: a });
       return;
     }
     a.col = col;
     a.state = 'idle';
-    a.anim = a.def.support?.kind === 'aura_attackspeed' ? 'song' : 'idle';
+    if (!a.def.mine) a.anim = a.def.support?.kind === 'aura_attackspeed' ? 'song' : 'idle';
     a.animStart = this.t;
     this.grid[a.lane][col] = a;
     this.events.push({ type: 'drop', enemy: e, ally: a });
@@ -1713,7 +1729,15 @@ export class Sim implements WaveHost {
       e.pendingHitAt = -1;
     }
     e.targetUid = target.uid;
-    if (atk.kind === 'none') return;
+    if (e.heldBy !== target.uid) {
+      e.heldBy = target.uid;
+      e.heldSince = this.t;
+    }
+    if (atk.kind === 'none') {
+      // One that never attacks is not held for ever: after a while it drifts on, over that friend.
+      if (this.t - e.heldSince >= DRIFT_PAST_MS) e.driftedPast = target.uid;
+      return;
+    }
     if (!fromSwing) e.attackT += dt * rate;
     if (e.attackT < cycle) return;
     const swing = swingOf(e.def, e.form, interval);
@@ -1839,7 +1863,6 @@ export class Sim implements WaveHost {
       healed.push(o);
     }
     this.events.push({ type: 'heal', enemy: e, healed });
-    if (pause <= 0) return false;
     e.state = 'heal';
     e.anim = 'heal';
     e.animStart = this.t;
@@ -2065,14 +2088,6 @@ export class Sim implements WaveHost {
   private projectileHit(p: Projectile, e: Enemy): void {
     this.damageEnemy(e, p.damage, p.source, p.fx, false, p.lane);
     if (p.slowMs) e.slowUntil = Math.max(e.slowUntil, this.t + p.slowMs);
-    if (p.splashBehind) {
-      for (const o of this.enemies) {
-        if (o === e || !this.covers(o, p.lane) || !this.inPlay(o) || o.disguised) continue;
-        // "Behind" = further up the lane; enemies piled at the same spot count too.
-        const d = e.y - o.y;
-        if (d >= -12 && d <= TILE * 1.15) this.damageEnemy(o, p.splashBehind, p.source, 'fx_splash', false, p.lane);
-      }
-    }
   }
 
   private stepLob(p: Projectile): void {
@@ -2086,20 +2101,8 @@ export class Sim implements WaveHost {
     p.dead = true;
     if (lob.stump !== undefined) this.hitStump(p.lane, lob.stump, p.damage);
     // 栗まんじゅう's can splashes where it lands, over everyone round the spot (its target among them, if still there).
-    if (p.splashTiles) {
-      this.splash(p, lob.yT, p.splashTiles, target);
-      return;
-    }
-    if (target && this.inPlay(target) && !this.hidden(target)) {
-      this.projectileHit(p, target);
-      return;
-    }
-    let best: Enemy | null = null;
-    for (const e of this.enemies) {
-      if (!this.covers(e, p.lane) || !this.inPlay(e) || e.disguised || this.hidden(e)) continue;
-      if (Math.abs(e.y - HIT_LINE - lob.yT) < TILE * 0.6 && (!best || e.y > best.y)) best = e;
-    }
-    if (best) this.projectileHit(p, best);
+    // A lob with no splash of its own lands on its spot alone: its lane, half a tile either way.
+    this.splash(p, lob.yT, p.splashTiles ?? 0, target);
   }
 
   /** A can splashing where it lands (栗まんじゅう, owner's call 2026-11-07: PvZ's melon-pult): every enemy within

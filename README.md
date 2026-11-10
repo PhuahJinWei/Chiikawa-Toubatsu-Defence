@@ -24,7 +24,7 @@ npm run dev        # http://localhost:5173 (also reachable from a phone on the s
 | `npm run build` | Type-check and build to `dist/` (with the offline service worker) |
 | `npm run preview` | Serve the production build locally |
 | `npm test` | Unit tests, content validation, and a bot that plays every level |
-| `npm run balance` | Difficulty table: a good and a casual bot play every level on three seeds |
+| `npm run balance` | Difficulty table: a good and a casual bot play each level's first three tries |
 | `npm run art:import -- <folder or picture> --as <id>` | Bring a layered scene or a battle world's picture into `art/` (see below) |
 | `npm run checklist` | Regenerate `ASSET_CHECKLIST.md` from the art spec |
 | `npm run levels` | Regenerate `src/data/levels/*.json` from `tools/levelgen.py` (needs Python 3) |
@@ -46,8 +46,9 @@ The whole game is flat paper pieces that the game layers, borders, shades and mo
 - **Stickers, faces and logos**: save the PNG into `art/stickers/`, `art/portraits/` or `art/ui/` under its name.
 
 Never paint white borders, shadows or glow: the game adds them. What to draw, at what size, and which parts each
-character needs: `ASSET_CHECKLIST.md`, or **設定 → アートキット** in the game (characters move there; its ZIP holds a
-size template for every picture). Turn on **設定 → アートガイド** to see every piece outlined in place (and, in
+character needs: `ASSET_CHECKLIST.md`, or **設定 → アートキット** in the game's dev mode (`?dev` in the address;
+characters move there; its ZIP holds a size template for every picture). Turn on **設定 → アートガイド** (dev mode too)
+to see every piece outlined in place (and, in
 menus, the pieces pulled apart in 3D). A picture with no file shows as a plain card with its name and size; sounds
 stay synthesised until a file with the right name is in `art/audio/`. See [art/README.md](art/README.md).
 

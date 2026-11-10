@@ -157,7 +157,7 @@ W2 = [
     # The first bushes stand well up the field, so whoever hides in one comes out before reaching anyone.
     lvl(2, 3, "24: gb; 46: gb; 66: gb fg; 86: mj gb; 106 big: gb*4 mj; 130: s6^0.7 fg; 152: cd mj gb*2; 180 final: gb*5 mj s6^0.6 cd",
         terrain=[(1, 6, BU), (3, 6, BU), (0, 6, ST), (4, 1, ST), (2, 7, BU)]),
-    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*6 s6 bs*2 mj",
+    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6^0.7 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*6 s6^0.7 bs*2 mj",
         terrain=[(0, 5, BU), (4, 5, BU), (2, 1, ST), (1, 7, ST), (3, 3, ST)], unlock='momonga'),
     lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*5 s6^0.85 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt!^0.65 gb*4 s6^0.85",
         terrain=[(0, 4, ST), (4, 4, ST), (2, 6, BU)], first=600),
@@ -171,7 +171,7 @@ W3 = [
     lvl(3, 3, "24: gb; 46: fg mj; 66: gb*2; 86: dt gb; 106 big: gb*6 fg*2 mj; 130: km; 152: fg*2 bs; 182 final: gb*6 fg*3 km mj s6*2",
         unlock='pajama_parties'),
     lvl(3, 4, "24: gb; 46: gb fg; 66: fg mj; 88: km gb; 110 big: gb*7 mj fg; 134 boss: zu!^0.35 gb*3; 160: km^0.8 fg*2; 190 final: gb*7 km^0.8 mj*2 fg*2"),
-    lvl(3, 5, "24: gb; 46: fg gb; 68: gb mj; 90: km cd; 112 big: gb*7 fg*2 bs; 136: dt gb; 158: mj cd; 182 big: gb*5 zu^0.3 fg; 218 final boss: cb!^0.55 gb*6 mj fg*2",
+    lvl(3, 5, "24: gb; 46: fg gb; 68: gb*2; 90: km cd; 112 big: gb*7 fg*2 bs; 136: dt gb; 158: mj cd; 182 big: gb*5 zu^0.3 fg; 218 final boss: cb!^0.55 gb*6 mj fg*2",
         unlock='rakko', first=800),
 ]
 

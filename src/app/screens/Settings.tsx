@@ -1,11 +1,12 @@
-import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { DEV_MODE } from '../../dev';
 import { lang, setLang, t } from '../../i18n/i18n';
 import { applyImported, exportCode, importCode, resetSave, save, storageOk, updateSave } from '../../save/save';
 import { Icon } from '../components/Icon';
 import { PlatePaper } from '../components/Plate';
-import { Sheet, Switch, tap, toast } from '../components/ui';
+import { confirm, Sheet, Switch, tap, toast, usePopUpKeys } from '../components/ui';
 import { installState, promptInstall } from '../install';
+import { payOwedFriends } from '../progress';
 import { closeOnBack, go, route, up } from '../router';
 
 /** The settings panels' plates are light blue, like the plate on the lobby's 「設定」 button. */
@@ -29,7 +30,7 @@ function closeSettings(): void {
 
 function SettingsDialog({ onClose }: { onClose: () => void }) {
   const s = save.value.settings;
-  const [sheet, setSheet] = useState<'export' | 'import' | 'reset' | 'about' | null>(null);
+  const [sheet, setSheet] = useState<'records' | 'export' | 'import' | 'reset' | 'about' | null>(null);
   // The system back gesture closes a sheet open on top of the pop-up first (the pop-up itself is a route step).
   useLayoutEffect(() => (sheet ? closeOnBack(() => setSheet(null)) : undefined), [sheet]);
   // Escape closes the pop-up (or first the sheet open on top of it, which handles its own backdrop).
@@ -46,10 +47,13 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
     updateSave((d) => {
       fn(d.settings);
     });
+  // Focus comes in and stays in (its own Escape, above, closes it or the sheet over it).
+  const box = useRef<HTMLDivElement>(null);
+  usePopUpKeys(box);
   return (
     <>
       <div class="backdrop" onClick={onClose} />
-      <div class="sheet titled settings-dialog" role="dialog" aria-modal="true" aria-label={t('settings.title')}>
+      <div ref={box} tabIndex={-1} class="sheet titled settings-dialog" role="dialog" aria-modal="true" aria-label={t('settings.title')}>
         <h2 class="ink-plate sheet-plate" style={{ '--plate': TONE }}>
           <PlatePaper />
           <Icon name="gear" /> {t('settings.title')}
@@ -69,6 +73,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
                       <button
                         key={l}
                         class={lang.value === l ? 'on' : ''}
+                        aria-pressed={lang.value === l}
                         onClick={tap(() => {
                           setLang(l);
                           set((d) => (d.lang = l));
@@ -136,6 +141,10 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
             <section class="group">
               <h2 class="section-title">{t('settings.save')}</h2>
               <div class="list">
+                <button class="list-item" onClick={tap(() => setSheet('records'))}>
+                  <Icon name="trophy" />
+                  <span class="label">{t('settings.records')}</span>
+                </button>
                 <button class="list-item" onClick={tap(() => setSheet('export'))}>
                   <Icon name="upload" />
                   <span class="label">{t('settings.export')}</span>
@@ -149,7 +158,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
                   <span class="label">{t('settings.reset')}</span>
                 </button>
               </div>
-              {!storageOk.value ? <p class="small bold" style={{ color: '#b33a30' }}>⚠ localStorage unavailable — progress will not be kept.</p> : null}
+              {!storageOk.value ? <p class="small bold" style={{ color: '#b33a30' }}>⚠ {t('settings.storageOff')}</p> : null}
             </section>
 
             <section class="group">
@@ -170,11 +179,12 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
+      {sheet === 'records' ? <RecordsSheet onClose={() => setSheet(null)} /> : null}
       {sheet === 'export' ? <ExportSheet onClose={() => setSheet(null)} /> : null}
       {sheet === 'import' ? <ImportSheet onClose={() => setSheet(null)} /> : null}
       {sheet === 'reset' ? <ResetSheet onClose={() => setSheet(null)} /> : null}
       {sheet === 'about' ? (
-        <Sheet onClose={() => setSheet(null)} title={t('app.title')} tone={TONE}>
+        <Sheet onClose={() => setSheet(null)} title={t('app.title')} tone={TONE} closer>
           <div class="stack" style={{ gap: '10px' }}>
             <p class="small" style={{ lineHeight: 1.7 }}>
               {t('app.disclaimer')}
@@ -185,6 +195,33 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
         </Sheet>
       ) : null}
     </>
+  );
+}
+
+/** What the save keeps count of: jobs done and failed, 草 gathered, enemies beaten, time played, and since when. */
+function RecordsSheet({ onClose }: { onClose: () => void }) {
+  const d = save.value;
+  const minutes = Math.floor(d.stats.playMs / 60000);
+  const since = new Date(d.createdAt);
+  const rows: [string, string][] = [
+    [t('records.wins'), d.stats.wins.toLocaleString()],
+    [t('records.losses'), d.stats.losses.toLocaleString()],
+    [t('records.weeds'), d.stats.weeds.toLocaleString()],
+    [t('records.defeated'), d.stats.defeated.toLocaleString()],
+    [t('records.playTime'), t('records.time', { h: Math.floor(minutes / 60), m: minutes % 60 })],
+    [t('records.since'), Number.isNaN(since.getTime()) ? '—' : since.toLocaleDateString(lang.value === 'ja' ? 'ja-JP' : 'en-GB')],
+  ];
+  return (
+    <Sheet onClose={onClose} title={t('settings.records')} tone={TONE} closer>
+      <div class="list">
+        {rows.map(([k, v]) => (
+          <div key={k} class="list-item">
+            <span class="label">{k}</span>
+            <span class="bold">{v}</span>
+          </div>
+        ))}
+      </div>
+    </Sheet>
   );
 }
 
@@ -203,6 +240,7 @@ function ExportSheet({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       title={t('settings.export')}
       tone={TONE}
+      closer
       actions={
         <button class="btn primary block" onClick={tap(copy)}>
           <Icon name="copy" /> {t('common.copy')}
@@ -211,7 +249,7 @@ function ExportSheet({ onClose }: { onClose: () => void }) {
     >
       <div class="stack" style={{ gap: '10px' }}>
         <p class="small muted">{t('settings.exportDesc')}</p>
-        <textarea class="field-input" readOnly value={code} onFocus={(e) => (e.target as HTMLTextAreaElement).select()} />
+        <textarea class="field-input" readOnly value={code} aria-label={t('settings.export')} onFocus={(e) => (e.target as HTMLTextAreaElement).select()} />
       </div>
     </Sheet>
   );
@@ -220,21 +258,31 @@ function ExportSheet({ onClose }: { onClose: () => void }) {
 function ImportSheet({ onClose }: { onClose: () => void }) {
   const [code, setCode] = useState('');
   const apply = () => {
-    const d = importCode(code, lang.value);
-    if (!d) {
-      toast(t('settings.importBad'), 'bad');
+    const read = importCode(code, lang.value);
+    if ('error' in read) {
+      toast(t(read.error === 'newer' ? 'settings.importNewer' : 'settings.importBad'), 'bad');
       return;
     }
-    applyImported(d);
-    setLang(d.settings.lang);
-    toast(t('settings.importOk'), 'ok');
-    onClose();
+    const d = read.save;
+    // Everything is replaced: say what is coming in, and ask first.
+    confirm(
+      t('settings.importConfirm', { jobs: Object.keys(d.cleared).length, money: d.money.toLocaleString() }),
+      () => {
+        const saved = applyImported(d);
+        payOwedFriends();
+        setLang(d.settings.lang);
+        toast(t(saved ? 'settings.importOk' : 'settings.saveFailed'), saved ? 'ok' : 'bad');
+        onClose();
+      },
+      { title: t('settings.import'), yes: t('common.apply') },
+    );
   };
   return (
     <Sheet
       onClose={onClose}
       title={t('settings.import')}
       tone={TONE}
+      closer
       actions={
         <button class="btn primary block" disabled={!code.trim()} onClick={tap(apply)}>
           {t('common.apply')}
@@ -242,7 +290,7 @@ function ImportSheet({ onClose }: { onClose: () => void }) {
       }
     >
       <div class="stack" style={{ gap: '10px' }}>
-        <textarea class="field-input" placeholder={t('settings.importPlaceholder')} value={code} onInput={(e) => setCode((e.target as HTMLTextAreaElement).value)} />
+        <textarea class="field-input" placeholder={t('settings.importPlaceholder')} aria-label={t('settings.importPlaceholder')} value={code} onInput={(e) => setCode((e.target as HTMLTextAreaElement).value)} />
       </div>
     </Sheet>
   );
@@ -256,13 +304,14 @@ function ResetSheet({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       title={t('settings.reset')}
       tone="#F6B6B0"
+      closer
       actions={
         <button
           class="btn danger block"
           disabled={!ok}
           onClick={tap(() => {
-            resetSave();
-            toast(t('settings.resetDone'), 'ok');
+            const saved = resetSave();
+            toast(t(saved ? 'settings.resetDone' : 'settings.saveFailed'), saved ? 'ok' : 'bad');
             onClose();
             closeSettings();
           })}
@@ -272,8 +321,17 @@ function ResetSheet({ onClose }: { onClose: () => void }) {
       }
     >
       <div class="stack" style={{ gap: '10px' }}>
-        <p class="small muted">{t('settings.resetDesc')}</p>
-        <input class="field-input" value={word} placeholder={t('settings.resetWord')} onInput={(e) => setWord((e.target as HTMLInputElement).value)} />
+        <p id="reset-desc" class="small muted">
+          {t('settings.resetDesc')}
+        </p>
+        <input
+          class="field-input"
+          value={word}
+          placeholder={t('settings.resetWord')}
+          aria-label={t('settings.reset')}
+          aria-describedby="reset-desc"
+          onInput={(e) => setWord((e.target as HTMLInputElement).value)}
+        />
       </div>
     </Sheet>
   );

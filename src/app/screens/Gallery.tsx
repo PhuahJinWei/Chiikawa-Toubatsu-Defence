@@ -243,7 +243,16 @@ export function Gallery() {
               open one rises). The book is a paper cut-out of its own, still, so its edge is drawn once. */}
           <div class="gb-tabs" role="tablist">
             {TABS.map((k) => (
-              <button key={k} type="button" role="tab" aria-selected={tab === k} class={`gb-tab ${k}${tab === k ? ' on' : ''}`} onClick={tap(() => setTab(k))}>
+              <button
+                key={k}
+                id={`gb-tab-${k}`}
+                type="button"
+                role="tab"
+                aria-selected={tab === k}
+                aria-controls="gb-list"
+                class={`gb-tab ${k}${tab === k ? ' on' : ''}`}
+                onClick={tap(() => setTab(k))}
+              >
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                   <path class="edge" d="M4 100 V24 Q4 6 19 5 Q51 1 81 4 Q96 6 96 23 V100 Z" />
                   <path class="fill" d="M4 100 V24 Q4 6 19 5 Q51 1 81 4 Q96 6 96 23 V100 Z" />
@@ -256,7 +265,7 @@ export function Gallery() {
           <div class="gbook-paper">
             <img class="gbook-sheet" src={art.imageUrl('gallery/book')} alt="" draggable={false} />
           </div>
-          <div class="gb-page left">
+          <div class="gb-page left" id="gb-list" role="tabpanel" aria-labelledby={`gb-tab-${tab}`}>
             {/* The page is headed by the part of the book that is open, its bookmark's colour under the name, and the
                 count of its pages filled in. */}
             <div class={`gb-head ${tab}`}>

@@ -1,5 +1,34 @@
-import { describe, expect, it } from 'vitest';
-import { crc32, defaultSave, exportCode, FIRST_FRIEND, importCode, initSave, migrate, SAVE_VERSION } from '../src/save/save';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  applyImported,
+  crc32,
+  defaultSave,
+  exportCode,
+  FIRST_FRIEND,
+  importCode,
+  initSave,
+  migrate,
+  resetSave,
+  save,
+  SAVE_KEY,
+  SAVE_VERSION,
+  type SaveData,
+  storageOk,
+  updateSave,
+} from '../src/save/save';
+import { payOwedFriends } from '../src/app/progress';
+
+/** localStorage as a map, for the tests that read and write it (node has none). */
+function fakeStorage() {
+  const store = new Map<string, string>();
+  const ls = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => void store.set(k, String(v)),
+    removeItem: (k: string) => void store.delete(k),
+  };
+  vi.stubGlobal('localStorage', ls);
+  return { store, ls };
+}
 
 describe('save', () => {
   it('export → import round-trips the whole save', () => {
@@ -11,8 +40,9 @@ describe('save', () => {
     d.settings.lang = 'en';
     const code = exportCode(d);
     expect(code.startsWith('CTD1.')).toBe(true);
-    const back = importCode(code);
-    expect(back).not.toBeNull();
+    const read = importCode(code);
+    expect(read).toHaveProperty('save');
+    const back = 'save' in read ? read.save : null;
     expect(back!.money).toBe(1234);
     expect(back!.cards).toEqual(['usagi', 'chiikawa', 'yoroi']);
     expect(back!.cleared['1-1']).toEqual({ stars: 3, clears: 2 });
@@ -31,9 +61,135 @@ describe('save', () => {
     const code = exportCode(defaultSave());
     const parts = code.split('.');
     const tampered = `${parts[0]}.${parts[1]}.00000000`;
-    expect(importCode(tampered)).toBeNull();
-    expect(importCode('hello')).toBeNull();
-    expect(importCode('')).toBeNull();
+    expect(importCode(tampered)).toEqual({ error: 'bad' });
+    expect(importCode('hello')).toEqual({ error: 'bad' });
+    expect(importCode('')).toEqual({ error: 'bad' });
+  });
+
+  it('refuses a code too long to be a save, or one that inflates past any real save', () => {
+    expect(importCode(`CTD1.${'A'.repeat(20_000)}.00000000`)).toEqual({ error: 'bad' });
+    // A few hundred characters that unpack to 300 KB.
+    const bomb = exportCode({ ...defaultSave(), junk: 'a'.repeat(300_000) } as unknown as SaveData);
+    expect(bomb.length).toBeLessThan(2000);
+    expect(importCode(bomb)).toEqual({ error: 'bad' });
+  });
+
+  it('hands over at once the friends an imported older save is owed', () => {
+    fakeStorage();
+    try {
+      initSave('ja');
+      const old = defaultSave('ja');
+      for (const id of ['1-1', '1-2', '1-3']) old.cleared[id] = { stars: 3, clears: 1 };
+      expect(applyImported(old)).toBe(true);
+      payOwedFriends();
+      expect(save.value.cards).toEqual(expect.arrayContaining(['usagi', 'chiikawa', 'yoroi', 'hachiware']));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('refuses a code from a newer version of the game, which it could only read in part', () => {
+    const newer = { ...defaultSave(), v: SAVE_VERSION + 1 } as SaveData;
+    expect(importCode(exportCode(newer))).toEqual({ error: 'newer' });
+  });
+
+  it('starts any save, however damaged, with every field of the right type', () => {
+    const def = defaultSave('ja');
+    const raw = {
+      v: SAVE_VERSION,
+      cleared: null,
+      attempts: { '1-1': 'x', '1-2': 2 },
+      cards: 'usagi',
+      gallery: { seen: 5, met: ['usagi', 7] },
+      money: 'lots',
+      upgrades: { slots: -2, ramen: 1.5 },
+      items: null,
+      settings: 'loud',
+      stats: { wins: 'x' },
+      wish: 3,
+      tips: {},
+      best: [],
+      features: { endless: 'yes' },
+      lastDeck: [1, 'usagi'],
+      createdAt: 5,
+    };
+    const m = migrate(raw, def);
+    expect(m.cleared).toEqual({});
+    expect(m.attempts).toEqual({ '1-2': 2 });
+    expect(m.cards).toEqual([FIRST_FRIEND]);
+    expect(m.gallery).toEqual({ seen: [], defeated: [], met: ['usagi'] });
+    expect(m.money).toBe(0);
+    expect(m.upgrades).toEqual({ slots: 0, ramen: 1 });
+    expect(m.items).toEqual({ buta: 0 });
+    expect(m.settings).toEqual(def.settings);
+    expect(m.stats.wins).toBe(0);
+    expect(m.wish).toBeNull();
+    expect('tips' in m).toBe(false);
+    expect(m.best).toEqual({ endless: 0 });
+    expect(m.features).toEqual({ endless: false, speed: false });
+    expect(m.lastDeck).toEqual(['usagi']);
+    expect(typeof m.createdAt).toBe('string');
+    // A cleared job's record is mended rather than dropped; one that is not a record at all is dropped.
+    expect(migrate({ v: SAVE_VERSION, cleared: { '1-1': { stars: 9, clears: 'x' }, '1-2': 4 } }, def).cleared).toEqual({ '1-1': { stars: 3, clears: 1 } });
+    expect(migrate({ v: SAVE_VERSION, settings: { lang: 'fr', speed: 3, bgm: 4 } }, def).settings).toMatchObject({ lang: 'ja', speed: 1, bgm: 1 });
+  });
+
+  it('keeps a copy of a save it cannot read, or of one from a newer version, before starting', () => {
+    const { store } = fakeStorage();
+    try {
+      store.set(SAVE_KEY, '[1,2]');
+      initSave('ja');
+      expect([...store.keys()].some((k) => k.startsWith(`${SAVE_KEY}.broken.`))).toBe(true);
+      expect(save.value.money).toBe(0);
+      store.clear();
+      store.set(SAVE_KEY, JSON.stringify({ ...defaultSave(), v: SAVE_VERSION + 1, money: 7 }));
+      initSave('ja');
+      expect(store.has(`${SAVE_KEY}.v${SAVE_VERSION + 1}`)).toBe(true);
+      expect(save.value.money).toBe(7);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('keeps the save an import replaces, and says when a save could not be written', () => {
+    const { store, ls } = fakeStorage();
+    try {
+      initSave('ja');
+      updateSave((d) => {
+        d.money = 5;
+      });
+      const read = importCode(exportCode({ ...defaultSave(), money: 99 }));
+      expect(applyImported((read as { save: SaveData }).save)).toBe(true);
+      expect(JSON.parse(store.get(`${SAVE_KEY}.before-import`)!).money).toBe(5);
+      expect(save.value.money).toBe(99);
+      // Storage full: a reset is not reported as done.
+      ls.setItem = () => {
+        throw new Error('QuotaExceededError');
+      };
+      expect(resetSave()).toBe(false);
+      expect(storageOk.value).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('takes the save another tab wrote when it is newer than its own, and only then', () => {
+    fakeStorage();
+    vi.stubGlobal('window', new EventTarget());
+    try {
+      initSave('ja');
+      const mine = save.value;
+      const from = (d: object) => window.dispatchEvent(Object.assign(new Event('storage'), { key: SAVE_KEY, newValue: JSON.stringify(d) }));
+      from({ ...mine, money: 1, updatedAt: '2000-01-01T00:00:00.000Z' });
+      expect(save.value.money).toBe(mine.money);
+      from({ ...mine, money: 42, updatedAt: '2999-01-01T00:00:00.000Z' });
+      expect(save.value.money).toBe(42);
+      // Another slot's save (dev mode's) is not this one's.
+      window.dispatchEvent(Object.assign(new Event('storage'), { key: `${SAVE_KEY}.dev`, newValue: JSON.stringify({ ...mine, money: 3, updatedAt: '3000-01-01T00:00:00.000Z' }) }));
+      expect(save.value.money).toBe(42);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('migrates old or partial saves by filling defaults', () => {

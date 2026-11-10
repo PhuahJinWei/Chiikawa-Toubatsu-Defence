@@ -96,6 +96,31 @@ export function newEnemiesInLevel(level: LevelDef): string[] {
 /** Validation used by tests and the dev overlay. Returns a list of problems (empty = fine). */
 export function validateContent(): string[] {
   const problems: string[] = [];
+  // Friends and enemies: every one that attacks says how hard and how often (the sim's fallbacks are for those that
+  // never do), and every id one of them names is real (an unknown one was dropped without a word: 2026-11-10 audit).
+  const unitIds = new Set<string>();
+  for (const u of UNIT_LIST) {
+    if (unitIds.has(u.id)) problems.push(`duplicate friend id ${u.id}`);
+    unitIds.add(u.id);
+    const a = u.attack;
+    if (a.kind !== 'none' && !((a.damage ?? 0) > 0 && (a.intervalMs ?? 0) > 0)) problems.push(`${u.id}: attacks (${a.kind}) without a damage and an intervalMs`);
+    if (u.bond && !UNITS[u.bond.with]) problems.push(`${u.id}: partner ${u.bond.with} is no friend`);
+    if (u.mine && !(u.mine.damage > 0 && u.mine.readyMs > 0)) problems.push(`${u.id}: a trap without damage or cooking time`);
+  }
+  const enemyIds = new Set<string>();
+  for (const e of ENEMY_LIST) {
+    if (enemyIds.has(e.id)) problems.push(`duplicate enemy id ${e.id}`);
+    enemyIds.add(e.id);
+    const a = e.attack;
+    if ((a.kind === 'melee' || a.kind === 'ranged') && !((a.damage ?? 0) > 0 && (a.intervalMs ?? 0) > 0)) problems.push(`${e.id}: attacks (${a.kind}) without a damage and an intervalMs`);
+    if (a.kind === 'stomp' && !((a.intervalMs ?? 0) > 0)) problems.push(`${e.id}: stomps without an intervalMs`);
+    for (const ab of e.abilities) {
+      if (ab.kind === 'rally') for (const id of ab.who) if (!ENEMIES[id]) problems.push(`${e.id}: rallies ${id}, who is no enemy`);
+      if (ab.kind === 'summon') for (const id of [ab.water, ab.land]) if (!ENEMIES[id]) problems.push(`${e.id}: calls up ${id}, who is no enemy`);
+    }
+  }
+  // Named in endless.ts: the stand-in when its pool is empty, and the healer it sends no more than two of.
+  for (const id of ['mushi_twolegs', 'kuroi_nagareboshi']) if (!ENEMIES[id]) problems.push(`endless mode names ${id}, who is no enemy`);
   const ids = new Set<string>();
   for (const l of LEVEL_LIST) {
     if (ids.has(l.id)) problems.push(`duplicate level id ${l.id}`);

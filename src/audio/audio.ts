@@ -125,35 +125,49 @@ class AudioManager {
   private fileSource: AudioBufferSourceNode | null = null;
   private step = 0;
   private nextTime = 0;
-  muted = false;
+  /** The device would not give the game an audio context: it plays on silent, and stops asking. */
+  private failed = false;
 
   /** Open the audio context, if it is not open yet. Opening it takes a moment (a third of a second on some
    *  computers), so the game does it while it loads rather than in the first tap; it stays silent until a user
-   *  gesture unlocks it. */
+   *  gesture unlocks it. If the device refuses (too many open, or none allowed), the game plays on without sound: a
+   *  throw here used to stop every tap that unlocks the sound from doing anything else (2026-11-10 audit). */
   prepare(): void {
-    if (this.ctx) return;
+    if (this.ctx || this.failed) return;
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return;
-    this.ctx = new Ctor();
-    this.sfxBus = this.ctx.createGain();
-    this.bgmBus = this.ctx.createGain();
-    this.sfxBus.connect(this.ctx.destination);
-    this.bgmBus.connect(this.ctx.destination);
+    try {
+      const ctx = new Ctor();
+      this.sfxBus = ctx.createGain();
+      this.bgmBus = ctx.createGain();
+      this.sfxBus.connect(ctx.destination);
+      this.bgmBus.connect(ctx.destination);
+      const len = ctx.sampleRate;
+      this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = this.noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.ctx = ctx;
+    } catch {
+      this.failed = true;
+      this.ctx = this.sfxBus = this.bgmBus = this.noiseBuf = null;
+      return;
+    }
     this.applyVolumes();
-    const len = this.ctx.sampleRate;
-    this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-    const d = this.noiseBuf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     if (this.wantMusic) this.playMusic(this.wantMusic);
+  }
+
+  /** Whether the context needs waking: suspended, or 'interrupted' (iOS, after a phone call or Siri). */
+  private asleep(): boolean {
+    return !!this.ctx && this.ctx.state !== 'running' && this.ctx.state !== 'closed';
   }
 
   /** Must be called from a user gesture at least once (iOS). */
   unlock(): void {
     this.prepare();
-    if (!this.ctx || this.ctx.state !== 'suspended') return;
+    if (!this.ctx || !this.asleep()) return;
     // A context opened before any gesture needs the gesture's resume; iOS also likes a sound started in the gesture
     // itself, so a silent one plays too.
-    void this.ctx.resume();
+    this.ctx.resume().catch(() => {});
     try {
       const kick = this.ctx.createBufferSource();
       kick.buffer = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
@@ -164,34 +178,29 @@ class AudioManager {
     }
   }
 
-  get ready(): boolean {
-    return !!this.ctx && this.ctx.state === 'running';
-  }
-
   setVolumes(sfx: number, bgm: number): void {
     this.sfxVol = sfx;
     this.bgmVol = bgm;
     this.applyVolumes();
+    // Turned all the way down, the music is not made at all (it went on being made into silence); turned up again, what
+    // was wanted starts.
+    if (bgm <= 0) this.stopMusic(false);
+    else if (!this.musicId && this.wantMusic) this.playMusic(this.wantMusic);
   }
 
   private applyVolumes(): void {
     if (!this.ctx || !this.sfxBus || !this.bgmBus) return;
     const t = this.ctx.currentTime;
-    this.sfxBus.gain.setTargetAtTime(this.muted ? 0 : this.sfxVol, t, 0.02);
-    this.bgmBus.gain.setTargetAtTime(this.muted ? 0 : this.bgmVol * 0.55, t, 0.05);
-  }
-
-  setMuted(m: boolean): void {
-    this.muted = m;
-    this.applyVolumes();
+    this.sfxBus.gain.setTargetAtTime(this.sfxVol, t, 0.02);
+    this.bgmBus.gain.setTargetAtTime(this.bgmVol * 0.55, t, 0.05);
   }
 
   suspend(): void {
-    if (this.ctx && this.ctx.state === 'running') void this.ctx.suspend();
+    if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
   }
 
   resume(): void {
-    if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
+    if (this.ctx && this.asleep()) this.ctx.resume().catch(() => {});
   }
 
   // ------------------------------------------------------------ files
@@ -377,7 +386,7 @@ class AudioManager {
 
   /** Play a sound effect. Rate-limited per id so hordes do not turn into noise. */
   sfx(id: string, opts: { pitch?: number; gap?: number } = {}): void {
-    if (!this.ctx || !this.sfxBus || this.muted || this.sfxVol <= 0) return;
+    if (!this.ctx || !this.sfxBus || this.sfxVol <= 0) return;
     const now = this.ctx.currentTime;
     const gap = opts.gap ?? 0.035;
     if ((this.last.get(id) ?? -1) > now - gap) return;
@@ -401,7 +410,7 @@ class AudioManager {
 
   playMusic(id: string): void {
     this.wantMusic = id;
-    if (!this.ctx || !this.bgmBus) return;
+    if (!this.ctx || !this.bgmBus || this.bgmVol <= 0) return;
     if (this.musicId === id) return;
     this.stopMusic(false);
     this.musicId = id;
@@ -427,6 +436,8 @@ class AudioManager {
     const stepDur = 60 / track.bpm / 2;
     const tick = () => {
       if (!this.ctx || !this.bgmBus || this.musicId !== id) return;
+      // Behind after a stall (a busy moment, a background tab): the steps missed are skipped, not all played at once.
+      if (this.nextTime < this.ctx.currentTime) this.nextTime = this.ctx.currentTime + 0.05;
       while (this.nextTime < this.ctx.currentTime + 0.15) {
         const i = this.step % lead.length;
         const holdLen = (arr: string[], at: number) => {

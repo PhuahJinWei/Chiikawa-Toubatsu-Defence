@@ -71,7 +71,8 @@ export default defineConfig({
     artToWebp(),
     trimFonts(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // A new version is not taken on by itself: main.tsx brings it in when no battle can be interrupted.
+      registerType: 'prompt',
       injectRegister: null,
       includeAssets: ['icons/*.png'],
       manifest: {

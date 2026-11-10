@@ -33,8 +33,9 @@ export const PROJECTILE_HEIGHT = Math.round(TILE * 0.5);
 
 /** Where enemies appear (feet y), beyond the field's enemy-side edge. */
 export const SPAWN_Y = -80;
-/** Enemies become targetable once their feet pass this line. */
-export const FIELD_ENTRY_Y = 20;
+/** Enemies become targetable once their feet pass this line. No further in than CONTACT: an enemy up against a friend in
+ *  the last column stands there, and must be on the field to be hit back (at 20 it never was: 2026-11-10 audit). */
+export const FIELD_ENTRY_Y = CONTACT;
 /** Crossing this line in a lane triggers that lane's rescue, or loses the level. */
 export const BASE_Y = LANE_LEN + Math.round(TILE * 0.15);
 
@@ -92,7 +93,6 @@ export const laneX = (lane: number): number => lane * TILE + TILE / 2;
 export const allyFeetY = (col: number): number => colY(col) + ALLY_FEET;
 /** Column index whose tile contains travel coordinate y, clamped to the field. */
 export const colOfY = (y: number): number => Math.max(0, Math.min(COLS - 1, COLS - 1 - Math.floor(y / TILE)));
-export const laneOfX = (x: number): number => Math.floor(x / TILE);
 
 // ---------------------------------------------------------------- screen mapping (used by the renderer)
 

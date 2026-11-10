@@ -43,7 +43,7 @@ export function t(key: string, params?: Record<string, string | number>): string
   return raw.replace(/\{(\w+)\}/g, (_, k: string) => (params[k] !== undefined ? String(params[k]) : `{${k}}`));
 }
 
-export function has(key: string): boolean {
+function has(key: string): boolean {
   return lookup(DICTS[lang.value], key) !== undefined || lookup(DICTS.ja, key) !== undefined;
 }
 

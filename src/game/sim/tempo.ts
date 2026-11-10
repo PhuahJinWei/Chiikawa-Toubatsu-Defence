@@ -94,8 +94,6 @@ export function spawnMsOf(def: { size: SizeTier; giant?: boolean }, form?: strin
 
 /** A heal pulse's whole animation (ms): it spreads out from the middle of whoever heals, and fades. */
 export const HEAL_PULSE_MS = 700;
-/** 古本屋's smaller pulse each time it heals its neighbours (ms; it heals every second). */
-export const HEAL_PULSE_SMALL_MS = 480;
 /** How long a healed mark (「＋HP」) shows over each one healed (ms): only a moment. */
 export const HEALED_MARK_MS = 650;
 
@@ -103,14 +101,14 @@ export const HEALED_MARK_MS = 650;
  *  its heal frames play over it. Long enough for its pulse to be over before it moves on (owner's call, 2026-11-07). */
 export function healPauseOf(def: EnemyDef): number {
   const ab = def.abilities.find((a) => a.kind === 'heal_aura');
-  return ab && ab.kind === 'heal_aura' ? (ab.pauseMs ?? 0) : 0;
+  return ab && ab.kind === 'heal_aura' ? ab.pauseMs : 0;
 }
 
 /** How long a timed enemy ability goes on once used, before its cooldown starts (owner's call, 2026-11-07: a cooldown
  *  starts when its ability is over): 黒い星's stop, 擬態型's song (as long as it holds friends), 山姥's spell until her
  *  hold wears off (however long her chant), and セイレーン's call (her stop to sing). */
 export function abilityBusyMs(ab: EnemyAbility): number {
-  if (ab.kind === 'heal_aura') return ab.pauseMs ?? 0;
+  if (ab.kind === 'heal_aura') return ab.pauseMs;
   if (ab.kind === 'song') return ab.durationMs;
   if (ab.kind === 'spell') return Math.max(ab.castMs, ab.freezeMs);
   if (ab.kind === 'summon') return ab.castMs;

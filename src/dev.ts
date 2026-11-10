@@ -8,6 +8,10 @@ import type { SaveData } from './save/save';
 /** Dev mode is on when the address has ?dev (with or without a value). */
 export const DEV_MODE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('dev');
 
+/** The QA hooks (window.__ctd and __ctdBattle, see debug.ts): the dev server, dev mode, or ?debug in the address. Never in
+ *  a player's game otherwise. */
+export const DEBUG_ON = !!import.meta.env?.DEV || DEV_MODE || (typeof location !== 'undefined' && location.search.includes('debug'));
+
 /** Money a dev save always has at least, for trying the shop. */
 export const DEV_MONEY = 99999;
 

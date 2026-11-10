@@ -39,7 +39,6 @@ export interface SaveData {
   items: { buta: number };
   best: { endless: number };
   settings: Settings;
-  tips: string[];
   /** Red stamps already pressed (the hand stamp shows only the first time each is seen): cleared:world1, soldout:slot1,
    *  source:<gallery entry>… */
   stamped: string[];
@@ -66,7 +65,6 @@ export function defaultSave(lang: 'ja' | 'en' = 'ja'): SaveData {
     items: { buta: 0 },
     best: { endless: 0 },
     settings: { lang, bgm: 0.6, sfx: 0.8, autoCollect: false, reducedMotion: false, guides: false, speed: 1 },
-    tips: [],
     stamped: [],
     stats: { wins: 0, losses: 0, weeds: 0, defeated: 0, playMs: 0 },
     lastDeck: [],
@@ -77,9 +75,18 @@ export function defaultSave(lang: 'ja' | 'en' = 'ja'): SaveData {
 
 type Json = Record<string, unknown>;
 
+const isObj = (v: unknown): v is Json => !!v && typeof v === 'object' && !Array.isArray(v);
+/** A deep copy of plain save data. Not structuredClone, which browsers before Safari 15.4 and Chrome 98 lack: there
+ *  every start took the save for a broken one (2026-11-10 audit). */
+const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+/** The longest export code taken, and the most save data one may hold (a save is a few KB; a crafted code once
+ *  inflated to 64 MB: 2026-11-10 audit). */
+const MAX_CODE_CHARS = 16_000;
+const MAX_SAVE_BYTES = 256_000;
+
 /** Fill in anything missing so older or partial saves keep working. */
 function mergeDefaults(raw: Json, fallback: SaveData): SaveData {
-  const out = structuredClone(fallback) as unknown as Json;
+  const out = clone(fallback) as unknown as Json;
   for (const [k, v] of Object.entries(raw)) {
     const base = out[k];
     if (base && typeof base === 'object' && !Array.isArray(base) && v && typeof v === 'object' && !Array.isArray(v)) {
@@ -89,6 +96,43 @@ function mergeDefaults(raw: Json, fallback: SaveData): SaveData {
     }
   }
   return out as unknown as SaveData;
+}
+
+/** `v` in the shape of `def` (a default save, or a part of one): whatever is missing or of the wrong type takes the
+ *  default's value, and no number is below zero (none in a save is). A list keeps only its strings; an object keeps any
+ *  keys beyond the default's (so a record, like `cleared`, keeps its entries for the caller to check, and a newer
+ *  version's fields come through an older copy of the game; import's size limit keeps them small). */
+function shaped(v: unknown, def: unknown): unknown {
+  if (Array.isArray(def)) return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [...def];
+  if (def === null) return typeof v === 'string' ? v : null;
+  if (typeof def === 'object') {
+    if (!isObj(v)) return clone(def);
+    const out: Json = { ...v };
+    for (const [k, d] of Object.entries(def as Json)) out[k] = shaped(v[k], d);
+    return out;
+  }
+  if (typeof def === 'number') return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, v) : def;
+  return typeof v === typeof def ? v : def;
+}
+
+/** Any save, however damaged or edited by hand, in a shape the game runs on: one wrong type gave a blank page on every
+ *  start (2026-11-10 audit). Whatever cannot be used goes back to its default. */
+function sanitize(d: SaveData, def: SaveData): SaveData {
+  const out = shaped(d, def) as SaveData;
+  const count = (v: unknown, fallback: number) => Math.floor(shaped(v, fallback) as number);
+  out.cleared = Object.fromEntries(
+    Object.entries(out.cleared).flatMap(([id, c]) => (isObj(c) ? [[id, { stars: Math.min(3, count(c.stars, 0)), clears: count(c.clears, 1) }]] : [])),
+  );
+  out.attempts = Object.fromEntries(Object.entries(out.attempts).flatMap(([id, n]) => (typeof n === 'number' && Number.isFinite(n) ? [[id, count(n, 0)]] : [])));
+  const s = out.settings;
+  if (s.lang !== 'ja' && s.lang !== 'en') s.lang = def.settings.lang;
+  if (s.speed !== 1 && s.speed !== 2) s.speed = def.settings.speed;
+  s.bgm = Math.min(1, s.bgm);
+  s.sfx = Math.min(1, s.sfx);
+  out.upgrades.slots = Math.floor(out.upgrades.slots);
+  out.upgrades.ramen = Math.floor(out.upgrades.ramen);
+  out.items.buta = Math.floor(out.items.buta);
+  return out;
 }
 
 /** A job that went when the worlds went from ten jobs to five, for migration 6 → 7. */
@@ -175,8 +219,10 @@ export function migrate(raw: Json, fallback: SaveData): SaveData {
     d = MIGRATIONS[v](d);
     v = typeof d.v === 'number' ? d.v : v + 1;
   }
-  const merged = mergeDefaults(d, fallback);
+  const merged = sanitize(mergeDefaults(d, fallback), fallback);
   merged.v = SAVE_VERSION;
+  // Hints already shown, once planned and never used (2026-11-10 audit): no save needs it.
+  delete (merged as unknown as Json).tips;
   // うさぎ is everyone's first friend (she was ハチワレ until 2026-11-08: a save from before keeps him too).
   if (!Array.isArray(merged.cards) || !merged.cards.includes(FIRST_FRIEND)) merged.cards = [FIRST_FRIEND, ...(merged.cards ?? [])];
   merged.money = Math.max(0, Math.floor(Number(merged.money) || 0));
@@ -203,45 +249,74 @@ function writeStorage(s: string): boolean {
   }
 }
 
-export function loadSave(lang: 'ja' | 'en'): SaveData {
+/** Keep a copy of a save under `key`, beside the one in use. Nothing is lost if it cannot be. */
+function keepCopy(key: string, raw: string): void {
+  try {
+    localStorage.setItem(key, raw);
+  } catch {
+    /* storage unavailable or full */
+  }
+}
+
+function loadSave(lang: 'ja' | 'en'): SaveData {
   const raw = readStorage();
   if (!raw) return defaultSave(lang);
   try {
-    return migrate(JSON.parse(raw) as Json, defaultSave(lang));
+    const data = JSON.parse(raw) as unknown;
+    if (!isObj(data)) throw new Error('not a save');
+    // From a newer version of the game (a copy open in another tab, or an older copy gone back to): this one reads what
+    // it knows, and keeps the save as it was beside it, so going forward again loses nothing.
+    if (typeof data.v === 'number' && data.v > SAVE_VERSION) keepCopy(`${slot}.v${data.v}`, raw);
+    return migrate(data, defaultSave(lang));
   } catch {
     // Never throw away a save we could not read: keep a copy and start fresh.
-    try {
-      localStorage.setItem(`${slot}.broken.${Date.now()}`, raw);
-    } catch {
-      /* storage unavailable */
-    }
+    keepCopy(`${slot}.broken.${Date.now()}`, raw);
     return defaultSave(lang);
   }
 }
 
 export const save = signal<SaveData>(defaultSave());
 export const storageOk = signal(true);
+let listening = false;
 
 /** Load the save (dev mode's own one with `dev`) and keep using that one. */
 export function initSave(lang: 'ja' | 'en', dev = false): void {
   slot = dev ? DEV_SAVE_KEY : SAVE_KEY;
   save.value = loadSave(lang);
   storageOk.value = writeStorage(JSON.stringify(save.value));
+  if (!listening && typeof window !== 'undefined') {
+    listening = true;
+    window.addEventListener('storage', onStorage);
+  }
+}
+
+/** Another copy of the game (a second tab) saved: this one takes that save when it is newer than its own, so neither
+ *  writes its older progress over the other's (2026-11-10 audit). */
+function onStorage(ev: StorageEvent): void {
+  if (ev.key !== slot || !ev.newValue) return;
+  try {
+    const data = JSON.parse(ev.newValue) as unknown;
+    if (!isObj(data) || typeof data.updatedAt !== 'string' || data.updatedAt <= save.value.updatedAt) return;
+    save.value = migrate(data, defaultSave(save.value.settings.lang));
+  } catch {
+    /* not readable: keep this one */
+  }
 }
 
 /** Change the save immutably and persist it. */
 export function updateSave(fn: (d: SaveData) => void): void {
-  const d = structuredClone(save.value);
+  const d = clone(save.value);
   fn(d);
   d.updatedAt = new Date().toISOString();
   save.value = d;
   storageOk.value = writeStorage(JSON.stringify(d));
 }
 
-export function resetSave(): void {
+/** Start again from a new save. False when it could not be written. */
+export function resetSave(): boolean {
   const lang = save.value.settings.lang;
   save.value = defaultSave(lang);
-  writeStorage(JSON.stringify(save.value));
+  return (storageOk.value = writeStorage(JSON.stringify(save.value)));
 }
 
 // ---------------------------------------------------------------- export codes
@@ -282,22 +357,35 @@ export function exportCode(d: SaveData): string {
   return `CTD1.${body}.${crc32(json).toString(16).padStart(8, '0')}`;
 }
 
-export function importCode(code: string, lang: 'ja' | 'en' = 'ja'): SaveData | null {
+/** What an export code holds: its save, or why it cannot be used (`bad`: not a code, or a damaged one; `newer`: made by a
+ *  newer version of the game, which this one could only read in part). */
+type CodeRead = { save: SaveData } | { error: 'bad' | 'newer' };
+
+export function importCode(code: string, lang: 'ja' | 'en' = 'ja'): CodeRead {
   try {
     const clean = code.trim().replace(/\s+/g, '');
+    if (clean.length > MAX_CODE_CHARS) return { error: 'bad' };
     const [tag, body, sum] = clean.split('.');
-    if (tag !== 'CTD1' || !body || !sum) return null;
+    if (tag !== 'CTD1' || !body || !sum) return { error: 'bad' };
     const json = inflateSync(fromBase64Url(body));
-    if (crc32(json).toString(16).padStart(8, '0') !== sum.toLowerCase()) return null;
-    const data = JSON.parse(strFromU8(json)) as Json;
-    if (!data || typeof data !== 'object') return null;
-    return migrate(data, defaultSave(lang));
+    if (json.length > MAX_SAVE_BYTES) return { error: 'bad' };
+    if (crc32(json).toString(16).padStart(8, '0') !== sum.toLowerCase()) return { error: 'bad' };
+    const data = JSON.parse(strFromU8(json)) as unknown;
+    if (!isObj(data)) return { error: 'bad' };
+    if (typeof data.v === 'number' && data.v > SAVE_VERSION) return { error: 'newer' };
+    return { save: migrate(data, defaultSave(lang)) };
   } catch {
-    return null;
+    return { error: 'bad' };
   }
 }
 
-export function applyImported(d: SaveData): void {
-  save.value = d;
-  writeStorage(JSON.stringify(d));
+/** Replace the save with an imported one. The save it replaces is kept beside it (`<slot>.before-import`), so a code
+ *  pasted by mistake loses nothing for good, and it counts as saved now (another tab takes it). False when it could not
+ *  be written. */
+export function applyImported(d: SaveData): boolean {
+  const before = readStorage();
+  save.value = { ...d, updatedAt: new Date().toISOString() };
+  storageOk.value = writeStorage(JSON.stringify(save.value));
+  if (storageOk.value && before) keepCopy(`${slot}.before-import`, before);
+  return storageOk.value;
 }

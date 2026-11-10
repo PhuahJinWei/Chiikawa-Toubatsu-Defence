@@ -211,8 +211,7 @@
         {"enemy": "goblin"}
       ] },
       { "at": 126, "spawns": [
-        {"enemy": "goblin"},
-        {"enemy": "majyo"}
+        {"enemy": "goblin", "count": 2}
       ] },
       { "at": 166, "spawns": [
         {"enemy": "kimera"},

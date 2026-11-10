@@ -27,10 +27,17 @@ export function initInstall(): void {
   });
 }
 
+/** The browser's own install question. Turned down, the offer goes until the browser makes it again (its
+ *  beforeinstallprompt): the button stayed and did nothing (2026-11-10 audit). */
 export async function promptInstall(): Promise<void> {
-  if (!deferred) return;
-  await deferred.prompt();
-  const choice = await deferred.userChoice;
-  if (choice.outcome === 'accepted') installState.value = 'installed';
+  const offer = deferred;
+  if (!offer) return;
   deferred = null;
+  try {
+    await offer.prompt();
+    const choice = await offer.userChoice;
+    installState.value = choice.outcome === 'accepted' ? 'installed' : 'unknown';
+  } catch {
+    installState.value = 'unknown';
+  }
 }
