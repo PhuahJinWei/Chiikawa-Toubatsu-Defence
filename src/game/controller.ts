@@ -105,9 +105,11 @@ interface Banner {
 }
 
 const BANNER_MS = 2200;
-/** Getting ready (ms): a moment on the field, the glide to the road, a good look at the enemies when there is nothing
- *  to pick, and the glide back (owner's call, 2026-11-09: there was too little time to see them). A tap cuts it short. */
-const PREP = { wait: 600, out: 1800, hold: 3000, back: 1400 };
+/** Getting ready (ms): a moment on the field, the glide to the road, a look at the enemies when there is nothing to
+ *  pick, and the glide back. Owner's calls: 2026-11-09, there was too little time to see them (the rest on the road had
+ *  been 0.6 s); 2026-11-10, the 3 s rest that brought was a little too long. A tap does not cut it short; the pause
+ *  button pauses it. */
+const PREP = { wait: 600, out: 1800, hold: 1800, back: 1400 };
 /** The glide back after a tap on the road, as a share of the usual one. */
 const SKIP_BACK = 0.5;
 /** How long 「よーい…」 shows before the battle starts (ms). The banner's animation in global.css lasts as long. */
