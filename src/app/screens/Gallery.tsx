@@ -178,9 +178,18 @@ function PinName({ text }: { text: string }) {
   );
 }
 
-export function Gallery() {
-  const [tab, setTab] = useState<Tab>('allies');
-  const [chosen, setChosen] = useState<Record<Tab, string>>(() => ({ allies: firstOf('allies'), enemies: firstOf('enemies'), people: firstOf('people') }));
+/** The gallery book. From the lobby it is a screen of its own. A new friend's page opens it over the battle (see
+ *  components/NewFriend.tsx) at their entry (`entry`), and then its back button closes it (`onClose`) instead of going
+ *  to the lobby. */
+export function Gallery({ entry, onClose }: { entry?: string; onClose?: () => void } = {}) {
+  const start = entry ? G.entries.find((e) => e.id === entry && inBook(e)) : undefined;
+  const [tab, setTab] = useState<Tab>(start?.tab ?? 'allies');
+  const [chosen, setChosen] = useState<Record<Tab, string>>(() => ({
+    allies: firstOf('allies'),
+    enemies: firstOf('enemies'),
+    people: firstOf('people'),
+    ...(start ? { [start.tab]: start.id } : {}),
+  }));
   // 古本屋 is there at the table, so opening the book is meeting them: written down before the page is first drawn, so
   // their spot does not change from 「？」 to a dark shape in front of the player.
   useLayoutEffect(() => {
@@ -193,6 +202,16 @@ export function Gallery() {
   // The left page's head counts the open part of the book: how many of its pages are filled in, of how many.
   const known = entries.filter((e) => galleryKnown(e.id) === 'full').length;
   const pageRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Opened at an entry further down its list: its face, in the pink pen's loop, is brought into view on the left page.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const pin = list?.querySelector<HTMLElement>('.gb-pin.on');
+    if (!start || !list || !pin) return;
+    const box = list.getBoundingClientRect();
+    const at = pin.getBoundingClientRect();
+    list.scrollTop += at.top - box.top - (box.height - at.height) / 2;
+  }, []);
   // While a page is open, spare moments go to what the next taps need: first the faces on the other tabs' pages
   // (quick to cut, so switching tabs shows them at once), then the stickers of this tab's other characters, nearest
   // the open entry first, so flipping to them shows them at once, and last the figure each other tab opens
@@ -236,7 +255,7 @@ export function Gallery() {
       <div class="scene-area">
         <Diorama scene={BOOK_SCENE} focus={null} guides={save.value.settings.guides} />
         <div class="gallery-top">
-          <BackButton onClick={() => up({ name: 'lobby' })} />
+          <BackButton onClick={() => (onClose ? onClose() : up({ name: 'lobby' }))} />
         </div>
         <section class="gbook" aria-label={t('gallery.title')}>
           {/* The bookmark tabs sit behind the book, each with its own cut edge (an SVG stroke, cheap to move: the
@@ -277,7 +296,7 @@ export function Gallery() {
               </h1>
               <span class="gb-count">{t('gallery.count', { n: known, m: entries.length })}</span>
             </div>
-            <div class="gb-scroll" key={tab}>
+            <div class="gb-scroll" key={tab} ref={listRef}>
               <div class="gb-badges">
                 {entries.map((e, i) => {
                   const k = galleryKnown(e.id);

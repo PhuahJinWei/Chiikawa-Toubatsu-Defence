@@ -3,9 +3,10 @@
 // the shop's question, which each have someone standing beside them). The friend stands on a little stage in front of
 // a paper burst, breathing, drawn from their battle frames on one scale for every friend, so each shows true to size
 // beside the others; beside them their card, their name, all of what they do and their numbers; and the hand stamp
-// presses 「なかま入り」 onto the page, as the shop does for a friend who joins there.
+// presses 「なかま入り」 onto the page, as the shop does for a friend who joins there. 「図鑑で見る」 opens the gallery book
+// at their entry, over the battle, and closing it comes back here.
 
-import { useEffect } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { figureLayout, reachOf, stage } from '../../art/figure';
 import { spriteIdFor } from '../../art/spec';
 import { audio } from '../../audio/audio';
@@ -13,10 +14,13 @@ import { UNIT_LIST, UNITS } from '../../game/sim/defs';
 import { nameOf, t } from '../../i18n/i18n';
 import { CardLook } from './CardLook';
 import { Figure, warmFigure } from './Figure';
+import { closeOnBack } from '../router';
+import { Gallery } from '../screens/Gallery';
 import { EarnedStamp } from './HandStamp';
+import { Icon } from './Icon';
 import { JOINED_STAMP } from './PaperMarks';
 import { StatChips } from './Stats';
-import { Sheet, tap } from './ui';
+import { Sheet, tap, usePopUpKeys } from './ui';
 
 /** How tall the tallest friend (オデ, 島二郎, in all they do) stands on the page (CSS px): every friend is drawn at the
  *  scale that gives, so ちいかわ is about 100 px tall and たい焼き about 60. */
@@ -104,10 +108,25 @@ function FriendStage({ id }: { id: string }) {
   );
 }
 
+/** The gallery book over the battle, open at the new friend's entry. Its もどる, Escape and the system back gesture close
+ *  it, back to their page; the keyboard stays inside it while it is up. */
+function BookOver({ id, onClose }: { id: string; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  usePopUpKeys(ref, onClose);
+  useLayoutEffect(() => closeOnBack(onClose), []);
+  return (
+    <div ref={ref} tabIndex={-1} class="book-over" role="dialog" aria-modal="true" aria-label={t('gallery.title')}>
+      <Gallery entry={id} onClose={onClose} />
+    </div>
+  );
+}
+
 /** Who has just joined: their stage, their card beside their name, all of what they do and their numbers, and
- *  「なかま入り」 pressed on by the hand stamp. 次へ (or the system back gesture, through `onBack`) goes on to the report; a
- *  tap beside the page does not, so it is not skipped by mistake. */
+ *  「なかま入り」 pressed on by the hand stamp. 「図鑑で見る」 opens the gallery book at their entry, over the battle. 次へ (or the
+ *  system back gesture, through `onBack`) goes on to the report; a tap beside the page does not, so it is not skipped by
+ *  mistake. */
 export function NewFriendSheet({ id, onNext, onBack }: { id: string; onNext: () => void; onBack: { current: (() => void) | null } }) {
+  const [book, setBook] = useState(false);
   useEffect(() => {
     audio.sfx('sfx_unlock');
     onBack.current = onNext;
@@ -116,33 +135,41 @@ export function NewFriendSheet({ id, onNext, onBack }: { id: string; onNext: () 
     };
   }, []);
   return (
-    <Sheet
-      class="new-friend"
-      title={t('result.newCard')}
-      tone="#f9c2ce"
-      actions={
-        <button class="btn primary nf-next" onClick={tap(onNext)}>
-          {t('drop.next')}
-        </button>
-      }
-    >
-      <div class="nf-body">
-        {/* 「なかま入り」 goes on the picture's corner, clear of any name however long. */}
-        <div class="nf-photo">
-          <FriendStage id={id} />
-          <EarnedStamp id={`joined:${id}`} class="red-stamp nf-stamp" label={t('shop.joinedStamp')}>
-            {JOINED_STAMP}
-          </EarnedStamp>
-        </div>
-        <div class="nf-notes">
-          <div class="nf-head">
-            <CardLook id={id} class="nf-card" />
-            <div class="nf-name">{nameOf(id)}</div>
+    <>
+      <Sheet
+        class="new-friend"
+        title={t('result.newCard')}
+        tone="#f9c2ce"
+        actions={
+          <>
+            <button class="btn nf-book" onClick={tap(() => setBook(true), 'sfx_card')}>
+              <Icon name="book" /> {t('drop.book')}
+            </button>
+            <button class="btn primary nf-next" onClick={tap(onNext)}>
+              {t('drop.next')}
+            </button>
+          </>
+        }
+      >
+        <div class="nf-body">
+          {/* 「なかま入り」 goes on the picture's corner, clear of any name however long. */}
+          <div class="nf-photo">
+            <FriendStage id={id} />
+            <EarnedStamp id={`joined:${id}`} class="red-stamp nf-stamp" label={t('shop.joinedStamp')}>
+              {JOINED_STAMP}
+            </EarnedStamp>
           </div>
-          <p class="nf-does">{t(`card.${id}.ability`)}</p>
-          <StatChips id={id} />
+          <div class="nf-notes">
+            <div class="nf-head">
+              <CardLook id={id} class="nf-card" />
+              <div class="nf-name">{nameOf(id)}</div>
+            </div>
+            <p class="nf-does">{t(`card.${id}.ability`)}</p>
+            <StatChips id={id} />
+          </div>
         </div>
-      </div>
-    </Sheet>
+      </Sheet>
+      {book ? <BookOver id={id} onClose={() => setBook(false)} /> : null}
+    </>
   );
 }

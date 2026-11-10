@@ -165,6 +165,7 @@
     "keepGoing": "Keep going"
   },
   "drop": {
+    "book": "Open in Gallery",
     "card": "{name}'s card",
     "next": "Next"
   },

@@ -165,6 +165,7 @@
     "keepGoing": "このまま進む"
   },
   "drop": {
+    "book": "図鑑で見る",
     "card": "{name}のカード",
     "next": "次へ"
   },

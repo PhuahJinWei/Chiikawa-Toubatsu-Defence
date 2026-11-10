@@ -3763,8 +3763,16 @@ input[type='range'] {
 .sheet.new-friend .sheet-actions {
   justify-content: center;
 }
-.nf-next {
-  flex: 0 1 230px;
+.nf-next,
+.nf-book {
+  flex: 0 1 220px;
+}
+/* The gallery book opened from a new friend's page: over everything in the battle, the page still there under it. */
+.book-over {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: var(--paper, #fdf6ea);
 }
 .nf-body {
   position: relative;
