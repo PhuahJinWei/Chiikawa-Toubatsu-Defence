@@ -156,13 +156,13 @@ export const UI_BUTTONS: ImageSpec[] = [
  *  They show small (about 30 px), so keep them bold and simple, with no text. */
 export const UI_ICONS: ImageSpec[] = [
   {
-    key: 'ui/icon_shovel',
+    key: 'ui/icon_send_home',
     kind: 'icon',
     w: 360,
     h: 360,
     note: {
-      ja: 'バトルの「シャベル」ボタンの絵（なかまを戻す道具）。小さく出るので、太くはっきり。正方形、透明背景、文字なし。',
-      en: "The battle's shovel button (takes a friend back off the field). Shown small, so bold and simple. Square, transparent background, no text.",
+      ja: 'バトルの「帰ってもらう」ボタンの絵（なかまにフィールドから帰ってもらう道具）。小さく出るので、太くはっきり。正方形、透明背景、文字なし。',
+      en: "The battle's send-home button (a friend leaves the field and goes home). Shown small, so bold and simple. Square, transparent background, no text.",
     },
   },
   {

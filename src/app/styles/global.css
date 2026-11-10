@@ -381,6 +381,34 @@ p {
   background: var(--yellow-l);
   color: var(--yellow-d);
 }
+/* A round button in the pill's paper (the lobby's full-screen switch), its tap area 44 px around a 36 px face. */
+.round-btn {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  border: var(--ow) solid var(--outline);
+  box-shadow: 0 2px 0 var(--outline);
+  color: var(--ink);
+  transition: translate 0.1s ease, box-shadow 0.1s ease;
+}
+.round-btn::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+.round-btn:active {
+  translate: 0 2px;
+  box-shadow: 0 0 0 var(--outline);
+}
+.round-btn[aria-pressed='true'] {
+  background: var(--yellow-l);
+}
 .chip {
   display: inline-flex;
   align-items: center;
@@ -2671,7 +2699,7 @@ input[type='range'] {
   background: var(--face);
   box-shadow: 0 3px 0 var(--outline);
 }
-.shovel-btn {
+.send-home-btn {
   --face: #ffd3db;
 }
 .speed-btn {
@@ -2696,18 +2724,18 @@ input[type='range'] {
 .hud-btn:active .hud-icon {
   scale: 0.86;
 }
-.hud-btn.shovel-btn {
+.hud-btn.send-home-btn {
   margin-right: 8px;
 }
-/* Switched on (2× speed, shovel in hand): the face changes colour. */
+/* Switched on (2× speed, or send home in hand): the face changes colour. */
 .hud-btn.on {
   --face: var(--yellow);
 }
-.hud-btn.shovel-btn.on {
+.hud-btn.send-home-btn.on {
   --face: var(--red-l);
 }
-/* The shovel is picked up, ready to dig. */
-.hud-btn.shovel-btn.on .hud-icon {
+/* Send home is in hand: its picture tips up, ready for the friend tapped next. */
+.hud-btn.send-home-btn.on .hud-icon {
   rotate: -20deg;
   translate: 0 -3px;
 }

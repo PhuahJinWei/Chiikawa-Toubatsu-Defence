@@ -278,7 +278,7 @@ class AudioManager {
         T({ freq: 300, to: 620, dur: 0.1, gain: 0.32 });
         T({ freq: 980, dur: 0.06, gain: 0.1, delay: 0.05 });
         return true;
-      case 'sfx_shovel':
+      case 'sfx_send_home':
         N({ dur: 0.12, kind: 'lowpass', filter: 1400, gain: 0.25 });
         T({ freq: 240, to: 150, dur: 0.12, type: 'triangle', gain: 0.18 });
         return true;

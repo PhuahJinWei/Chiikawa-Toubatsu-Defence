@@ -10,6 +10,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { App } from './app/App';
 import { warmCaches } from './art/warm';
 import { whenIdle } from './app/idle';
+import { initFullscreen } from './app/fullscreen';
 import { initInstall } from './app/install';
 import { initRouter, route } from './app/router';
 import { toast } from './app/components/ui';
@@ -27,6 +28,7 @@ payOwedFriends();
 setLang(save.value.settings.lang);
 initRouter();
 initInstall();
+initFullscreen();
 // Saving stopped working (storage full, or switched off): said on whatever screen, each time it does.
 storageOk.subscribe((ok) => {
   if (!ok) toast(t('settings.saveFailed'), 'bad');

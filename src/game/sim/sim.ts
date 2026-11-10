@@ -387,7 +387,6 @@ export class Sim implements WaveHost {
       hitFlashUntil: 0,
       collapseAt: -1,
       placedAt: this.t,
-      catchphraseUntil: this.t + 4000,
       carriedBy: -1,
       // 星 places a star, which turns into the friend once this passes (see grantWish).
       wishUntil: wish ? this.t + wish.transformMs : 0,
@@ -766,7 +765,6 @@ export class Sim implements WaveHost {
     a.animStart = this.t;
     a.placedAt = this.t;
     if (a.def.produce) a.nextProduceAt = this.t + a.def.produce.firstMs;
-    a.catchphraseUntil = this.t + 4000;
     this.events.push({ type: 'wishGranted', lane: a.lane, col: a.col, ally: a });
   }
 
@@ -1115,10 +1113,6 @@ export class Sim implements WaveHost {
       }
       default:
         break;
-    }
-    if (a.def.catchphrase && this.t >= a.catchphraseUntil && this.rng.chance(a.def.catchphraseChance ?? 0.1)) {
-      a.catchphraseUntil = this.t + 7000;
-      this.events.push({ type: 'catchphrase', ally: a, key: a.def.catchphrase });
     }
   }
 

@@ -121,9 +121,6 @@ export interface UnitDef {
    *  he is not on the hunt). */
   rescuer?: boolean;
   bond?: BondDef;
-  /** i18n key of an occasional speech balloon. */
-  catchphrase?: string;
-  catchphraseChance?: number;
 }
 
 // ---------------------------------------------------------------- enemies
@@ -310,7 +307,6 @@ export interface Ally {
   hitFlashUntil: number;
   collapseAt: number;
   placedAt: number;
-  catchphraseUntil: number;
   /** The でかい鳥 carrying it, or -1. */
   carriedBy: number;
   /** Placed by 星: still a star until then (sim ms), doing nothing yet; 0 once it has turned into this friend (and for
@@ -557,7 +553,6 @@ export type SimEvent =
   | { type: 'rescue'; lane: number }
   | { type: 'banner'; kind: 'big' | 'final' | 'boss'; bossId?: string }
   | { type: 'waveStart'; index: number; total: number }
-  | { type: 'catchphrase'; ally: Ally; key: string }
   | { type: 'oneUse'; def: UnitDef; lane: number; col: number }
   /** むちゃうマン's pose is over: every enemy on the field froze. */
   | { type: 'freeze'; lane: number; col: number; enemies: Enemy[] }

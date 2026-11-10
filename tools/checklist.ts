@@ -197,7 +197,7 @@ push(
   '',
   '## Button icons',
   '',
-  'The battle’s three buttons (shovel, speed, pause) are game icons: one square picture each, which the game shows as drawn',
+  'The battle’s three buttons (send home, speed, pause) are game icons: one square picture each, which the game shows as drawn',
   'on a round coloured face. They show at about 30 px: keep them bold and simple, with no text. Save them straight',
   'into `art/ui/`.',
   '',

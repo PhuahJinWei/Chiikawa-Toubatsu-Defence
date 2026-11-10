@@ -136,7 +136,7 @@
     "restart": "Restart",
     "quit": "Back to quests",
     "speed": "Speed",
-    "shovel": "Send home",
+    "sendHome": "Send home",
     "wave": "Wave {n}",
     "cost": "{n} weeds",
     "notEnough": "Not enough weeds",
@@ -631,6 +631,11 @@
     "version": "Version {v}",
     "credits": "The sound effects and music are made by code for now."
   },
+  "fullscreen": {
+    "enter": "Go full screen",
+    "exit": "Leave full screen",
+    "label": "Full screen"
+  },
   "records": {
     "wins": "Jobs done",
     "losses": "Jobs failed",
@@ -671,10 +676,6 @@
       "sound": "Sound"
     },
     "rules": "No white border, shadow or glow (the game adds them). Flat and straight on. Battle characters are side views: friends and Rakko's car face right, enemies face left."
-  },
-  "phrase": {
-    "usagi": "Ura!",
-    "kurimanju": "Haaa…"
   },
   "scene": {
     "explode": "Pull the layers apart",

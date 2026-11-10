@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { colY, STEP_MS, TILE } from '../src/game/sim/constants';
-import { ENEMIES, UNITS, validateContent } from '../src/game/sim/defs';
+import { ENEMIES, ENEMY_LIST, UNIT_LIST, UNITS, validateContent } from '../src/game/sim/defs';
 import { EndlessWaves } from '../src/game/sim/endless';
 import { Rng } from '../src/game/sim/rng';
 import { Sim, simForEndless } from '../src/game/sim/sim';
@@ -145,6 +145,12 @@ describe('endless mode', () => {
       expect(spawns.length, `wave ${n}`).toBeLessThanOrEqual(60);
       expect(strength(spawns) / toughness, `wave ${n}`).toBeGreaterThan(budget - 1);
     }
+  });
+});
+
+describe('the battlefield', () => {
+  it('gives nobody a line to say: no speech balloons or text boxes in battle (owner’s call, 2026-11-10)', () => {
+    for (const d of [...UNIT_LIST, ...ENEMY_LIST]) expect(Object.keys(d).filter((k) => /phrase|speech|balloon/i.test(k)), d.id).toEqual([]);
   });
 });
 

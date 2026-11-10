@@ -139,7 +139,7 @@ describe('scene specs', () => {
   });
 
   it('plans the battle buttons as square game icons with no text, one per button', () => {
-    expect(UI_ICONS.map((i) => i.key)).toEqual(['ui/icon_shovel', 'ui/icon_speed', 'ui/icon_speed_active', 'ui/icon_pause']);
+    expect(UI_ICONS.map((i) => i.key)).toEqual(['ui/icon_send_home', 'ui/icon_speed', 'ui/icon_speed_active', 'ui/icon_pause']);
     for (const i of UI_ICONS) {
       expect(i.kind).toBe('icon');
       expect(i.w).toBe(i.h);

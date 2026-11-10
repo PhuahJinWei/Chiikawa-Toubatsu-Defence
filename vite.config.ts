@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -5,7 +6,7 @@ import { createCanvas, loadImage } from '@napi-rs/canvas';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
-import { gameCharacters, trimFontFaces } from './tools/lib/fonts';
+import { gameCharacters, trimFontFaces } from './tools/lib/fonts.ts';
 
 /**
  * Pictures in /art stay as the artist delivered them (lossless PNG); the production build ships them as WebP,
@@ -56,6 +57,27 @@ function trimFonts(): Plugin {
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string };
 
+/** A public file's address with a short fingerprint of its contents (`?v=`). Browsers keep a site's tab icon and its
+ *  install icon by their address for a long time, and so does an installed service worker, so a new picture under the
+ *  old name went unseen: the old code-drawn face stayed on the tab and in the install dialog after the new icons
+ *  shipped (owner's report, 2026-11-10). With the fingerprint every new picture is a new address. */
+function versioned(file: string): string {
+  const v = createHash('sha256').update(readFileSync(new URL(`./public/${file}`, import.meta.url))).digest('hex').slice(0, 10);
+  return `${file}?v=${v}`;
+}
+
+/** index.html's icon links (tab icon, home-screen icon), fingerprinted (see versioned). */
+function iconVersions(): Plugin {
+  return {
+    name: 'icon-versions',
+    transformIndexHtml: {
+      order: 'post',
+      // Relative in a build; the dev server has already made it start from the root (/icons/…).
+      handler: (html) => html.replace(/href="(\/?)(icons\/[\w.-]+\.png)"/g, (_, root: string, file: string) => `href="${root}${versioned(file)}"`),
+    },
+  };
+}
+
 export default defineConfig({
   // Relative base so the build works from any GitHub Pages path (user.github.io/<repo>/).
   base: './',
@@ -70,6 +92,7 @@ export default defineConfig({
   plugins: [
     artToWebp(),
     trimFonts(),
+    iconVersions(),
     VitePWA({
       // A new version is not taken on by itself: main.tsx brings it in when no battle can be interrupted.
       registerType: 'prompt',
@@ -87,9 +110,9 @@ export default defineConfig({
         background_color: '#FFF6E9',
         theme_color: '#FFF6E9',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: versioned('icons/icon-192.png'), sizes: '192x192', type: 'image/png' },
+          { src: versioned('icons/icon-512.png'), sizes: '512x512', type: 'image/png' },
+          { src: versioned('icons/icon-maskable-512.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -98,6 +121,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,json}'],
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         navigateFallback: 'index.html',
+        // An icon asked for by its fingerprinted address (?v=, see versioned) is still served from the cache offline.
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^v$/],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => /\/assets\/.+\.(webp|png|jpe?g)$/i.test(url.pathname),

@@ -6,7 +6,7 @@ export const SOUNDS: SoundSpec[] = [
     ['sfx_card', 'カードを選ぶ', 'Pick a card'],
     ['sfx_cancel', '選択解除', 'Cancel a selection'],
     ['sfx_place', 'なかまを置く', 'Place an ally'],
-    ['sfx_shovel', 'なかまを帰す', 'Remove an ally'],
+    ['sfx_send_home', 'なかまに帰ってもらう', 'A friend goes home'],
     ['sfx_sprout', '草が生える', 'A weed sprouts'],
     ['sfx_pull', '草を抜く', 'Pull a weed'],
     ['sfx_jab', 'さすまたの突き', 'さすまた jab'],

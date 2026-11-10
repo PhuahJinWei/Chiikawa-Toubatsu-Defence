@@ -16,6 +16,7 @@ import { StarMark } from '../components/PaperMarks';
 import { PlatePaper } from '../components/Plate';
 import { BackButton, confirm, Notice, Sheet, Switch, tap, toast } from '../components/ui';
 import { SANDBOX_RULES, SandboxPanel, sandboxWish } from '../components/SandboxPanel';
+import { canFullscreen, isFullscreen, toggleFullscreen } from '../fullscreen';
 import { DEBUG_ON } from '../../dev';
 import { askWish } from '../components/Wish';
 import { sandboxTeam, worldHasCars } from '../../game/sim/sandbox';
@@ -26,7 +27,6 @@ import {
   defaultDeck,
   endlessPool,
   flushGallery,
-  galleryKnown,
   isWishCard,
   jobCards,
   levelUnlocked,
@@ -57,7 +57,7 @@ interface Plan {
   deck: string[];
   /** The friend 星 turns into, when it is on the team. */
   wish: string | null;
-  lineup: { id: string; unknown: boolean }[];
+  lineup: { id: string }[];
 }
 
 function planFor(r: BattleRoute): Plan {
@@ -85,7 +85,8 @@ function planFor(r: BattleRoute): Plan {
     tickets: save.value.items.buta,
     deck: (picked?.length ? picked : defaultDeck(level)).filter((id) => wish || !isWishCard(id)),
     wish,
-    lineup: enemies.map((id) => ({ id, unknown: galleryKnown(id) === 'none' })),
+    // Every one in full, met yet or not (the job notice and the gallery keep a never-met one dark).
+    lineup: enemies.map((id) => ({ id })),
   };
 }
 
@@ -353,7 +354,7 @@ function HudIcon({ k }: { k: string }) {
   return <img class="hud-icon" src={art.imageUrl(k)} alt="" draggable={false} />;
 }
 
-/** Thin strip along the top: weeds over the cards, the wave bar over the field, shovel, speed and pause. No health is
+/** Thin strip along the top: weeds over the cards, the wave bar over the field, send home, speed and pause. No health is
  *  shown anywhere, like PvZ: not even a boss's.
  *  Buttons look compact but each has a 44 px tap area, and the areas never overlap. */
 function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label: string; endless: boolean; sandbox?: boolean }) {
@@ -389,17 +390,17 @@ function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label
           </div>
         )}
       </div>
-      {/* The shovel and speed wait out of sight until the battle starts, in their places so the row does not shift when they
+      {/* Send home and speed wait out of sight until the battle starts, in their places so the row does not shift when they
           appear. Pause is there from the first moment: it is the way out. */}
       <div class={`hud-actions ${ctl.phase.value === 'battle' ? '' : 'waiting'}`}>
         <button
-          class={`hud-btn shovel-btn ${ctl.shovel.value ? 'on' : ''}`}
-          aria-label={t('battle.shovel')}
-          title={t('battle.shovel')}
-          aria-pressed={ctl.shovel.value}
-          onClick={() => ctl.toggleShovel()}
+          class={`hud-btn send-home-btn ${ctl.sendingHome.value ? 'on' : ''}`}
+          aria-label={t('battle.sendHome')}
+          title={t('battle.sendHome')}
+          aria-pressed={ctl.sendingHome.value}
+          onClick={() => ctl.toggleSendHome()}
         >
-          <HudIcon k="ui/icon_shovel" />
+          <HudIcon k="ui/icon_send_home" />
         </button>
         {canSpeed ? (
           <button
@@ -690,6 +691,15 @@ function PauseSheet({ ctl, r }: { ctl: BattleController; r: BattleRoute }) {
               aria-label={t('settings.sfx')}
             />
           </div>
+          {/* Back to full screen after leaving it by accident (a swipe, or Android's back gesture), without leaving the
+              battle. Only where the browser allows it. */}
+          {canFullscreen() ? (
+            <div class="list-item">
+              <Icon name="expand" />
+              <span class="label">{t('fullscreen.label')}</span>
+              <Switch on={isFullscreen.value} onChange={() => void toggleFullscreen()} label={t('fullscreen.label')} />
+            </div>
+          ) : null}
         </div>
       </div>
     </Sheet>

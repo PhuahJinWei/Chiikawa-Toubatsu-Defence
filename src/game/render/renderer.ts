@@ -36,8 +36,6 @@ import { StickerCache } from '../../art/sticker';
 import { resolveScene } from '../../art/store';
 import { FONT_STACK, INK, seeded } from '../../art/kit';
 
-/** The menus' line colour (--ink in global.css), for the UI the battle draws itself. */
-const UI_INK = '#4A2A12';
 /** The stitched lines between the field's tiles: how far they wander from straight, and how often (field px). */
 const STITCH_WANDER = 5;
 const STITCH_WANDER_EVERY = 70;
@@ -102,23 +100,24 @@ import { byFeet, lineupLayout } from './lineup';
 import { battleView } from './view';
 import { type Takeoff, WEED_TUG_MS } from './weedFlight';
 
-/** One of the level's enemies waiting on the road before the battle; `unknown` ones (never seen) show as a shape. */
+/** One of the level's enemies waiting on the road before the battle, shown in full whether it has been met yet or not
+ *  (owner's call, 2026-11-10: a preview that hides who is coming is no preview; the job notice and the gallery still
+ *  keep a never-met enemy dark). */
 export interface Waiting {
   id: string;
-  unknown: boolean;
 }
 
 const SIZE_RANK = { S: 0, M: 1, L: 2, XL: 3 } as const;
 
 export interface RenderUi {
   selectedCard: number;
-  shovel: boolean;
+  /** The send-home tool is in hand: friends' tiles are marked instead of free ones. */
+  sendingHome: boolean;
   hover: { lane: number; col: number } | null;
   ghostSprite: string | null;
   placeable: (lane: number, col: number) => boolean;
   guides: boolean;
   reducedMotion: boolean;
-  text: (key: string) => string;
   /** Time (ms) since the battle was won: the sim has stopped, but falls and effects play on. */
   afterMs?: number;
 }
@@ -139,12 +138,6 @@ interface Fx extends Pt {
   spin: number;
 }
 
-interface Balloon {
-  text: string;
-  allyUid: number;
-  t0: number;
-}
-
 interface Box {
   x0: number;
   y0: number;
@@ -157,8 +150,6 @@ interface CharacterLook {
   alpha?: number;
   flash?: number;
   tint?: string | null;
-  /** Drawn as a flat shape in this colour (an enemy not met yet). */
-  silhouette?: string | null;
   guides?: boolean;
   /** How much slower than a small one's its moves are (by size), its walk frame (ms, by
    *  speed and size) and how long its one-off motion lasts when the sim times it (an enemy's swing). */
@@ -312,7 +303,6 @@ export class BattleRenderer {
   private shotPic = new WeakMap<Projectile, string>();
   /** Where 星 has just turned into a friend, its puff still clearing (see drawWishPuffs). */
   private wishPuffs: (Pt & { t0: number })[] = [];
-  private balloons: Balloon[] = [];
   /** Song notes floating up; `v` is which of the five note pictures (fx_note_1…5) each one is. */
   private notes: { x: number; y: number; t0: number; v: number }[] = [];
   private healUntil = new Map<number, number>();
@@ -775,10 +765,6 @@ export class BattleRenderer {
       case 'rescue':
         this.shake(now, 6, 240, ui);
         break;
-      case 'catchphrase':
-        this.balloons = this.balloons.filter((b) => b.allyUid !== e.ally.uid);
-        this.balloons.push({ text: ui.text(e.key), allyUid: e.ally.uid, t0: now });
-        break;
       case 'oneUse': {
         // オデ sets off with a thud (he runs in from the base end: see drawSweeps); むちゃうマン pops up on his tile.
         if (e.def.oneUse?.kind === 'charge') this.shake(now, 5, 200, ui);
@@ -965,12 +951,12 @@ export class BattleRenderer {
     return cx;
   }
 
-  /** Draw a character (`paint` draws it in the context's field space) with its look: faded, flashing, tinted, or a
-   *  flat shape. Such a character is drawn into a scratch canvas first, and the look is laid over that. */
+  /** Draw a character (`paint` draws it in the context's field space) with its look: faded, flashing or tinted. Such a
+   *  character is drawn into a scratch canvas first, and the look is laid over that. */
   private drawLook(ctx: CanvasRenderingContext2D, box: Box, paint: (c: CanvasRenderingContext2D) => void, o: CharacterLook, guide: () => void): Box {
     const alpha = o.alpha ?? 1;
     const flash = o.flash ?? 0;
-    if (alpha >= 1 && !flash && !o.tint && !o.silhouette) paint(ctx);
+    if (alpha >= 1 && !flash && !o.tint) paint(ctx);
     else {
       const m = ctx.getTransform();
       const dx0 = m.a * box.x0 + m.e;
@@ -985,21 +971,6 @@ export class BattleRenderer {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = alpha;
-        if (o.silhouette) {
-          // Only its shape, filled flat.
-          const tx = this.sized(this.scratch2, w, h);
-          if (tx) {
-            tx.drawImage(this.scratch, 0, 0, w, h, 0, 0, w, h);
-            tx.globalCompositeOperation = 'source-in';
-            tx.fillStyle = o.silhouette;
-            tx.fillRect(0, 0, w, h);
-            tx.globalCompositeOperation = 'source-over';
-            ctx.drawImage(this.scratch2, 0, 0, w, h, dx0 - 2, dy0 - 2, w, h);
-          }
-          ctx.restore();
-          if (o.guides) guide();
-          return box;
-        }
         ctx.drawImage(this.scratch, 0, 0, w, h, dx0 - 2, dy0 - 2, w, h);
         if (o.tint) {
           const tx = this.sized(this.scratch2, w, h);
@@ -1233,7 +1204,6 @@ export class BattleRenderer {
     this.drawPickups(ctx, now);
     this.drawDrivingCars(ctx, now, ui);
     this.drawGhost(ctx, ui, now);
-    this.drawBalloons(ctx, now);
   }
 
   /** The stumps on the ground, under everyone: whole, cracked or split by what each has left, and for a moment after a
@@ -1260,14 +1230,13 @@ export class BattleRenderer {
     const t = performance.now() - this.lineupT0;
     for (const w of list) {
       const size = ENEMIES[w.id]?.size ?? 'M';
-      const alpha = this.lineupAlpha * (w.unknown ? 0.6 : 1);
+      const alpha = this.lineupAlpha;
       const lane = Math.max(0, Math.min(LANES - 1, Math.floor(w.y / TILE)));
       const rx = ENEMIES[w.id]?.giant ? 190 : size === 'XL' ? 110 : size === 'L' ? 80 : size === 'M' ? 58 : 44;
       this.underfoot(ctx, lane, w.x, w.y - 4, rx, t, alpha);
       const def = ENEMIES[w.id];
       this.drawCharacter(ctx, spriteIdFor('enemy', w.id), 'idle', t + w.phase, w.x, w.y, {
         alpha,
-        silhouette: w.unknown ? UI_INK : null,
         guides: ui.guides,
         centered: true,
         tempo: def ? tempoOf(def) : 1,
@@ -1307,18 +1276,18 @@ export class BattleRenderer {
   }
 
   private drawHighlights(ctx: CanvasRenderingContext2D, ui: RenderUi, now: number): void {
-    if (ui.selectedCard < 0 && !ui.shovel) return;
+    if (ui.selectedCard < 0 && !ui.sendingHome) return;
     const pulse = 0.5 + 0.5 * Math.sin(now / 180);
     for (let lane = 0; lane < LANES; lane++) {
       for (let col = 0; col < COLS; col++) {
         const hovered = ui.hover && ui.hover.lane === lane && ui.hover.col === col;
-        const ok = ui.shovel ? !!this.sim.allyAt(lane, col) : ui.placeable(lane, col);
+        const ok = ui.sendingHome ? !!this.sim.allyAt(lane, col) : ui.placeable(lane, col);
         if (!ok) continue;
-        ctx.fillStyle = ui.shovel ? `rgba(240, 120, 110, ${hovered ? 0.4 : 0.18})` : `rgba(255,255,255,${hovered ? 0.5 : 0.2 + pulse * 0.12})`;
+        ctx.fillStyle = ui.sendingHome ? `rgba(240, 120, 110, ${hovered ? 0.4 : 0.18})` : `rgba(255,255,255,${hovered ? 0.5 : 0.2 + pulse * 0.12})`;
         roundRectPath(ctx, colLeft(col) + 8, lane * TILE + 8, TILE - 16, TILE - 16, 18);
         ctx.fill();
         if (hovered) {
-          ctx.strokeStyle = ui.shovel ? 'rgba(220,90,80,0.9)' : 'rgba(255,255,255,0.95)';
+          ctx.strokeStyle = ui.sendingHome ? 'rgba(220,90,80,0.9)' : 'rgba(255,255,255,0.95)';
           ctx.lineWidth = 5;
           ctx.stroke();
         }
@@ -1871,38 +1840,6 @@ export class BattleRenderer {
     this.drawCharacter(ctx, ui.ghostSprite, 'idle', now, p.x, p.y, { alpha: 0.5 });
   }
 
-  private drawBalloons(ctx: CanvasRenderingContext2D, now: number): void {
-    this.balloons = this.balloons.filter((b) => now - b.t0 < 1700);
-    for (const b of this.balloons) {
-      const a = this.sim.allyByUid(b.allyUid);
-      if (!a || a.state === 'collapse') continue;
-      const k = (now - b.t0) / 1700;
-      const p = S(laneX(a.lane), allyFeetY(a.col));
-      const x = p.x + 40;
-      const y = p.y - 190 - Math.min(1, k * 6) * 10;
-      ctx.save();
-      ctx.globalAlpha = k > 0.85 ? (1 - k) / 0.15 : 1;
-      // Speech balloons are UI: the same hand lettering and line colour as the menus.
-      ctx.font = `400 30px "Yusei Magic", ${FONT_STACK}`;
-      const w = ctx.measureText(b.text).width + 36;
-      ctx.fillStyle = '#FFFAF0';
-      ctx.strokeStyle = UI_INK;
-      ctx.lineWidth = 4;
-      roundRectPath(ctx, x - w / 2, y - 28, w, 52, 22);
-      ctx.fill();
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x - 18, y + 22);
-      ctx.lineTo(x - 30, y + 44);
-      ctx.lineTo(x - 2, y + 22);
-      ctx.fill();
-      ctx.fillStyle = UI_INK;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(b.text, x, y);
-      ctx.restore();
-    }
-  }
 }
 
 

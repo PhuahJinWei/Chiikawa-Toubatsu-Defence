@@ -23,7 +23,7 @@ art/
   ui/logo_ja.png                    the game's title in the lobby (shown in English too)
   ui/logo_en.png                    an English logo (optional)
   ui/button_play|book|shop|settings.png  the lobby's four buttons, picture and name plate in one
-  ui/icon_shovel|speed|pause.png    the battle's buttons (square, no text)
+  ui/icon_send_home|speed|pause.png the battle's buttons (square, no text)
   shop/item_slot.png, item_ramen.png  the shop's goods, stickers on the sellers' price lists (square, no text)
   ui/hand_stamp.png                 the hand stamp (判子 seen from above) that presses each red stamp once
   ui/back.png                       the 「← もどる」 button, used for every back button, as drawn

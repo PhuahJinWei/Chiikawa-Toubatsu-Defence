@@ -7,6 +7,7 @@ import { save, updateSave } from '../../save/save';
 import { Icon } from '../components/Icon';
 import { StickerIcon } from '../components/StickerIcon';
 import { MoneyPill, tap } from '../components/ui';
+import { canFullscreen, isFullscreen, toggleFullscreen } from '../fullscreen';
 import { installState, promptInstall } from '../install';
 import { clearedCount, noteMet } from '../progress';
 import { boardMemory, go } from '../router';
@@ -58,9 +59,21 @@ export function Lobby() {
             )}
           </div>
           <div class="grow" />
-          {/* The top-right corner: the money, then 設定 small in the very corner (opened rarely, so it does not compete
-              with the big buttons). */}
+          {/* The top-right corner: full screen (where the browser allows it), the money, then 設定 small in the very
+              corner (opened rarely, so it does not compete with the big buttons). */}
           <div class="lobby-corner">
+            {canFullscreen() ? (
+              <button
+                type="button"
+                class="round-btn fs-btn"
+                aria-label={t(isFullscreen.value ? 'fullscreen.exit' : 'fullscreen.enter')}
+                title={t(isFullscreen.value ? 'fullscreen.exit' : 'fullscreen.enter')}
+                aria-pressed={isFullscreen.value}
+                onClick={tap(() => void toggleFullscreen())}
+              >
+                <Icon name={isFullscreen.value ? 'shrink' : 'expand'} size={20} />
+              </button>
+            ) : null}
             <MoneyPill />
             <button
               type="button"

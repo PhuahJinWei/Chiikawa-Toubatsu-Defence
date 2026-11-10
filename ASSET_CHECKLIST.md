@@ -482,13 +482,13 @@ their centre. Projectiles fly right (the fugu’s spit flies left).
 
 ## Button icons
 
-The battle’s three buttons (shovel, speed, pause) are game icons: one square picture each, which the game shows as drawn
+The battle’s three buttons (send home, speed, pause) are game icons: one square picture each, which the game shows as drawn
 on a round coloured face. They show at about 30 px: keep them bold and simple, with no text. Save them straight
 into `art/ui/`.
 
 | ✔ | File | Size | What to draw |
 |---|---|---|---|
-| [x] | `art/ui/icon_shovel.png` | 360 × 360 | バトルの「シャベル」ボタンの絵（なかまを戻す道具）。小さく出るので、太くはっきり。正方形、透明背景、文字なし。<br>The battle's shovel button (takes a friend back off the field). Shown small, so bold and simple. Square, transparent background, no text. |
+| [x] | `art/ui/icon_send_home.png` | 360 × 360 | バトルの「帰ってもらう」ボタンの絵（なかまにフィールドから帰ってもらう道具）。小さく出るので、太くはっきり。正方形、透明背景、文字なし。<br>The battle's send-home button (a friend leaves the field and goes home). Shown small, so bold and simple. Square, transparent background, no text. |
 | [x] | `art/ui/icon_speed.png` | 360 × 360 | バトルの「はやおくり」ボタンの絵（2倍速）。小さく出るので、太くはっきり。正方形、透明背景、文字なし。<br>The battle's fast-forward button (2× speed). Shown small, so bold and simple. Square, transparent background, no text. |
 | [x] | `art/ui/icon_speed_active.png` | 360 × 360 | バトルの「はやおくり」ボタンが入っているとき（2倍速中）の絵。「×2」を絵に描きこんでよい。正方形、透明背景。<br>The battle's fast-forward button while 2× speed is on. It may carry its own “×2”. Square, transparent background. |
 | [x] | `art/ui/icon_pause.png` | 360 × 360 | バトルの「一時停止」ボタンの絵。小さく出るので、太くはっきり。正方形、透明背景、文字なし。<br>The battle's pause button. Shown small, so bold and simple. Square, transparent background, no text. |
@@ -577,7 +577,7 @@ Each sound is synthesised until a file exists. Use `.ogg`, `.mp3`, `.m4a` or `.w
 | [ ] | `sfx_card` | カードを選ぶ / Pick a card |
 | [ ] | `sfx_cancel` | 選択解除 / Cancel a selection |
 | [ ] | `sfx_place` | なかまを置く / Place an ally |
-| [ ] | `sfx_shovel` | なかまを帰す / Remove an ally |
+| [ ] | `sfx_send_home` | なかまに帰ってもらう / A friend goes home |
 | [ ] | `sfx_sprout` | 草が生える / A weed sprouts |
 | [ ] | `sfx_pull` | 草を抜く / Pull a weed |
 | [ ] | `sfx_jab` | さすまたの突き / さすまた jab |

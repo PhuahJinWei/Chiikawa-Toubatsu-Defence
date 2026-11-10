@@ -70,9 +70,7 @@
     "initialCooldownMs": 0,
     "hp": 300,
     "size": "S",
-    "attack": { "kind": "projectile", "damage": 20, "intervalMs": 1500, "fx": "fx_blast" },
-    "catchphrase": "phrase.usagi",
-    "catchphraseChance": 0.06
+    "attack": { "kind": "projectile", "damage": 20, "intervalMs": 1500, "fx": "fx_blast" }
   },
   {
     "id": "usagi_cool",
@@ -102,9 +100,7 @@
     "initialCooldownMs": 5000,
     "hp": 300,
     "size": "S",
-    "attack": { "kind": "lob", "damage": 80, "intervalMs": 3000, "fx": "fx_can", "splashTiles": 1, "releaseMs": 400 },
-    "catchphrase": "phrase.kurimanju",
-    "catchphraseChance": 0.12
+    "attack": { "kind": "lob", "damage": 80, "intervalMs": 3000, "fx": "fx_can", "splashTiles": 1, "releaseMs": 400 }
   },
   {
     "id": "shisa",

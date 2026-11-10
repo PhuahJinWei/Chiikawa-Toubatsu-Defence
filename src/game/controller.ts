@@ -130,7 +130,8 @@ export class BattleController {
   readonly weeds = signal(0);
   readonly cards = signal<CardView[]>([]);
   readonly selected = signal(-1);
-  readonly shovel = signal(false);
+  /** The send-home tool (「帰ってもらう」) is in hand: the next friend tapped goes home. */
+  readonly sendingHome = signal(false);
   readonly progress = signal(0);
   readonly flags: { at: number; kind: 'big' | 'final' | 'boss' }[];
   readonly wave = signal(0);
@@ -326,7 +327,7 @@ export class BattleController {
     const card = sel >= 0 ? this.sim.cards[sel] : null;
     return {
       selectedCard: sel,
-      shovel: this.shovel.value,
+      sendingHome: this.sendingHome.value,
       hover: this.hover,
       // Every card shows who it puts down as a ghost on the tile under the finger: its friend, one-use cards too (owner's
       // call, 2026-11-08: オデ is put down like any friend), or 星 itself, which stands there first.
@@ -334,7 +335,6 @@ export class BattleController {
       placeable: (lane, col) => (sel >= 0 ? this.sim.targetOpen(sel, lane, col) : this.sim.tileOpen(lane, col)),
       guides: s.guides,
       reducedMotion: s.reducedMotion,
-      text: (key) => t(key),
       afterMs: this.afterMs,
     };
   }
@@ -410,7 +410,7 @@ export class BattleController {
         audio.sfx('sfx_place');
         break;
       case 'remove':
-        audio.sfx('sfx_shovel');
+        audio.sfx('sfx_send_home');
         break;
       case 'jab':
         audio.sfx('sfx_jab', { gap: 0.05 });
@@ -557,7 +557,7 @@ export class BattleController {
     if (this.ended) return;
     this.ended = true;
     this.selected.value = -1;
-    this.shovel.value = false;
+    this.sendingHome.value = false;
     this.status.value = won ? 'won' : 'lost';
     this.pushBanner(won ? 'win' : 'lose', won ? t('banner.win') : t('banner.lose'), true);
     const waves = this.sim.waves instanceof EndlessWaves ? this.sim.waves.cleared : this.sim.waves.currentWave();
@@ -728,7 +728,7 @@ export class BattleController {
 
   selectCard(i: number): void {
     if (this.sim.status !== 'playing' || this.phase.value !== 'battle') return;
-    this.shovel.value = false;
+    this.sendingHome.value = false;
     if (this.selected.value === i) {
       this.selected.value = -1;
       audio.sfx('sfx_cancel');
@@ -749,11 +749,11 @@ export class BattleController {
     audio.sfx('sfx_card');
   }
 
-  toggleShovel(): void {
+  toggleSendHome(): void {
     if (this.sim.status !== 'playing' || this.phase.value !== 'battle') return;
     this.selected.value = -1;
-    this.shovel.value = !this.shovel.value;
-    audio.sfx(this.shovel.value ? 'sfx_card' : 'sfx_cancel');
+    this.sendingHome.value = !this.sendingHome.value;
+    audio.sfx(this.sendingHome.value ? 'sfx_card' : 'sfx_cancel');
   }
 
   setPaused(p: boolean): void {
@@ -765,7 +765,7 @@ export class BattleController {
     this.paused.value = p;
     if (p) {
       this.selected.value = -1;
-      this.shovel.value = false;
+      this.sendingHome.value = false;
     }
     this.lastTs = 0;
   }
@@ -784,7 +784,7 @@ export class BattleController {
   setTool(tool: 'play' | 'terrain' | 'inspect'): void {
     this.tool.value = this.tool.value === tool ? 'play' : tool;
     this.selected.value = -1;
-    this.shovel.value = false;
+    this.sendingHome.value = false;
     if (this.tool.value !== 'inspect') this.picked = null;
     this.inspect.value = this.readout();
   }
@@ -901,9 +901,9 @@ export class BattleController {
     }
     if (s.status !== 'playing' || this.paused.value || !this.renderer || this.phase.value !== 'battle') return;
     const tile = this.renderer.tileAt(x, y);
-    if (this.shovel.value) {
+    if (this.sendingHome.value) {
       if (tile && s.allyAt(tile.lane, tile.col)) s.remove(tile.lane, tile.col);
-      this.shovel.value = false;
+      this.sendingHome.value = false;
       return;
     }
     const sel = this.selected.value;
@@ -946,7 +946,7 @@ export class BattleController {
     }
     this.down = { x: ev.clientX, y: ev.clientY, t: performance.now(), id: ev.pointerId };
     // Collect weeds immediately on press for snappy feel.
-    if (!this.renderer || this.selected.value >= 0 || this.shovel.value || this.tool.value !== 'play') return;
+    if (!this.renderer || this.selected.value >= 0 || this.sendingHome.value || this.tool.value !== 'play') return;
     const w = this.renderer.toWorld(ev.clientX, ev.clientY);
     const p = this.sim.pickupNear(w.x, w.y, 100);
     if (p && this.sim.status === 'playing' && !this.paused.value) {
@@ -1055,8 +1055,8 @@ export class BattleController {
       if (i < this.sim.cards.length) this.selectCard(i);
     } else if (ev.key === 'Escape') {
       this.selected.value = -1;
-      this.shovel.value = false;
-    } else if (ev.key === 's' || ev.key === 'S') this.toggleShovel();
+      this.sendingHome.value = false;
+    } else if (ev.key === 's' || ev.key === 'S') this.toggleSendHome();
     else if (ev.key === ' ') {
       ev.preventDefault();
       this.setPaused(true);
