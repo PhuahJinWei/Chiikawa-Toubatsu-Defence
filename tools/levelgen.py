@@ -157,16 +157,16 @@ W2 = [
     # The first bushes stand well up the field, so whoever hides in one comes out before reaching anyone.
     lvl(2, 3, "24: gb; 46: gb; 66: gb fg; 86: mj gb; 106 big: gb*4 mj; 130: s6^0.7 fg; 152: cd mj gb*2; 180 final: gb*5 mj s6^0.6 cd",
         terrain=[(1, 6, BU), (3, 6, BU), (0, 6, ST), (4, 1, ST), (2, 7, BU)]),
-    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6^0.7 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*6 s6^0.7 bs*2 mj",
+    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6^0.55 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*7 bs*2 mj",
         terrain=[(0, 5, BU), (4, 5, BU), (2, 1, ST), (1, 7, ST), (3, 3, ST)], unlock='momonga'),
-    lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*5 s6^0.85 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt!^0.65 gb*4 s6^0.85",
+    lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*5 s6^0.85 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt!^0.65 gb*5",
         terrain=[(0, 4, ST), (4, 4, ST), (2, 6, BU)], first=600),
 ]
 
 W3 = [
     lvl(3, 1, "24: gb; 46: fg*2; 66: mj gb; 86: dt cd; 106 big: gb*7 fg*2 mj; 130: dt gb; 152: cd*2 fg; 180 final: gb*6 fg*2 mj dt",
         unlock='ode'),
-    lvl(3, 2, "24: gb; 46: gb fg; 66: gb*2 mj; 88: km s6; 110 big: gb*6 cd s6; 134: km mj gb; 156: s6*2 bs; 184 final: gb*6 km*2 s6 cd fg"),
+    lvl(3, 2, "24: gb; 46: gb fg; 66: gb*2 mj; 88: km s6; 110 big: gb*7 cd; 134: km^0.8 mj gb*2; 156: gb*2 bs; 184 final: gb*7 km*2 cd fg"),
     # パジャマパーティーズ join two jobs after the bird that kidnapped them in the story comes in.
     lvl(3, 3, "24: gb; 46: fg mj; 66: gb*2; 86: dt gb; 106 big: gb*6 fg*2 mj; 130: km; 152: fg*2 bs; 182 final: gb*6 fg*3 km mj s6*2",
         unlock='pajama_parties'),
@@ -232,7 +232,7 @@ W6 = [
     hunt(2, "24: gb; 46: gb*2; 68: gb*2; 90: dt; 112 big: gb*6 ym; 136: km bs; 158: dt gb*2; 186 final: gb*7 ym km hn dt",
          unlock='usagi_cool'),
     hunt(3, "24: gb; 46: gb*2; 68: hn^0.7; 90: ym dt; 112 big: gb*6 hn^0.7; 136 boss: zu!^0.33 gb; 160: km mj; 188 final: gb*5 zu^0.33 dt"),
-    hunt(4, "24: gb; 46: gb*2; 68: ym gb; 90: hn^0.7 dt; 112 big: gb*6 km^0.65 bs; 136 boss: gt!^0.6 gb; 160: ym km^0.8; 184 big: gb*5 dt; 214 final: gb*6 km^0.8 ym hn^0.8"),
+    hunt(4, "24: gb; 55: gb*2; 68: ym gb; 90: hn^0.6 dt; 112 big: gb*6 km^0.65 bs; 136 boss: gt!^0.6 gb; 160: ym km^0.8; 184 big: gb*5 dt; 214 final: gb*6 km^0.8 ym hn^0.65"),
     hunt(5, "24: gb; 46: gb*2; 68: gb*2; 90: km gb; 112 big: gb*8 ym; 136: hn bs; 160: km mj; 184 big: gb*7 dt ym; 222 final boss: dk! gb*7 km ym",
          features=['endless'], first=1000),
 ]

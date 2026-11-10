@@ -142,6 +142,7 @@
     "notEnough": "Not enough weeds",
     "cooldown": "Recharging",
     "occupied": "That tile is taken",
+    "unworn": "Not worn yet",
     "terrain": "Nothing can stand there",
     "water": "Only the islanders (Hitoha, Futaba and Shimajiro) can go on the water",
     "land": "This one goes only on the water",
@@ -304,7 +305,7 @@
     },
     "chushidesu": {
       "name": "Chūshi-desu",
-      "ability": "Stops for a moment a tile away, then pounces (that swipe hurts twice as much). Attacks twice as fast, too."
+      "ability": "Stops for a moment a tile away, then pounces (that swipe hurts twice as much)."
     },
     "fugu": {
       "name": "Fugu",

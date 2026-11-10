@@ -150,7 +150,7 @@
       { "at": 30, "spawns": [
         {"enemy": "goblin"}
       ] },
-      { "at": 92, "spawns": [
+      { "at": 110, "spawns": [
         {"enemy": "goblin", "count": 2}
       ] },
       { "at": 136, "spawns": [
@@ -165,7 +165,7 @@
         {"enemy": "goblin", "count": 6},
         {"enemy": "kimera", "hpMul": 0.65},
         {"enemy": "kuroi_nagareboshi"},
-        {"enemy": "mushi_horned", "hpMul": 0.7},
+        {"enemy": "mushi_horned", "hpMul": 0.6},
         {"enemy": "dekai_tori"}
       ] },
       { "at": 272, "boss": true, "spawns": [
@@ -186,7 +186,7 @@
         {"enemy": "goblin", "count": 6},
         {"enemy": "kimera", "hpMul": 0.8},
         {"enemy": "yamanba"},
-        {"enemy": "mushi_horned", "hpMul": 0.8}
+        {"enemy": "mushi_horned", "hpMul": 0.65}
       ] }
     ],
     "rewards": {"firstClear": 400, "replay": 50}

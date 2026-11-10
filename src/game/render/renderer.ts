@@ -1552,7 +1552,11 @@ export class BattleRenderer {
       elapsed -= now - (this.heldAt.get(a.uid) ?? now);
       this.spellCircle(ctx, x, y, now, ui);
     }
-    const box = this.drawCharacter(ctx, id, anim, elapsed, x + shakeX, y, { scale, alpha, flash: flash * 0.5, tint: held ? SPELL_TINT : null, guides: ui.guides, tempo: tempoOf(a.def), onceMs: anim === 'attack' ? ALLY_ATTACK_MS : undefined, at });
+    // A worn wall that the wall in hand could replace glows, as PvZ lights up a nut a Wall-nut can go on (owner's call,
+    // 2026-11-10), so it shows on a phone too, where a tap puts the card down at once.
+    const mend = a.def.wall && ui.selectedCard >= 0 && !ui.sendingHome && this.sim.replaces(ui.selectedCard, a.lane, a.col) === a;
+    const glow = mend ? (ui.reducedMotion ? 0.35 : 0.22 + 0.24 * (0.5 + 0.5 * Math.sin(now / 180))) : 0;
+    const box = this.drawCharacter(ctx, id, anim, elapsed, x + shakeX, y, { scale, alpha, flash: Math.max(flash * 0.5, glow), tint: held ? SPELL_TINT : null, guides: ui.guides, tempo: tempoOf(a.def), onceMs: anim === 'attack' ? ALLY_ATTACK_MS : undefined, at });
     if (!box || a.state === 'collapse') return;
     // パジャマパーティーズ let a note go now and then while they sing.
     if (a.anim === 'song' && !ui.reducedMotion && now - (this.singAt.get(a.uid) ?? -1e9) > SONG_BEAT_MS) {

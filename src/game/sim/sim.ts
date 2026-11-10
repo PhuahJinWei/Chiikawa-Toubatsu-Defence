@@ -30,6 +30,7 @@ import {
   WEED_SPROUT_MS,
   WEED_WILT_MS,
   WEEDS_CAP,
+  WORN_AT,
 } from './constants';
 import { ENEMIES, UNITS, WORLDS } from './defs';
 import { EndlessWaves } from './endless';
@@ -133,7 +134,7 @@ const CAMEO_POSE_MS = 1100;
 const CAMEO_STAY_MS = 500;
 
 /** `water`: a land friend on a water tile. `land`: a water friend (ヒトハ, フタバ, 島二郎) on a land tile. */
-export type PlaceCheck = 'ok' | 'inactive' | 'occupied' | 'terrain' | 'water' | 'land' | 'cooldown' | 'weeds' | 'over';
+export type PlaceCheck = 'ok' | 'inactive' | 'occupied' | 'unworn' | 'terrain' | 'water' | 'land' | 'cooldown' | 'weeds' | 'over';
 
 export function simForLevel(
   level: LevelDef,
@@ -321,7 +322,9 @@ export class Sim implements WaveHost {
     if (!this.anywhere(card)) {
       if (this.terrain[lane][col]) return 'terrain';
       if (this.water[lane] !== !!card.def.aquatic) return this.water[lane] ? 'water' : 'land';
-      if (this.grid[lane][col]) return 'occupied';
+      // A worn wall of the card's own kind is replaced by a fresh one (see replaces); one not worn yet stays.
+      const there = this.grid[lane][col];
+      if (there && !this.replaces(cardIndex, lane, col)) return this.sameWall(card, there) ? 'unworn' : 'occupied';
     }
     if (this.dev?.free) return 'ok';
     if (card.cooldownLeft > 0) return 'cooldown';
@@ -330,11 +333,27 @@ export class Sim implements WaveHost {
   }
 
   /** Whether a card could go on a tile, ignoring cooldown and cost (for highlighting): any tile in an active lane
-   *  for むちゃうマン, else an empty tile of its own ground (water for the islanders, land for the rest). */
+   *  for むちゃうマン, else an empty tile of its own ground (water for the islanders, land for the rest), or a wall's
+   *  worn one of its kind. */
   targetOpen(cardIndex: number, lane: number, col: number): boolean {
     const card = this.cards[cardIndex];
     if (card && this.anywhere(card)) return lane >= 0 && lane <= 4 && col >= 0 && col < COLS && this.laneActive[lane];
-    return this.tileOpen(lane, col) && this.water[lane] === !!card?.def.aquatic;
+    return (this.tileOpen(lane, col) || !!this.replaces(cardIndex, lane, col)) && this.water[lane] === !!card?.def.aquatic;
+  }
+
+  /** The worn wall a card would replace on a tile, or null: a wall of the card's own kind standing there, worn to its
+   *  first damage picture (WORN_AT). A fresh one put down on top takes its place, as with PvZ's Wall-nut First Aid
+   *  (owner's call, 2026-11-10). */
+  replaces(cardIndex: number, lane: number, col: number): Ally | null {
+    const card = this.cards[cardIndex];
+    const a = this.allyAt(lane, col);
+    return card && a && this.sameWall(card, a) && a.hp <= a.maxHp * WORN_AT ? a : null;
+  }
+
+  /** Whether a card is a wall of the same kind as a friend standing on the field: 鎧さん for 鎧さん, 偉い鎧さん for
+   *  偉い鎧さん, 島二郎 for 島二郎. Not 星's card, whose star has to stand somewhere first, nor a star still wishing. */
+  private sameWall(card: CardState, a: Ally): boolean {
+    return !!card.def.wall && !card.star && a.def.id === card.def.id && this.onTile(a) && !a.wishUntil;
   }
 
   /** A card that goes on any tile of an open lane, a friend standing there or not, water or land: むちゃうマン, who
@@ -358,6 +377,9 @@ export class Sim implements WaveHost {
     if (this.canPlace(cardIndex, lane, col) !== 'ok') return null;
     const card = this.cards[cardIndex];
     const def = card.def;
+    // A fresh wall takes a worn one's place: the worn one goes at once, as in PvZ (no fading, no sending home).
+    const worn = this.replaces(cardIndex, lane, col);
+    if (worn) this.retire(worn);
     if (!this.dev?.free) {
       this.weeds -= def.cost;
       card.cooldownLeft = def.cooldownMs;
@@ -426,6 +448,14 @@ export class Sim implements WaveHost {
       this.cameos.push({ uid: this.uidSeq++, def, lane, col, startedAt: this.t, firesAt: this.t + CAMEO_POSE_MS, leavesAt: this.t + CAMEO_POSE_MS + CAMEO_STAY_MS, fired: false });
     }
     this.events.push({ type: 'oneUse', def, lane, col });
+  }
+
+  /** Takes a friend off the field at once, with no fading: a worn wall a fresh one has replaced. Enemies find who
+   *  is in their way from the grid every step, so whoever was up against it goes on against the new one. */
+  private retire(a: Ally): void {
+    if (this.grid[a.lane][a.col] === a) this.grid[a.lane][a.col] = null;
+    this.releaseClaims(a);
+    this.allies = this.allies.filter((o) => o !== a);
   }
 
   remove(lane: number, col: number): boolean {

@@ -63,8 +63,8 @@ describe('the testing ground (dev mode)', () => {
     expect(sim.place(yoroi, 1, 2)).not.toBeNull();
     expect(sim.weeds).toBe(before);
     expect(sim.cards[yoroi].cooldownLeft).toBe(0);
-    // The ground still has to be free.
-    expect(sim.canPlace(yoroi, 1, 1)).toBe('occupied');
+    // The ground still has to be free (a wall goes on its own kind only once that one is worn).
+    expect(sim.canPlace(yoroi, 1, 1)).toBe('unworn');
     rules.free = false;
     expect(sim.place(yoroi, 1, 3)).not.toBeNull();
     expect(sim.weeds).toBe(before - sim.cards[yoroi].def.cost);

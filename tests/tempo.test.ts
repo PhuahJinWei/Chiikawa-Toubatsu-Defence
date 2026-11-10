@@ -49,9 +49,10 @@ describe('tempo: bigger characters move slower, giants slowest', () => {
       expect(s.hitMs, e.id).toBeLessThan(s.swingMs);
     }
     expect(swingOf(ENEMIES['goblin'])).toEqual({ hitMs: 320, swingMs: 640 });
-    // A big one swings slower; ちゅーしです, twice as quick to attack, swings within its 0.72 s.
+    // A big one swings slower. ちゅーしです attacks as often as the others (owner's call, 2026-11-10), so it swings as
+    // any of its size does.
     expect(swingOf(ENEMIES['mushi_horned']).swingMs).toBeGreaterThan(swingOf(ENEMIES['goblin']).swingMs);
-    expect(swingOf(ENEMIES['chushidesu']).swingMs).toBeLessThan(500 + ATTACK_RELEASE_MS);
+    expect(swingOf(ENEMIES['chushidesu'])).toEqual(swingOf(ENEMIES['mushi_sixlegs']));
     // Giants: long, heavy swings, the blow landing past halfway.
     for (const id of ['dekatsuyo', 'anoko']) {
       expect(swingOf(ENEMIES[id]).swingMs).toBe(1600);

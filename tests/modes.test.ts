@@ -194,8 +194,8 @@ describe('the everyday enemies’ own moves', () => {
     const lunge = stepUntil(sim, () => e.state !== 'lunge');
     expect(damageTo(lunge, wall)).toEqual([damage * 2]);
     expect(e.y).toBeCloseTo(stopY, 0);
-    // Then it swings as usual, at its usual strength, without lunging again.
-    const after = run(sim, 3000);
+    // Then it swings as usual, at its usual strength and pace, without lunging again.
+    const after = run(sim, 4000);
     const hits = damageTo(after, wall);
     expect(hits.length).toBeGreaterThan(2);
     expect(hits.every((d) => d === damage)).toBe(true);

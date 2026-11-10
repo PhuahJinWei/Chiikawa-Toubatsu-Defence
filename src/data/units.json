@@ -8,7 +8,7 @@
     "hp": 300,
     "size": "S",
     "attack": { "kind": "none" },
-    "produce": { "amount": 25, "intervalMs": 20000, "firstMs": 6000, "pullRadius": 1 }
+    "produce": { "amount": 25, "intervalMs": 18000, "firstMs": 6000, "pullRadius": 1 }
   },
   {
     "id": "chiikawa_island",

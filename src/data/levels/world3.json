@@ -73,24 +73,21 @@
         {"enemy": "mushi_sixlegs"}
       ] },
       { "at": 204, "big": true, "spawns": [
-        {"enemy": "goblin", "count": 6},
-        {"enemy": "chushidesu"},
-        {"enemy": "goblin"}
+        {"enemy": "goblin", "count": 7},
+        {"enemy": "chushidesu"}
       ] },
       { "at": 248, "spawns": [
-        {"enemy": "kimera"},
+        {"enemy": "kimera", "hpMul": 0.8},
         {"enemy": "majyo"},
-        {"enemy": "goblin"},
-        {"enemy": "mushi_sixlegs"}
-      ] },
-      { "at": 289, "spawns": [
-        {"enemy": "kuroi_nagareboshi"},
         {"enemy": "goblin", "count": 2}
       ] },
+      { "at": 289, "spawns": [
+        {"enemy": "goblin", "count": 2},
+        {"enemy": "kuroi_nagareboshi"}
+      ] },
       { "at": 340, "final": true, "spawns": [
-        {"enemy": "goblin", "count": 6},
+        {"enemy": "goblin", "count": 7},
         {"enemy": "kimera", "count": 2},
-        {"enemy": "mushi_sixlegs"},
         {"enemy": "chushidesu"},
         {"enemy": "fugu"}
       ] }

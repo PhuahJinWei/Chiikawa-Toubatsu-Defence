@@ -34,8 +34,8 @@
     "scope": 1,
     "size": "M",
     "speed": "normal",
-    "hp": 350,
-    "attack": { "kind": "melee", "damage": 100, "intervalMs": 500 },
+    "hp": 300,
+    "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
     "abilities": [{ "kind": "lunge", "tiles": 1, "damageMul": 2, "readyMs": 600 }],
     "weight": 2.4
   },

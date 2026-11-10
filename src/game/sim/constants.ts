@@ -41,6 +41,11 @@ export const BASE_Y = LANE_LEN + Math.round(TILE * 0.15);
 
 /** What a stump (切り株) can take before it breaks: 15 of うさぎ's shots, or 5 of フグ's spits. */
 export const STUMP_HP = 300;
+
+/** A wall worn this far (its HP at or under this share) can be replaced by a fresh one of its kind put down on top of
+ *  it (owner's call, 2026-11-10; PvZ's Wall-nut First Aid works below 2/3 of a nut's health). Every wall's first damage
+ *  picture shows here too (two damage pictures split its HP in three), so a worn wall is one that looks it. */
+export const WORN_AT = 2 / 3;
 /** Which of a stump's three pictures shows at this much HP: whole, cracked (two thirds left), split (one third left). */
 export const stumpStage = (hp: number): 1 | 2 | 3 => (hp > (STUMP_HP * 2) / 3 ? 1 : hp > STUMP_HP / 3 ? 2 : 3);
 

@@ -869,6 +869,8 @@ export class BattleController {
         return t('battle.cooldown');
       case 'occupied':
         return t('battle.occupied');
+      case 'unworn':
+        return t('battle.unworn');
       case 'terrain':
         return t('battle.terrain');
       case 'water':

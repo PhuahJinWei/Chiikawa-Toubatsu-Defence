@@ -187,7 +187,7 @@
       ] },
       { "at": 174, "big": true, "spawns": [
         {"enemy": "goblin", "count": 6},
-        {"enemy": "mushi_sixlegs", "hpMul": 0.7},
+        {"enemy": "mushi_sixlegs", "hpMul": 0.55},
         {"enemy": "kuroi_nagareboshi"}
       ] },
       { "at": 211, "spawns": [
@@ -200,8 +200,7 @@
         {"enemy": "goblin"}
       ] },
       { "at": 288, "final": true, "spawns": [
-        {"enemy": "goblin", "count": 6},
-        {"enemy": "mushi_sixlegs", "hpMul": 0.7},
+        {"enemy": "goblin", "count": 7},
         {"enemy": "kuroi_nagareboshi", "count": 2},
         {"enemy": "majyo"}
       ] }
@@ -256,8 +255,7 @@
       ] },
       { "at": 304, "final": true, "boss": true, "spawns": [
         {"enemy": "guchokipanogitaigata", "boss": true, "hpMul": 0.65},
-        {"enemy": "goblin", "count": 4},
-        {"enemy": "mushi_sixlegs", "hpMul": 0.85}
+        {"enemy": "goblin", "count": 5}
       ] }
     ],
     "rewards": {"firstClear": 600, "replay": 50}

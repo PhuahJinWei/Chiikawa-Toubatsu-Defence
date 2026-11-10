@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, HIT_LINE, RESCUE_BOSS_DAMAGE, STEP_MS, STUMP_HP, stumpStage, TILE } from '../src/game/sim/constants';
+import { characterSpec } from '../src/art/spec';
+import { BASE_Y, colY, CONTACT, FIELD_ENTRY_Y, HIT_LINE, RESCUE_BOSS_DAMAGE, STEP_MS, STUMP_HP, stumpStage, TILE, WORN_AT } from '../src/game/sim/constants';
 import { ENEMIES, LEVEL_LIST, UNITS, waterOf } from '../src/game/sim/defs';
 import { abilityBusyMs, abilityCycleMs, HEAL_PULSE_MS, healPauseOf, spawnMsOf } from '../src/game/sim/tempo';
 import { Rng } from '../src/game/sim/rng';
@@ -131,6 +132,65 @@ describe('placement', () => {
     sim.place(0, 1, 1);
     expect(sim.remove(1, 1)).toBe(true);
     expect(sim.allyAt(1, 1)).toBeNull();
+  });
+
+  it('lets a wall go on a worn wall of its own kind, a fresh one taking its place (PvZ’s Wall-nut First Aid)', () => {
+    const sim = makeSim(['yoroi', 'yoroi_erai', 'hachiware']);
+    const old = put(sim, 0, 2, 4);
+    // Not worn yet (above 2/3 of its HP, before its first damage picture): it stays.
+    old.hp = old.maxHp * 0.7;
+    expect(sim.canPlace(0, 2, 4)).toBe('unworn');
+    expect(sim.targetOpen(0, 2, 4)).toBe(false);
+    // Worn: the same kind of wall can go on top of it, and nothing else can.
+    old.hp = old.maxHp * WORN_AT;
+    expect(sim.targetOpen(0, 2, 4)).toBe(true);
+    expect(sim.replaces(0, 2, 4)).toBe(old);
+    expect([1, 2].map((card) => sim.canPlace(card, 2, 4))).toEqual(['occupied', 'occupied']);
+    expect([1, 2].map((card) => sim.targetOpen(card, 2, 4))).toEqual([false, false]);
+    // The worn one goes at once (no fading away), and a whole one stands there, at the card's full cost and recharge.
+    const weeds = sim.weeds;
+    const fresh = put(sim, 0, 2, 4);
+    expect(fresh).not.toBe(old);
+    expect(fresh.hp).toBe(fresh.maxHp);
+    expect(sim.allyAt(2, 4)).toBe(fresh);
+    expect(sim.allies).not.toContain(old);
+    expect(sim.weeds).toBe(weeds - UNITS.yoroi.cost);
+    expect(sim.cards[0].cooldownLeft).toBe(UNITS.yoroi.cooldownMs);
+    // On the water: 島二郎 on a worn 島二郎.
+    const isle = makeSim(['shimajiro'], { water: [2] });
+    const s = put(isle, 0, 2, 3);
+    s.hp = 1;
+    expect(isle.canPlace(0, 2, 3)).toBe('cooldown');
+    isle.cards[0].cooldownLeft = 0;
+    expect(isle.canPlace(0, 2, 3)).toBe('ok');
+    // 星 bringing a wall can't: its star has to stand somewhere first.
+    const star = makeSim(['hoshi', 'yoroi'], { wish: 'yoroi' });
+    const w = put(star, 1, 2, 4);
+    w.hp = 1;
+    expect(star.canPlace(0, 2, 4)).toBe('occupied');
+  });
+
+  it('has an enemy up against a worn wall go on against the fresh one that replaces it', () => {
+    const sim = makeSim(['yoroi']);
+    const old = put(sim, 0, 4, 2);
+    sim.spawnEnemy(ENEMIES['mushi_twolegs'], 4, colY(4), { waveIndex: 0 });
+    run(sim, 20000);
+    const e = sim.enemies[0];
+    expect(e.state).toBe('engaged');
+    old.hp = old.maxHp / 2;
+    const fresh = put(sim, 0, 4, 2);
+    run(sim, 5000);
+    expect(e.state).toBe('engaged');
+    expect(e.y).toBeLessThanOrEqual(colY(2) + CONTACT + 0.01);
+    expect(fresh.hp).toBeLessThan(fresh.maxHp);
+  });
+
+  it('shows a wall worn at the same point it can be replaced: its first damage picture, at 2/3 of its HP', () => {
+    // Two damage pictures split a wall's HP in three (see drawAlly), so the first shows at WORN_AT.
+    for (const u of Object.values(UNITS).filter((d) => d.wall)) {
+      expect(characterSpec(`ally_${u.id}`)?.motions?.filter((m) => m.startsWith('damaged')), u.id).toHaveLength(2);
+    }
+    expect(WORN_AT).toBeCloseTo(1 - 1 / 3, 10);
   });
 });
 
