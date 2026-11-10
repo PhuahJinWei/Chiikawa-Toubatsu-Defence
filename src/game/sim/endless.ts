@@ -1,5 +1,6 @@
 import { BANNER_LEAD_MS, SPAWN_Y } from './constants';
 import { ENEMIES } from './defs';
+import { hashString, Rng } from './rng';
 import { expandSpawns, LanePicker, type WaveHost, type WaveSource } from './waves';
 import type { EnemyDef, SpawnDef } from './types';
 
@@ -8,7 +9,12 @@ import type { EnemyDef, SpawnDef } from './types';
  *  (It used to be a loop guard that quietly stopped waves growing at all: 2026-11-10 audit.) */
 const MOST_PER_WAVE = 60;
 
-/** Endless mode (討伐ランキング): procedurally generated waves that never stop. */
+/** Endless mode is played in stages of this many waves (owner's call, 2026-11-10, after PvZ's Survival, whose rounds
+ *  are 10 or 20 waves): a big wave halfway, and a boss (one of those met) closing each. Between stages the battle stops
+ *  to look at the next stage's enemies on the road and to pick the team again (see the controller). */
+export const STAGE_WAVES = 10;
+
+/** Endless mode (討伐ランキング): generated waves that never stop coming, a stage at a time. */
 export class EndlessWaves implements WaveSource {
   private wave = 0;
   private lastFireAt = 0;
@@ -19,10 +25,20 @@ export class EndlessWaves implements WaveSource {
   private readonly bosses: EnemyDef[];
   /** Highest wave whose enemies were all defeated. */
   cleared = 0;
+  /** The stage being played, or, while `waiting`, the one just cleared. */
+  stage = 1;
+  /** Between stages: everyone the last one sent is down, and the next waits for beginNext. */
+  waiting = false;
   private spawnedOf = new Map<number, number>();
   private aliveOf = new Map<number, number>();
+  private plans = new Map<number, SpawnDef[][]>();
 
-  constructor(pool: string[], private firstGapMs = 28000) {
+  /** `seed`: the run's, from which every stage's enemies are drawn (so the same run sends the same stages). */
+  constructor(
+    pool: string[],
+    private readonly seed = 0,
+    private firstGapMs = 28000,
+  ) {
     const defs = pool.map((id) => ENEMIES[id]).filter(Boolean);
     this.regular = defs.filter((d) => !d.boss);
     this.bosses = defs.filter((d) => d.boss);
@@ -32,6 +48,38 @@ export class EndlessWaves implements WaveSource {
   private gapFor(wave: number): number {
     if (wave <= 1) return this.firstGapMs;
     return Math.max(20000, 30000 - wave * 300);
+  }
+
+  /** The boss closing a stage (its last wave), when one has been met: each in turn, stage after stage. */
+  private bossOf(wave: number): EnemyDef | undefined {
+    return wave % STAGE_WAVES === 0 && this.bosses.length ? this.bosses[(wave / STAGE_WAVES - 1) % this.bosses.length] : undefined;
+  }
+
+  /** A stage's waves, what each sends: drawn from the stage's own randomness, so they are known before it starts (the
+   *  road shows them while the team is picked) and stay the same however the battle goes. */
+  plan(stage: number): SpawnDef[][] {
+    let p = this.plans.get(stage);
+    if (!p) {
+      const rng = new Rng(hashString(`${this.seed}:endless:${stage}`));
+      p = Array.from({ length: STAGE_WAVES }, (_, i) => this.compose(rng, (stage - 1) * STAGE_WAVES + i + 1));
+      this.plans.set(stage, p);
+    }
+    return p;
+  }
+
+  /** How many of each enemy a stage sends, in the order they first come (a group, 小さい人魚, for each one in it). */
+  counts(stage: number): { id: string; count: number }[] {
+    const n = new Map<string, number>();
+    for (const w of this.plan(stage)) for (const s of w) n.set(s.enemy, (n.get(s.enemy) ?? 0) + (s.count ?? 1) * Math.max(1, ENEMIES[s.enemy]?.pack ?? 1));
+    return [...n].map(([id, count]) => ({ id, count }));
+  }
+
+  /** The next stage begins, its first wave a gap from `t`: the team has been picked again. */
+  beginNext(t: number): void {
+    if (!this.waiting) return;
+    this.waiting = false;
+    this.stage++;
+    this.lastFireAt = t;
   }
 
   /** Called by the sim whenever an enemy of a given wave collapses. */
@@ -50,13 +98,12 @@ export class EndlessWaves implements WaveSource {
     this.aliveOf.set(waveIndex, (this.aliveOf.get(waveIndex) ?? 0) + 1);
   }
 
-  private compose(host: WaveHost, wave: number): SpawnDef[] {
-    const rng = host.rng;
+  private compose(rng: Rng, wave: number): SpawnDef[] {
     const isBig = wave % 5 === 0;
     let budget = (1 + wave * 1.3) * (isBig ? 1.6 : 1);
     const spawns: SpawnDef[] = [];
-    if (wave % 10 === 0 && this.bosses.length) {
-      const boss = this.bosses[(wave / 10 - 1) % this.bosses.length];
+    const boss = this.bossOf(wave);
+    if (boss) {
       spawns.push({ enemy: boss.id, count: 1, boss: true, hpMul: 1 + Math.max(0, wave - 10) * 0.04 });
       budget -= boss.weight;
     }
@@ -81,16 +128,19 @@ export class EndlessWaves implements WaveSource {
   }
 
   step(host: WaveHost): void {
-    if (!this.banner) {
+    if (this.waiting) return;
+    const last = this.stage * STAGE_WAVES;
+    if (!this.banner && this.wave < last) {
       const due = this.lastFireAt + this.gapFor(this.wave + 1);
       const early = this.wave > 0 && this.queue.length === 0 && host.aliveEnemies() === 0 && host.t - this.lastFireAt >= 6000;
       if (host.t >= due || early) {
         const next = this.wave + 1;
-        if (next % 10 === 0 && this.bosses.length) {
-          host.emitBanner('boss', this.bosses[(next / 10 - 1) % this.bosses.length].id);
+        const boss = this.bossOf(next);
+        if (boss) {
+          host.emitBanner('boss', boss.id);
           this.banner = { at: host.t + BANNER_LEAD_MS, wave: next };
         } else if (next % 5 === 0) {
-          host.emitBanner('big');
+          host.emitBanner(next % STAGE_WAVES === 0 ? 'final' : 'big');
           this.banner = { at: host.t + BANNER_LEAD_MS, wave: next };
         } else {
           this.fire(host, next);
@@ -106,10 +156,12 @@ export class EndlessWaves implements WaveSource {
       const q = this.queue.shift()!;
       host.spawnEnemy(q.def, q.lane, SPAWN_Y - host.rng.range(0, 40), { hpMul: q.hpMul, boss: q.boss, waveIndex: q.waveIndex });
     }
+    // The stage is over once its last wave is out and everyone it sent (and everyone before) is down.
+    if (this.wave >= last && !this.banner && this.queue.length === 0 && this.cleared >= last) this.waiting = true;
   }
 
   private fire(host: WaveHost, wave: number): void {
-    const spawns = this.compose(host, wave);
+    const spawns = this.plan(Math.ceil(wave / STAGE_WAVES))[(wave - 1) % STAGE_WAVES];
     this.queue.push(...expandSpawns(spawns, host.rng, host.activeLanes, this.picker, host.t, wave, host.waterLanes));
     this.queue.sort((a, b) => a.at - b.at);
     this.wave = wave;
@@ -117,13 +169,21 @@ export class EndlessWaves implements WaveSource {
     host.emitWaveStart(wave, 0);
   }
 
+  /** How far through the stage it is, for the wave bar: its waves sent so far and the time to the next. */
   progress(host: WaveHost): number {
-    const gap = this.gapFor(this.wave + 1);
-    return Math.min(1, Math.max(0, (host.t - this.lastFireAt) / gap));
+    if (this.waiting) return 1;
+    const sent = this.wave - (this.stage - 1) * STAGE_WAVES;
+    if (sent >= STAGE_WAVES) return 1;
+    const part = this.banner ? 1 : Math.min(1, Math.max(0, (host.t - this.lastFireAt) / this.gapFor(this.wave + 1)));
+    return Math.min(1, (sent + part) / STAGE_WAVES);
   }
 
+  /** Every stage's wave bar: its big wave halfway, and its boss (or final wave) at the end. */
   flags(): { at: number; kind: 'big' | 'final' | 'boss' }[] {
-    return [];
+    return [
+      { at: 5 / STAGE_WAVES, kind: 'big' },
+      { at: 1, kind: this.bosses.length ? 'boss' : 'final' },
+    ];
   }
 
   done(): boolean {

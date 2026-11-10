@@ -422,6 +422,8 @@ function TeamPage({ job }: { job: Job }) {
     [],
   );
   const team = choose ? owned : deck;
+  // The team is kept in the order its friends were picked: the battle's cards go in that order (owner's call,
+  // 2026-11-10), numbered on their faces here.
   const toggle = (id: string) => {
     if (deck.includes(id)) job.deck.value = deck.filter((x) => x !== id);
     else if (!fitsJob(id, level)) toast(t(homeReason(id, level)!), 'bad');
@@ -431,11 +433,11 @@ function TeamPage({ job }: { job: Job }) {
         wish,
         (w) => {
           job.wish.value = w;
-          job.deck.value = owned.filter((x) => [...job.deck.value, id].includes(x));
+          if (!job.deck.value.includes(id)) job.deck.value = [...job.deck.value, id];
         },
         level,
       );
-    } else job.deck.value = owned.filter((x) => [...deck, id].includes(x));
+    } else job.deck.value = [...deck, id];
   };
   // Holding a friend's face shows their details instead of picking them (so do a right click and the menu key); the
   // tap that ends a hold does nothing more. Moving off the face first lets go.
@@ -572,6 +574,11 @@ function TeamPage({ job }: { job: Job }) {
                   <span class="jn-face">
                     <CutOut src={art.portraitUrl(id)} px={90} />
                     {on ? <PenLoop class="jn-loop" /> : null}
+                    {on && choose ? (
+                      <span class="jn-order" aria-hidden="true">
+                        {deck.indexOf(id) + 1}
+                      </span>
+                    ) : null}
                     {as ? (
                       <span class="jn-wish">
                         <CutOut src={art.portraitUrl(as)} px={56} />

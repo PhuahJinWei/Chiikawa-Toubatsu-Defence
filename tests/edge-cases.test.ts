@@ -132,7 +132,7 @@ describe('黒い流れ星', () => {
 });
 
 describe('endless mode', () => {
-  const compose = (w: EndlessWaves, wave: number) => (w as unknown as { compose(h: { rng: Rng }, n: number): SpawnDef[] }).compose({ rng: new Rng(7) }, wave);
+  const compose = (w: EndlessWaves, wave: number) => (w as unknown as { compose(rng: Rng, n: number): SpawnDef[] }).compose(new Rng(7), wave);
   const strength = (spawns: SpawnDef[]) => spawns.filter((s) => !s.boss).reduce((n, s) => n + ENEMIES[s.enemy].weight * (s.hpMul ?? 1), 0);
 
   it('spends all of a wave’s budget: on more enemies up to 60, then on making them tougher', () => {

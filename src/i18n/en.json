@@ -161,7 +161,8 @@
     "transform": "Its true form!",
     "win": "Job done!",
     "lose": "Job failed…",
-    "wave": "Wave {n}"
+    "wave": "Wave {n}",
+    "stageClear": "Stage clear!"
   },
   "result": {
     "win": "Job Report",
@@ -596,6 +597,7 @@
     "rakko": "Rakko",
     "rakkoScore": "Off the charts",
     "waves": "{n} waves",
+    "stage": "Stage {n}",
     "best": "Best"
   },
   "settings": {

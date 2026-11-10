@@ -11,6 +11,7 @@
 
 import { COLS, colY, STEP_MS, TILE } from './constants';
 import { fitsJob, LEVEL_LIST, waterOf } from './defs';
+import { EndlessWaves } from './endless';
 import type { Sim } from './sim';
 import type { Enemy, LevelDef } from './types';
 
@@ -292,6 +293,8 @@ export class Bot {
   tick(): void {
     const s = this.sim;
     if (s.status !== 'playing') return;
+    // Endless mode between stages: the bot keeps its team and goes straight on.
+    if (s.waves instanceof EndlessWaves && s.waves.waiting) s.beginStage();
     if (Number.isFinite(this.opts.reactionMs)) {
       for (const p of s.pickups) {
         if (p.kind === 'weed' && (p.state === 'idle' || p.state === 'sprout') && s.t - p.bornAt >= this.opts.reactionMs) s.collect(p.uid);

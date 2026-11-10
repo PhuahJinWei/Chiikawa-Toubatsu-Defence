@@ -161,7 +161,8 @@
     "transform": "正体をあらわした！",
     "win": "討伐完了！",
     "lose": "討伐失敗…",
-    "wave": "ウェーブ {n}"
+    "wave": "ウェーブ {n}",
+    "stageClear": "ステージクリア！"
   },
   "result": {
     "win": "討伐報告",
@@ -596,6 +597,7 @@
     "rakko": "ラッコ",
     "rakkoScore": "測定不能",
     "waves": "{n} ウェーブ",
+    "stage": "ステージ {n}",
     "best": "ベスト"
   },
   "settings": {

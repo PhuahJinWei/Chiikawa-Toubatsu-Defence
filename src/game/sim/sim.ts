@@ -163,6 +163,7 @@ export function simForEndless(
   deck: string[],
   opts: { seed?: number; bonusWeeds?: number; autoCollect?: boolean; ready?: boolean; wish?: string } = {},
 ): Sim {
+  const seed = opts.seed ?? Date.now() >>> 0;
   return new Sim({
     levelId: 'endless',
     lanes: [0, 1, 2, 3, 4],
@@ -171,11 +172,11 @@ export function simForEndless(
     terrain: [],
     rescues: true,
     deck,
-    seed: opts.seed ?? Date.now() >>> 0,
+    seed,
     autoCollect: opts.autoCollect,
     ready: opts.ready,
     wish: opts.wish,
-    waves: new EndlessWaves(pool),
+    waves: new EndlessWaves(pool, seed),
   });
 }
 
@@ -202,7 +203,7 @@ export class Sim implements WaveHost {
   sweeps: Sweep[] = [];
   /** One-use friends on a tile for a moment (むちゃうマン). */
   cameos: Cameo[] = [];
-  readonly cards: CardState[];
+  cards: CardState[];
   events: SimEvent[] = [];
   readonly stats: SimStats = {
     rescuesUsed: 0,
@@ -238,15 +239,7 @@ export class Sim implements WaveHost {
     this.terrain = [0, 1, 2, 3, 4].map(() => new Array<TerrainDef['kind'] | null>(COLS).fill(null));
     for (const t of cfg.terrain) if (this.laneActive[t.lane]) this.terrain[t.lane][t.col] = t.kind;
     this.stumpHp = this.terrain.map((row) => row.map((kind) => (kind === 'stump' ? STUMP_HP : 0)));
-    this.cards = cfg.deck.flatMap((id): CardState[] => {
-      const def = UNITS[id];
-      if (!def) return [];
-      if (!def.wish) return [{ def, cooldownLeft: cfg.ready ? 0 : def.initialCooldownMs, member: this.nextMember(def) }];
-      // 星's card is the wished-for friend's card, cost and recharge and all (see WishDef).
-      const wish = cfg.wish ? UNITS[cfg.wish] : undefined;
-      if (!wish || wish.wish) return [];
-      return [{ def: wish, star: def, cooldownLeft: cfg.ready ? 0 : wish.initialCooldownMs, member: this.nextMember(wish) }];
-    });
+    this.cards = this.dealCards(cfg.deck, cfg.wish, !!cfg.ready);
     this.sprout = cfg.sprout;
     this.nextSproutAt = cfg.sprout ? cfg.sprout.firstMs : Infinity;
     this.rescuesEnabled = cfg.rescues;
@@ -259,6 +252,33 @@ export class Sim implements WaveHost {
         this.rescues.push({ lane, boat: this.water[lane], state: 'parked', y: BASE_Y + 70, prevY: BASE_Y + 70, hit: new Set(), startedAt: 0 });
       }
     }
+  }
+
+  /** A team's cards, in its order, each with its first recharge to wait out (none with a ぶた入りラーメン券: `ready`). */
+  private dealCards(deck: string[], wishId: string | undefined, ready: boolean): CardState[] {
+    return deck.flatMap((id): CardState[] => {
+      const def = UNITS[id];
+      if (!def) return [];
+      if (!def.wish) return [{ def, cooldownLeft: ready ? 0 : def.initialCooldownMs, member: this.nextMember(def) }];
+      // 星's card is the wished-for friend's card, cost and recharge and all (see WishDef).
+      const wish = wishId ? UNITS[wishId] : undefined;
+      if (!wish || wish.wish) return [];
+      return [{ def: wish, star: def, cooldownLeft: ready ? 0 : wish.initialCooldownMs, member: this.nextMember(wish) }];
+    });
+  }
+
+  /** Endless mode, between stages: the team picked for the next (the same one if none is given) is dealt its cards
+   *  afresh, as at a job's start, while the friends on the field, the 草 and the cars stay as they are, as in PvZ's
+   *  Survival; then the next stage begins. */
+  beginStage(deck = this.cards.map((c) => c.star?.id ?? c.def.id), wish = this.cards.find((c) => c.star)?.def.id): void {
+    if (!(this.waves instanceof EndlessWaves) || !this.waves.waiting) return;
+    this.cards = this.dealCards(deck, wish, false);
+    this.waves.beginNext(this.t);
+  }
+
+  /** Endless mode, between stages: the team being picked for the next, shown in the column of cards as it is picked. */
+  showTeam(deck: string[], wish?: string): void {
+    if (this.waves instanceof EndlessWaves && this.waves.waiting) this.cards = this.dealCards(deck, wish, false);
   }
 
   // ------------------------------------------------------------ queries

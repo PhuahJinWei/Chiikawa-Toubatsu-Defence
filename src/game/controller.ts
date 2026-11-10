@@ -6,8 +6,9 @@ import { audio } from '../audio/audio';
 import { nameOf, t } from '../i18n/i18n';
 import { colOfY, STEP_MS } from './sim/constants';
 import { fallMsOf } from './sim/tempo';
-import { summonsOf, UNITS, waterOf, WORLDS } from './sim/defs';
+import { ENEMIES, summonsOf, UNITS, waterOf, WORLDS } from './sim/defs';
 import { EndlessWaves } from './sim/endless';
+import { crowdOf } from './render/lineup';
 import { FrameCap } from './frameCap';
 import { arrivalMs } from './render/arrival';
 import { battleArtKeys, BattleRenderer, type RenderUi, type Waiting } from './render/renderer';
@@ -73,6 +74,8 @@ interface BattleConfig {
   lineup: Waiting[];
   /** Stop on the road view for the team tray (cards to choose, or a ramen ticket to use). */
   picking: boolean;
+  /** More cards than slots: endless mode stops for the team tray between stages too. */
+  choose?: boolean;
 }
 
 /** Getting ready, then the battle: `look` rests on the field and glides over to the waiting enemies, `pick` waits on the
@@ -150,6 +153,15 @@ export class BattleController {
   readonly toast = signal<{ key: number; text: string } | null>(null);
   readonly rescuesLeft = signal(0);
   readonly phase = signal<BattlePhase>('look');
+  /** Endless mode: the stage being played, or the one being got ready for between stages. */
+  readonly stage = signal(1);
+  /** Endless mode: between stages (getting ready for the next), the run so far at stake. */
+  readonly between = signal(false);
+  /** The battle has begun once: getting ready again is between endless stages. */
+  private began = false;
+  /** Endless mode: the run's seed, kept while the team is picked (each pick makes the sim again), so the stages it
+   *  previews stay the ones that come. */
+  private readonly runSeed = Date.now() >>> 0;
 
   private canvas: HTMLCanvasElement | null = null;
   private readonly flights = new WeedFlights();
@@ -199,6 +211,7 @@ export class BattleController {
     if (cfg.mode === 'sandbox') return simForSandbox(cfg.sandbox ?? { world: 1, cars: true }, cfg.deck, cfg.devRules ?? { free: true, freeze: false, safeFriends: false, safeEnemies: false }, { autoCollect: cfg.autoCollect, wish: cfg.wish });
     return cfg.mode === 'endless'
       ? simForEndless(cfg.endlessPool ?? ['mushi_twolegs'], cfg.deck, {
+          seed: this.runSeed,
           bonusWeeds: cfg.bonusWeeds,
           autoCollect: cfg.autoCollect,
           ready: cfg.ready,
@@ -248,8 +261,9 @@ export class BattleController {
     this.onOrientation();
     if (this.cfg.mode === 'sandbox') this.start();
     else {
-      // Getting ready: the enemies wait on the road and the camera glides over to them. Rakko's cars are not here yet.
-      this.renderer.setLineup(this.cfg.lineup);
+      // Getting ready: the enemies wait on the road and the camera glides over to them (endless mode: its first stage's).
+      // Rakko's cars are not here yet.
+      this.renderer.setLineup(this.endless() ? this.stageLineup(1) : this.cfg.lineup);
       this.renderer.setCars('away');
       this.prep = { stage: 'wait', t0: performance.now(), from: 0 };
     }
@@ -307,6 +321,7 @@ export class BattleController {
         this.handleEvents();
       }
       if (steps >= 10) this.acc = 0;
+      if (!this.ended && this.stageSettled()) this.betweenStages(ts);
     } else if (this.ended && this.status.value === 'won' && !this.paused.value) this.afterMs += dt * this.speed.value;
     // A paused field cannot change, so it is drawn once and left alone (the testing ground's panel can still change it);
     // so is a finished one once its report is up (after a loss it was redrawn, unchanging, every frame).
@@ -357,6 +372,8 @@ export class BattleController {
       if (this.cfg.mode === 'sandbox') this.inspect.value = this.readout();
       this.progress.value = s.waves.progress(s);
       this.wave.value = s.waves.currentWave();
+      const endless = this.endless();
+      if (endless) this.stage.value = endless.waiting ? endless.stage + 1 : endless.stage;
       this.rescuesLeft.value = s.rescues.filter((r) => r.state === 'parked').length;
       const boss = s.enemies.find((e) => e.boss && e.state !== 'collapse' && !e.disguised && e.y > -40);
       this.boss.value = boss ? { id: boss.def.id, frac: Math.max(0, boss.hp / boss.maxHp) } : null;
@@ -603,7 +620,7 @@ export class BattleController {
         const k = along(PREP.out);
         this.look = p.from + (1 - p.from) * easeInOut(k);
         if (k >= 1) {
-          if (this.cfg.picking) this.toPick(now);
+          if (this.began ? this.cfg.choose : this.cfg.picking) this.toPick(now);
           else this.prep = { stage: 'hold', t0: now, from: 1 };
         }
         break;
@@ -619,6 +636,7 @@ export class BattleController {
         this.renderer?.setLineupAlpha(1 - k);
         if (k >= 1) {
           if (p.skip || calm) this.start();
+          else if (this.began) this.toReady(now);
           else this.toCars(now);
         }
         break;
@@ -659,6 +677,44 @@ export class BattleController {
     this.pushBanner('ready', t('banner.ready'), true);
   }
 
+  /** Endless mode: the stage is cleared. The battle stops, the camera glides to the road where the next stage's enemies
+   *  wait, and the team is picked again when there is a choice; then on as when getting ready, with 「よーい…」 (owner's
+   *  call, 2026-11-10, after PvZ's Survival rounds). The friends on the field, the 草 and the cars that are left stay
+   *  as they are. */
+  private betweenStages(now: number): void {
+    const waves = this.endless()!;
+    this.selected.value = -1;
+    this.sendingHome.value = false;
+    this.hover = null;
+    this.between.value = true;
+    this.phase.value = 'look';
+    this.refreshHud(true);
+    this.bannerUntil = 0;
+    this.pushBanner('win', t('banner.stageClear'), true);
+    audio.sfx('sfx_win');
+    this.renderer?.setLineup(this.stageLineup(waves.stage + 1));
+    this.prep = { stage: 'wait', t0: now, from: 0 };
+  }
+
+  /** Endless mode: the stage is cleared and the field has settled, the last enemies done falling and no shot or car
+   *  still on its way, so the break can stop it as it is (nothing frozen half way down). */
+  private stageSettled(): boolean {
+    const s = this.sim;
+    return !!this.endless()?.waiting && s.enemies.length === 0 && s.projectiles.length === 0 && !s.rescues.some((r) => r.state === 'driving');
+  }
+
+  /** Endless mode's waves, or null in a job. */
+  private endless(): EndlessWaves | null {
+    return this.sim.waves instanceof EndlessWaves ? this.sim.waves : null;
+  }
+
+  /** Who waits on the road for an endless stage: a crowd in proportion to who it sends, as for a job. */
+  private stageLineup(stage: number): Waiting[] {
+    const waves = this.endless();
+    if (!waves) return [];
+    return crowdOf(waves.counts(stage).map((k) => ({ ...k, giant: !!ENEMIES[k.id]?.giant }))).map((id) => ({ id }));
+  }
+
   /** Set off: glide back to the field, then the battle starts. */
   go(): void {
     if (this.phase.value === 'battle' || this.phase.value === 'go') return;
@@ -684,17 +740,28 @@ export class BattleController {
   }
 
   /** Before the battle: the team being taken (and the friend 星 turns into), the ラーメン券's extra 草, and whether a
-   *  ぶた入りラーメン券 is used. */
+   *  ぶた入りラーメン券 is used. Between endless stages only the cards change: the field stays as it is. */
   setTeam(deck: string[], bonusWeeds: number, ready = false, wish?: string): void {
     if (this.phase.value === 'battle') return;
+    if (this.began) {
+      this.cfg = { ...this.cfg, deck, wish };
+      this.sim.showTeam(deck, wish);
+      this.refreshHud(true);
+      return;
+    }
     this.cfg = { ...this.cfg, deck, bonusWeeds, ready, wish };
     this.sim = this.makeSim();
     this.renderer?.setSim(this.sim);
     this.refreshHud(true);
   }
 
-  /** The waiting enemies leave the road and the battle begins. */
+  /** The waiting enemies leave the road and the battle begins (between endless stages: the next stage does, the team
+   *  just picked dealt its cards). */
   private start(): void {
+    const again = this.began;
+    this.began = true;
+    if (again) this.sim.beginStage(this.cfg.deck, this.cfg.wish);
+    this.between.value = false;
     this.look = 0;
     this.renderer?.setLook(0);
     this.renderer?.setLineup(null);
@@ -702,9 +769,11 @@ export class BattleController {
     this.phase.value = 'battle';
     this.lastTs = 0;
     this.acc = 0;
+    this.refreshHud(true);
     // Takes over from 「よーい…」 at once.
     this.bannerUntil = 0;
-    this.pushBanner('start', this.cfg.mode === 'sandbox' ? t('sandbox.title') : this.cfg.mode === 'endless' ? t('endless.title') : t('banner.start'));
+    const title = this.cfg.mode === 'sandbox' ? t('sandbox.title') : this.cfg.mode !== 'endless' ? t('banner.start') : again ? t('endless.stage', { n: this.stage.value }) : t('endless.title');
+    this.pushBanner('start', title);
     // Turned upright or put away while getting ready: the battle starts paused, behind the rotate prompt, as it would
     // have paused had it already been on.
     if (this.portraitMq?.matches || document.hidden) this.setPaused(true);

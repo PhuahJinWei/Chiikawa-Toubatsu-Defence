@@ -246,14 +246,18 @@ describe('balance', () => {
   });
 
   it('endless mode keeps going and gets harder', () => {
-    const sim = simForEndless(
-      ENEMY_LIST.filter((e) => !e.summonOnly).map((e) => e.id),
-      ['chiikawa', 'usagi', 'yoroi', 'hachiware', 'momonga', 'yoroi_erai', 'kurimanju'],
-      { seed: 5 },
-    );
-    const r = runBot(sim, BOT_GOOD, 8 * 60 * 1000);
-    expect(sim.waves.currentWave()).toBeGreaterThan(5);
-    // The bot's endless runs end anywhere from about a dozen enemies to twenty-odd, by seed.
-    expect(r.enemiesDefeated).toBeGreaterThan(15);
+    // A few runs, each its own seed: the bot always gets past the first big wave, and its runs end anywhere from about
+    // a dozen enemies to fifty, by seed.
+    const runs = [1, 2, 3].map((seed) => {
+      const sim = simForEndless(
+        ENEMY_LIST.filter((e) => !e.summonOnly).map((e) => e.id),
+        ['chiikawa', 'usagi', 'yoroi', 'hachiware', 'momonga', 'yoroi_erai', 'kurimanju'],
+        { seed },
+      );
+      const r = runBot(sim, BOT_GOOD, 8 * 60 * 1000);
+      return { wave: sim.waves.currentWave(), defeated: r.enemiesDefeated };
+    });
+    for (const r of runs) expect(r.wave).toBeGreaterThan(5);
+    expect(runs.reduce((n, r) => n + r.defeated, 0) / runs.length).toBeGreaterThan(15);
   });
 });

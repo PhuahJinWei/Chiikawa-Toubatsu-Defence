@@ -137,6 +137,7 @@ export function Battle({ r }: { r: BattleRoute }) {
       pool: plan.choose ? plan.owned : plan.deck,
       lineup: plan.lineup,
       picking: !fromNotice && (plan.choose || plan.tickets > 0),
+      choose: plan.choose,
       autoCollect: s.settings.autoCollect,
       attempt: level ? attemptOf(level.id) : 0,
       endlessPool: r.mode === 'endless' ? endlessPool() : undefined,
@@ -251,7 +252,8 @@ export function Battle({ r }: { r: BattleRoute }) {
         first = false;
         return;
       }
-      if (ctl.phase.value !== 'battle') leave(r);
+      // Between endless stages the run so far is at stake: it pauses, as in the battle.
+      if (ctl.phase.value !== 'battle' && !ctl.between.value) leave(r);
       else if (ctl.status.value === 'playing') ctl.setPaused(true);
     });
   }, [ctl]);
@@ -285,6 +287,7 @@ export function Battle({ r }: { r: BattleRoute }) {
     d.lastDeck = deck;
     if (wish && deck.some(isWishCard)) d.wish = wish;
   };
+  // Kept in the order picked, as the battle's cards go (owner's call, 2026-11-10).
   const toggle = (id: string) => {
     if (deck.includes(id)) setDeck(deck.filter((x) => x !== id));
     else if (deck.length >= plan.size) toast(t('prep.choose', { n: plan.size }), 'bad');
@@ -294,17 +297,19 @@ export function Battle({ r }: { r: BattleRoute }) {
         wish,
         (w) => {
           setWish(w);
-          setDeck((now) => plan.owned.filter((x) => [...now, id].includes(x)));
+          setDeck((now) => (now.includes(id) ? now : [...now, id]));
         },
         level,
       );
-    } else setDeck(plan.owned.filter((x) => [...deck, id].includes(x)));
+    } else setDeck([...deck, id]);
   };
   const depart = () => {
     if (!deck.length) return;
+    // Between endless stages the ramen ticket is long spent: only the team is remembered.
+    const again = ctl.between.value;
     updateSave((d) => {
       if (!plan.forced) remember(d);
-      if (ramen && d.items.buta > 0) d.items.buta--;
+      if (ramen && !again && d.items.buta > 0) d.items.buta--;
     });
     ctl.go();
   };
@@ -326,7 +331,7 @@ export function Battle({ r }: { r: BattleRoute }) {
       <TopHud ctl={ctl} label={levelName} endless={r.mode === 'endless'} sandbox={r.mode === 'sandbox'} />
       <CardRail ctl={ctl} offstage={phase === 'look'} onRemove={phase === 'pick' && plan.choose ? toggle : undefined} />
       {phase === 'pick' ? (
-        <TeamTray plan={plan} deck={deck} wish={wish} ramen={ramen} onToggle={toggle} onRamen={setRamen} onGo={depart} onBack={() => leave(r)} />
+        <TeamTray plan={plan} deck={deck} wish={wish} ramen={ramen} between={ctl.between.value} onToggle={toggle} onRamen={setRamen} onGo={depart} onBack={() => leave(r)} />
       ) : null}
       {r.mode === 'sandbox' && ready ? <SandboxPanel ctl={ctl} r={r} /> : null}
       {ctl.paused.value && !result ? <PauseSheet ctl={ctl} r={r} /> : null}
@@ -380,7 +385,7 @@ function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label
         {weeds}
       </div>
       <div class="wave-box">
-        <div class="wave-label">{endless && ctl.phase.value === 'battle' ? `${label} · ${t('battle.wave', { n: ctl.wave.value })}` : label}</div>
+        <div class="wave-label">{endless ? `${label} · ${t('endless.stage', { n: ctl.stage.value })}` : label}</div>
         {/* The testing ground has no waves to get through. */}
         {sandbox ? null : (
           <div class="wave-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
@@ -432,12 +437,14 @@ function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label
 }
 
 /** Getting ready, while the camera looks at the enemies on the road: the cards to take (when there is a choice;
- *  the column of cards shows the team as it is picked), the ramen ticket, back, and 出発. */
+ *  the column of cards shows the team as it is picked), the ramen ticket, back, and 出発. Between endless stages
+ *  (`between`) there is no ticket to use and no going back: the pause button is the way out, as in the battle. */
 function TeamTray(p: {
   plan: Plan;
   deck: string[];
   wish: string | null;
   ramen: boolean;
+  between: boolean;
   onToggle: (id: string) => void;
   onRamen: (v: boolean) => void;
   onGo: () => void;
@@ -483,7 +490,7 @@ function TeamTray(p: {
           })}
         </div>
       ) : null}
-      {plan.tickets > 0 ? (
+      {plan.tickets > 0 && !p.between ? (
         <div class="tt-ramen">
           <div class="grow">
             <div class="bold">{t('prep.ramen')}</div>
@@ -493,7 +500,7 @@ function TeamTray(p: {
         </div>
       ) : null}
       <div class="tt-actions">
-        <BackButton onClick={p.onBack} />
+        {p.between ? null : <BackButton onClick={p.onBack} />}
         <button type="button" class="btn primary grow" disabled={!deck.length} onClick={tap(p.onGo)}>
           {t('prep.go')}
         </button>
@@ -644,8 +651,8 @@ function PauseSheet({ ctl, r }: { ctl: BattleController; r: BattleRoute }) {
   // The testing ground starts over as a fresh field, and is left for the lobby.
   const sandbox = r.mode === 'sandbox';
   const quit = t(sandbox ? 'sandbox.leave' : 'battle.quit');
-  // Before the battle has started there is nothing to lose, so nothing to ask.
-  const sure: typeof confirm = (text, onYes, opts) => (ctl.phase.value === 'battle' ? confirm(text, onYes, opts) : onYes());
+  // Before the battle has started there is nothing to lose, so nothing to ask (between endless stages there is).
+  const sure: typeof confirm = (text, onYes, opts) => (ctl.phase.value === 'battle' || ctl.between.value ? confirm(text, onYes, opts) : onYes());
   return (
     <Sheet onClose={tap(resume)} title={t('battle.paused')} tone={PAUSE_TONE}>
       <div class="stack" style={{ gap: '14px' }}>

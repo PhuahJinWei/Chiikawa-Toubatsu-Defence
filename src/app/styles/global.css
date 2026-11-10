@@ -2235,6 +2235,25 @@ input[type='range'] {
   width: 126%;
   height: 126%;
 }
+/* A chosen friend's place in the team, written by its loop in the same pink pen: the battle's cards go in this
+   order (owner's call, 2026-11-10). */
+.jn-order {
+  position: absolute;
+  left: -14%;
+  top: -16%;
+  z-index: 1;
+  font-size: max(13px, calc(var(--face) * 0.36));
+  font-weight: 900;
+  line-height: 1;
+  color: #ee7fa0;
+  text-shadow:
+    1.5px 0 #fffdf7,
+    -1.5px 0 #fffdf7,
+    0 1.5px #fffdf7,
+    0 -1.5px #fffdf7;
+  rotate: -8deg;
+  pointer-events: none;
+}
 /* 星 going: the friend it turns into, a small face sticker stuck on its corner (over the pen loop). */
 .jn-wish {
   position: absolute;

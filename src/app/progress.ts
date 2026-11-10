@@ -107,7 +107,8 @@ export function defaultDeck(level?: LevelDef): string[] {
     if (out.length >= size) break;
     if (owned.includes(id) && !out.includes(id)) out.push(id);
   }
-  return CARD_ORDER.filter((id) => out.slice(0, size).includes(id));
+  // In the order the last team was picked (the battle's cards go in it), the islanders first on the water.
+  return out.slice(0, size);
 }
 
 /** Enemies allowed in endless mode: everything the player has met in the campaign, but for those that only come when called. */
