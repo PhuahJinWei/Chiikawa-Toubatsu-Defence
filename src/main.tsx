@@ -8,6 +8,7 @@ import './app/styles/global.css';
 import { render } from 'preact';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './app/App';
+import { initUpdate, updateReady } from './app/update';
 import { warmCaches } from './art/warm';
 import { whenIdle } from './app/idle';
 import { initFullscreen } from './app/fullscreen';
@@ -45,23 +46,10 @@ document.addEventListener('visibilitychange', () => (document.hidden ? audio.sus
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 
 if (import.meta.env.PROD) {
-  // A new version waits for a moment when the reload that brings it in cannot land mid-play: the game out of sight, and
-  // not in a battle. Until then (or if that never comes) it comes with the next start. It used to reload the page as
-  // soon as it had downloaded, battle or not (2026-11-10 audit).
-  let waiting = false;
-  let update: ((reload?: boolean) => Promise<void>) | null = null;
-  const updateNow = () => {
-    if (waiting && update && document.hidden && route.value.name !== 'battle') void update(true);
-  };
-  update = registerSW({
-    immediate: true,
-    onNeedRefresh() {
-      waiting = true;
-      updateNow();
-    },
-  });
-  document.addEventListener('visibilitychange', updateNow);
-  warmCaches();
+  // New versions are looked for on coming back to the game and every half hour, and taken in when no battle can be cut
+  // short, or at once from the lobby's notice (see app/update.ts).
+  initUpdate(registerSW, () => route.value.name === 'battle');
+  warmCaches(() => updateReady.value);
 }
 if (DEBUG_ON) installDebug();
 

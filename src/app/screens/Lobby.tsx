@@ -9,6 +9,7 @@ import { StickerIcon } from '../components/StickerIcon';
 import { MoneyPill, tap } from '../components/ui';
 import { canFullscreen, isFullscreen, toggleFullscreen } from '../fullscreen';
 import { installState, promptInstall } from '../install';
+import { applyUpdate, updateLater, updateReady, updating } from '../update';
 import { clearedCount, noteMet } from '../progress';
 import { boardMemory, go } from '../router';
 import { Diorama } from '../scene/Diorama';
@@ -41,7 +42,9 @@ export function Lobby() {
   // The owner's Japanese title, in every language (there is no English logo).
   const logoKey = 'ui/logo_ja';
   // Offered only where there is a way to do it: the browser's own prompt, or the steps to follow on iOS.
-  const showInstall = clearedCount() > 0 && !s.installDismissed && (installState.value === 'available' || installState.value === 'ios');
+  // A new version waiting comes first: it says so in the install card's place, with a button to take it in now.
+  const showUpdate = updateReady.value && !updateLater.value;
+  const showInstall = !showUpdate && clearedCount() > 0 && !s.installDismissed && (installState.value === 'available' || installState.value === 'ios');
   const open = (name: 'book' | 'shop') => tap(() => go({ name }));
   return (
     <div class={`screen lobby-screen${turning ? ' turning' : ''}`}>
@@ -107,6 +110,25 @@ export function Lobby() {
             <StickerIcon k="ui/button_play" px={270} />
           </button>
         </nav>
+        {showUpdate ? (
+          <div class="ink-card install-card update-card" role="status">
+            <div class="row">
+              <Icon name="refresh" />
+              <p class="small bold grow">{t('update.ready')}</p>
+            </div>
+            <p class="small muted">{t('update.note')}</p>
+            <div class="row">
+              <button class="btn blue small" disabled={updating.value} onClick={tap(applyUpdate)}>
+                {updating.value ? t('update.applying') : t('update.now')}
+              </button>
+              {updating.value ? null : (
+                <button class="btn ghost small" onClick={tap(() => (updateLater.value = true))}>
+                  {t('map.later')}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : null}
         {showInstall ? (
           <div class="ink-card install-card">
             <div class="row">

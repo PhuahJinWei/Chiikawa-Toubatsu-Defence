@@ -151,6 +151,12 @@
     "confirmQuit": "Leave this job and go back to the quests?",
     "confirmRestart": "Start this job over?"
   },
+  "update": {
+    "ready": "A new version is ready",
+    "note": "The game reloads; your save stays as it is.",
+    "now": "Update",
+    "applying": "Updating…"
+  },
   "banner": {
     "ready": "Ready…",
     "start": "討伐 start!",

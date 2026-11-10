@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
@@ -78,11 +79,26 @@ function iconVersions(): Plugin {
   };
 }
 
+/** The build's date (UTC) and code (the commit it was built from: GitHub's, or the checkout's), shown beside the
+ *  version in Settings so a phone's copy can be told apart from the latest (owner's call, 2026-11-10). */
+function buildLabel(): string {
+  const date = new Date().toISOString().slice(0, 10);
+  let commit = process.env.GITHUB_SHA?.slice(0, 7) ?? '';
+  if (!commit) {
+    try {
+      commit = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    } catch {
+      commit = '';
+    }
+  }
+  return commit ? `${date} · ${commit}` : date;
+}
+
 export default defineConfig({
   // Relative base so the build works from any GitHub Pages path (user.github.io/<repo>/).
   base: './',
   esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  define: { __APP_VERSION__: JSON.stringify(pkg.version), __APP_BUILD__: JSON.stringify(buildLabel()) },
   build: {
     target: 'es2020',
     chunkSizeWarningLimit: 1200,

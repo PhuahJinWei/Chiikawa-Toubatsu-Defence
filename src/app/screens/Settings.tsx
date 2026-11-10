@@ -171,8 +171,10 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
                 ) : null}
                 <button class="list-item" onClick={tap(() => setSheet('about'))}>
                   <Icon name="info" />
-                  <span class="label">{t('settings.about')}</span>
-                  <span class="small faint">{t('settings.version', { v: __APP_VERSION__ })}</span>
+                  <div class="label">
+                    {t('settings.about')}
+                    <div class="desc">{t('settings.version', { v: `${__APP_VERSION__} (${__APP_BUILD__})` })}</div>
+                  </div>
                 </button>
               </div>
             </section>
@@ -190,7 +192,7 @@ function SettingsDialog({ onClose }: { onClose: () => void }) {
               {t('app.disclaimer')}
             </p>
             <p class="small muted">{t('settings.credits')}</p>
-            <p class="tiny faint">{t('settings.version', { v: __APP_VERSION__ })}</p>
+            <p class="tiny faint">{t('settings.version', { v: `${__APP_VERSION__} (${__APP_BUILD__})` })}</p>
           </div>
         </Sheet>
       ) : null}
