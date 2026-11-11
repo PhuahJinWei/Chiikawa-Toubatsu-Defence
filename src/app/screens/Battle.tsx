@@ -200,7 +200,8 @@ export function Battle({ r }: { r: BattleRoute }) {
       .load(ctl.artKeys())
       .then(() => {
         if (!alive || !canvas) return;
-        ctl.speed.value = r.mode !== 'sandbox' && save.value.features.speed ? save.value.settings.speed : 1;
+        // Every battle starts at 1× (owner's call, 2026-11-12: 2× used to be remembered from the last one).
+        ctl.speed.value = 1;
         ctl.attach(canvas);
         if (DEBUG_ON) window.__ctdBattle = ctl;
         setReady(true);
@@ -459,13 +460,7 @@ function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label
             class={`hud-btn speed-btn ${ctl.speed.value === 2 ? 'on' : ''}`}
             aria-label={t('battle.speed')}
             aria-pressed={ctl.speed.value === 2}
-            onClick={tap(() => {
-              const s = ctl.speed.value === 2 ? 1 : 2;
-              ctl.setSpeed(s);
-              updateSave((d) => {
-                d.settings.speed = s;
-              });
-            })}
+            onClick={tap(() => ctl.setSpeed(ctl.speed.value === 2 ? 1 : 2))}
           >
             {/* At 2× the button shows its own picture, which carries its ×2; a placeholder picture gets the tag. */}
             <HudIcon k={ctl.speed.value === 2 ? 'ui/icon_speed_active' : 'ui/icon_speed'} />

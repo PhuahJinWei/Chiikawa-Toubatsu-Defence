@@ -14,7 +14,7 @@
     "scope": 1,
     "size": "S",
     "speed": "normal",
-    "hp": 240,
+    "hp": 180,
     "attack": { "kind": "melee", "damage": 100, "intervalMs": 1000 },
     "abilities": [{ "kind": "steal", "ms": 500 }],
     "weight": 1.3
@@ -24,7 +24,7 @@
     "scope": 1,
     "size": "M",
     "speed": "normal",
-    "hp": 400,
+    "hp": 280,
     "attack": { "kind": "none" },
     "abilities": [{ "kind": "jump", "readyMs": 800, "airMs": 1000, "landMs": 500 }],
     "weight": 2.4

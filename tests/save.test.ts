@@ -131,7 +131,7 @@ describe('save', () => {
     expect(typeof m.createdAt).toBe('string');
     // A cleared job's record is mended rather than dropped; one that is not a record at all is dropped.
     expect(migrate({ v: SAVE_VERSION, cleared: { '1-1': { stars: 9, clears: 'x' }, '1-2': 4 } }, def).cleared).toEqual({ '1-1': { stars: 3, clears: 1 } });
-    expect(migrate({ v: SAVE_VERSION, settings: { lang: 'fr', speed: 3, bgm: 4 } }, def).settings).toMatchObject({ lang: 'ja', speed: 1, bgm: 1 });
+    expect(migrate({ v: SAVE_VERSION, settings: { lang: 'fr', bgm: 4 } }, def).settings).toMatchObject({ lang: 'ja', bgm: 1 });
   });
 
   it('keeps a copy of a save it cannot read, or of one from a newer version, before starting', () => {

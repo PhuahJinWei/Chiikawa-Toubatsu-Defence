@@ -114,6 +114,10 @@ const PREP = { wait: 600, out: 1800, hold: 1800, back: 1400 };
 const SKIP_BACK = 0.5;
 /** How long 「よーい…」 shows before the battle starts (ms). The banner's animation in global.css lasts as long. */
 const READY_MS = 850;
+/** A press dragged across the field picks up every weed along the way (owner's call, 2026-11-12): the path is looked
+ *  along this often (field px, a third of a tile), and a weed this near it is picked up (as near as a tap's). */
+const SWEEP_STEP = 56;
+const SWEEP_REACH = 100;
 
 /** The characters a battle draws: Rakko's car (and his boat, with water about), the allies and the enemies (and
  *  ちいかぶ's true form, キメラ with her claws out). */
@@ -197,6 +201,8 @@ export class BattleController {
   private bannerSeq = 1;
   private hover: { lane: number; col: number } | null = null;
   private down: { x: number; y: number; t: number; id: number } | null = null;
+  /** A press on the field being dragged across it, sweeping up weeds: its finger (`id`) and where it was last (field px). */
+  private swipe: { id: number; x: number; y: number } | null = null;
   /** A card being pressed or dragged, by the finger (`id`) that pressed it. */
   private drag: { card: number; x: number; y: number; moved: boolean; id: number } | null = null;
   private portraitMq: MediaQueryList | null = null;
@@ -207,7 +213,8 @@ export class BattleController {
   private endTimer = 0;
   /** The battle's end, kept while a dropped card waits to be picked up (see reportNow). */
   private pending: BattleEnd | null = null;
-  /** Time (ms, at the game's speed) since the battle was won: the sim stops, but the last falls play out. */
+  /** Time (ms, at the game's speed) since the battle was won: the sim's clock runs on only for what is still moving
+   *  (Sim.settle): shots in the air, cars and the last falls. */
   private afterMs = 0;
   private playMs = 0;
   private lastHit = 0;
@@ -344,12 +351,21 @@ export class BattleController {
       }
       if (steps >= 10) this.acc = 0;
       if (!this.ended && this.stageSettled()) this.betweenStages(ts);
-    } else if (this.ended && this.status.value === 'won' && !this.paused.value) this.afterMs += dt * this.speed.value;
+    } else if (this.ended && this.status.value === 'won' && !this.paused.value) {
+      // Won: shots still in the air fly on, and cars drive off, while the card drops and the report comes up (owner's
+      // call, 2026-11-12: they used to hang there).
+      const ms = dt * this.speed.value;
+      this.afterMs += ms;
+      this.sim.settle(ms);
+      this.handleEvents();
+    }
     // A paused field cannot change, so it is drawn once and left alone (the testing ground's panel can still change it);
     // so is a finished one once its report is up (after a loss it was redrawn, unchanging, every frame).
     // So is the field behind a dropped card, once everyone has finished falling: the card may wait there a long time.
+    // After a win, not before every shot in the air has landed and every car has gone (Sim.settled).
     const still =
-      (this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox') || this.reported || (!!this.drop.value && this.afterMs > DROP_STILL_MS);
+      (this.paused.value && this.phase.value === 'battle' && this.cfg.mode !== 'sandbox') ||
+      ((this.reported || (!!this.drop.value && this.afterMs > DROP_STILL_MS)) && (this.sim.status !== 'won' || this.sim.settled));
     if (!still || !this.stillDrawn || this.renderer?.needsRebuild) {
       this.renderer?.render(this.paused.value || this.hold.value ? 0 : this.acc / STEP_MS, this.renderUi());
     }
@@ -374,7 +390,6 @@ export class BattleController {
       placeable: (lane, col) => (sel >= 0 ? this.sim.targetOpen(sel, lane, col) : this.sim.tileOpen(lane, col)),
       guides: s.guides,
       reducedMotion: s.reducedMotion,
-      afterMs: this.afterMs,
     };
   }
 
@@ -1062,10 +1077,17 @@ export class BattleController {
     // Getting ready plays out in full: a tap doesn't cut the look at the enemies short (owner's call, 2026-11-10).
     if (this.phase.value !== 'battle') return;
     this.down = { x: ev.clientX, y: ev.clientY, t: performance.now(), id: ev.pointerId };
-    // Collect weeds immediately on press for snappy feel.
+    // Collect weeds immediately on press for snappy feel, and on along the way as the press is dragged (see sweep).
     if (!this.renderer || this.selected.value >= 0 || this.sendingHome.value || this.tool.value !== 'play') return;
     const w = this.renderer.toWorld(ev.clientX, ev.clientY);
-    const p = this.sim.pickupNear(w.x, w.y, 100);
+    this.swipe = { id: ev.pointerId, x: w.x, y: w.y };
+    // The field keeps the press as it is dragged, so a sweep goes on over the top strip or the cards.
+    try {
+      this.canvas?.setPointerCapture(ev.pointerId);
+    } catch {
+      /* the pointer is gone already */
+    }
+    const p = this.sim.pickupNear(w.x, w.y, SWEEP_REACH);
     if (p && this.sim.status === 'playing' && !this.paused.value) {
       this.sim.collect(p.uid);
       this.down = null;
@@ -1076,7 +1098,36 @@ export class BattleController {
     if (!this.renderer) return;
     const w = this.renderer.toWorld(ev.clientX, ev.clientY);
     this.hover = this.renderer.tileAt(w.x, w.y);
+    this.sweep(ev, w);
   };
+
+  /** A press dragged across the field picks up every weed along the way (owner's call, 2026-11-12): the path since the
+   *  last move, looked along a third of a tile at a time, collects each weed within a tap's reach of it. Not with a card
+   *  or send home in hand, nor once the battle is decided or paused. */
+  private sweep(ev: PointerEvent, w: { x: number; y: number }): void {
+    const s = this.swipe;
+    if (!s || s.id !== ev.pointerId) return;
+    // A mouse sweeps only with its button held.
+    if (ev.pointerType === 'mouse' && !(ev.buttons & 1)) {
+      this.swipe = null;
+      return;
+    }
+    const from = { x: s.x, y: s.y };
+    s.x = w.x;
+    s.y = w.y;
+    const sim = this.sim;
+    if (sim.status !== 'playing' || this.paused.value || this.selected.value >= 0 || this.sendingHome.value) return;
+    const steps = Math.max(1, Math.ceil(Math.hypot(w.x - from.x, w.y - from.y) / SWEEP_STEP));
+    for (let i = 1; i <= steps; i++) {
+      const x = from.x + ((w.x - from.x) * i) / steps;
+      const y = from.y + ((w.y - from.y) * i) / steps;
+      // Two weeds can lie within reach of one point: each is collected (a collected one is never found again).
+      for (let k = 0; k < 4; k++) {
+        const p = sim.pickupNear(x, y, SWEEP_REACH);
+        if (!p || !sim.collect(p.uid)) break;
+      }
+    }
+  }
 
   private onLeave = (): void => {
     if (!this.drag) this.hover = null;
@@ -1096,6 +1147,7 @@ export class BattleController {
   };
 
   private onUp = (ev: PointerEvent): void => {
+    if (this.swipe?.id === ev.pointerId) this.swipe = null;
     if (this.drag) {
       const d = this.drag;
       // Another finger let go: neither the end of this drag nor a tap of its own, with a card in hand.
@@ -1136,6 +1188,7 @@ export class BattleController {
 
   /** A finger taken over by the browser (a scroll, a system gesture): whatever it was doing is called off. */
   private onCancel = (ev: PointerEvent): void => {
+    if (this.swipe?.id === ev.pointerId) this.swipe = null;
     if (this.drag?.id === ev.pointerId) this.drag = null;
     if (this.down?.id === ev.pointerId) this.down = null;
   };

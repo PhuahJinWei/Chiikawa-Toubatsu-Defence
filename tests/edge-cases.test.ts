@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { colY, STEP_MS, TILE } from '../src/game/sim/constants';
+import { colY, FIELD_ENTRY_Y, SPAWN_Y, STEP_MS, TILE } from '../src/game/sim/constants';
 import { ENEMIES, ENEMY_LIST, UNIT_LIST, UNITS, validateContent } from '../src/game/sim/defs';
 import { EndlessWaves } from '../src/game/sim/endless';
 import { Rng } from '../src/game/sim/rng';
@@ -63,18 +63,71 @@ describe('たい焼き', () => {
     expect(trap.state).toBe('collapse');
   });
 
-  it('carried off while cooking and dropped back, still says when it is done', () => {
+  // Enemies leave a trap alone (owner's call, 2026-11-12).
+  it('is in nobody’s way while it cooks: enemies walk over it and never bite it', () => {
     const sim = field(['taiyaki']);
     const trap = sim.place(0, 2, 3)!;
-    const flier = spawn(sim, 'dekai_tori', 2, colY(3));
-    bird(sim).grab(flier, trap);
-    bird(sim).drop(flier);
-    flier.state = 'gone';
-    let cooked = false;
-    run(sim, UNITS['taiyaki'].mine!.readyMs + 500, (ev) => {
-      if (ev.type === 'cooked' && ev.ally === trap) cooked = true;
+    const bug = spawn(sim, 'mushi_twolegs', 2, colY(3) - 60);
+    let bites = 0;
+    for (let t = 0; t < UNITS['taiyaki'].mine!.readyMs - 1000 && bug.y <= colY(3) + TILE; t += STEP_MS) {
+      sim.step(STEP_MS);
+      for (const ev of sim.drainEvents()) if (ev.type === 'enemyAttack') bites++;
+    }
+    expect(bug.y).toBeGreaterThan(colY(3) + TILE);
+    expect(bites).toBe(0);
+    expect(trap.hp).toBe(trap.maxHp);
+    expect(sim.grid[2][3]).toBe(trap);
+  });
+
+  it('cooked, goes off under the first enemy to walk onto it', () => {
+    const sim = field(['taiyaki']);
+    const trap = sim.place(0, 2, 3)!;
+    trap.readyAt = 0;
+    const bug = spawn(sim, 'mushi_twolegs', 2, colY(3) - 60);
+    run(sim, 6000);
+    expect(trap.state).toBe('collapse');
+    expect(sim.inPlay(bug)).toBe(false);
+  });
+
+  it('still stops ちいかぶ in disguise while it cooks: it shows its true form there, then walks on over it', () => {
+    const sim = field(['taiyaki']);
+    const trap = sim.place(0, 2, 3)!;
+    const boss = spawn(sim, 'chiikabu', 2, colY(3) - 60);
+    for (let t = 0; t < 8000 && boss.disguised; t += STEP_MS) sim.step(STEP_MS);
+    expect(boss.disguised).toBe(false);
+    // At the trap, not at the last tile.
+    expect(boss.y).toBeGreaterThanOrEqual(colY(3));
+    expect(boss.y).toBeLessThan(colY(3) + TILE);
+    const at = boss.y;
+    let bites = 0;
+    run(sim, 4000, (ev) => {
+      if (ev.type === 'enemyAttack') bites++;
     });
-    expect(cooked).toBe(true);
+    expect(boss.y).toBeGreaterThan(at);
+    expect(bites).toBe(0);
+    expect(trap.hp).toBe(trap.maxHp);
+  });
+});
+
+describe('擬態型', () => {
+  it('never catches a trap in its song (owner’s call, 2026-11-12)', () => {
+    const sing = (deck: string[], cols: number[]) => {
+      const sim = field(deck);
+      cols.forEach((col, card) => sim.place(card, 2, col));
+      const singer = spawn(sim, 'guchokipanogitaigata', 2, FIELD_ENTRY_Y + 10);
+      singer.hp = singer.maxHp = 1e6;
+      const caught: string[][] = [];
+      run(sim, 12000, (ev) => {
+        if (ev.type === 'song') caught.push(ev.allies.map((a) => a.def.id));
+      });
+      return caught;
+    };
+    // With only a trap in its lane it does not sing at all;
+    expect(sing(['taiyaki'], [1])).toEqual([]);
+    // with a friend there too, the friend is the one caught.
+    const caught = sing(['taiyaki', 'usagi'], [1, 0]);
+    expect(caught.length).toBeGreaterThan(0);
+    for (const ids of caught) expect(ids).toEqual(['usagi']);
   });
 });
 
@@ -92,6 +145,70 @@ describe('でかい鳥', () => {
     events.push(...sim.drainEvents());
     expect(events.some((ev) => ev.type === 'carriedOff' && ev.ally === friend)).toBe(true);
     expect(friend.state).toBe('collapse');
+  });
+
+  it('passes over a trap for the friend behind it, and finds nobody in a lane with only a trap (owner’s call, 2026-11-12)', () => {
+    const sim = field(['taiyaki', 'yoroi']);
+    sim.place(0, 2, 0);
+    const wall = sim.place(1, 2, 2)!;
+    const flier = spawn(sim, 'dekai_tori', 2, colY(4));
+    let picked: Ally | null = null;
+    for (let t = 0; t < 30000 && !picked; t += STEP_MS) {
+      sim.step(STEP_MS);
+      for (const ev of sim.drainEvents()) if (ev.type === 'hover' && ev.enemy === flier) picked = ev.ally;
+    }
+    expect(picked).toBe(wall);
+    const lone = field(['taiyaki']);
+    lone.place(0, 2, 0);
+    expect((lone as unknown as { backmostAlly(lane: number): Ally | null }).backmostAlly(2)).toBeNull();
+  });
+});
+
+describe('六足の虫 and ゴブリン (owner’s call, 2026-11-12)', () => {
+  it('a lone うさぎ in any of the four back columns shoots 六足の虫 down before it jumps past', () => {
+    for (const col of [0, 1, 2, 3]) {
+      const sim = field(['usagi']);
+      sim.place(0, 2, col);
+      const bug = spawn(sim, 'mushi_sixlegs', 2, SPAWN_Y);
+      for (let t = 0; t < 60000 && sim.inPlay(bug) && bug.y <= colY(col) + TILE && sim.status === 'playing'; t += STEP_MS) sim.step(STEP_MS);
+      expect(sim.inPlay(bug), `うさぎ in column ${col}`).toBe(false);
+    }
+  });
+
+  it('ゴブリン has the two-legged bug’s numbers', () => {
+    const goblin = ENEMIES['goblin'];
+    const bug = ENEMIES['mushi_twolegs'];
+    expect([goblin.hp, goblin.speed, goblin.attack]).toEqual([bug.hp, bug.speed, bug.attack]);
+  });
+});
+
+describe('after a win (owner’s call, 2026-11-12)', () => {
+  it('a shot still in the air flies on until it is off the field, instead of hanging there', () => {
+    const sim = field(['usagi']);
+    sim.place(0, 2, 0);
+    const bug = spawn(sim, 'mushi_twolegs', 2, colY(6));
+    for (let t = 0; t < 10000 && !sim.projectiles.length; t += STEP_MS) sim.step(STEP_MS);
+    const shot = sim.projectiles[0];
+    expect(shot).toBeDefined();
+    bug.state = 'gone';
+    sim.status = 'won';
+    const y0 = shot.y;
+    // The battle itself is over...
+    sim.step(STEP_MS);
+    expect(shot.y).toBe(y0);
+    // ...but the shot flies on.
+    sim.settle(STEP_MS);
+    expect(shot.y).toBeLessThan(y0);
+    expect(sim.settled).toBe(false);
+    for (let t = 0; t < 10000 && !sim.settled; t += STEP_MS) sim.settle(STEP_MS);
+    expect(sim.settled).toBe(true);
+    expect(sim.projectiles).toHaveLength(0);
+  });
+
+  it('is the only time the field runs on by itself', () => {
+    const sim = field(['usagi']);
+    sim.settle(1000);
+    expect(sim.t).toBe(0);
   });
 });
 

@@ -677,6 +677,24 @@ export class Sim implements WaveHost {
     }
   }
 
+  /** After a win the field's clock runs on for what is still moving, and only that (owner's call, 2026-11-12): shots
+   *  already in the air fly on until they land, hit a stump or leave the field, instead of hanging there while the card
+   *  drops and the report comes up; Rakko's cars and オデ run on, and the fallen finish falling. Nobody is left to hit, and
+   *  an enemy's spit still in the air lands without hurting anyone. */
+  settle(dt: number): void {
+    if (this.status !== 'won') return;
+    this.t += dt;
+    this.stepProjectiles(dt);
+    this.stepSweeps(dt);
+    this.stepRescues(dt);
+    this.cleanup();
+  }
+
+  /** Nothing on the field moves any more: no shot in the air, no one running, no car driving. */
+  get settled(): boolean {
+    return !this.projectiles.length && !this.sweeps.some((s) => !s.dead) && !this.rescues.some((r) => r.state === 'driving');
+  }
+
   private gainWeeds(n: number): void {
     this.weeds = Math.min(WEEDS_CAP, this.weeds + n);
   }
@@ -904,10 +922,10 @@ export class Sim implements WaveHost {
     }
   }
 
-  /** A taiyaki (MineDef): cooking until it is ready (enemies bite it like anyone), then waiting for the first enemy on
-   *  the ground to reach it, which sets it off (see mineGoesOff). One that has gone past it (六足の虫 in the air over it)
-   *  is not on it, and ちいかぶ in disguise does not set it off: it shows its true form there first (nothing harms it
-   *  disguised, GDD §9.1), and the taiyaki goes off under that. */
+  /** A taiyaki (MineDef): cooking until it is ready, then waiting for the first enemy on the ground to reach it, which
+   *  sets it off (see mineGoesOff). Enemies leave a trap alone (owner's call, 2026-11-12): nobody bites, spits at, sings
+   *  to or carries one off, and while it cooks they walk over it. ちいかぶ in disguise does not set it off: it stops at it
+   *  to show its true form (nothing harms it disguised, GDD §9.1), then walks on into it in that, which does. */
   private stepMine(a: Ally): void {
     if (this.t < a.readyAt) return;
     if (a.anim === 'cook') {
@@ -1377,13 +1395,17 @@ export class Sim implements WaveHost {
 
   /** The nearest ally ahead of an enemy in one lane: the next it would run into there. One put down on the tile the
    *  enemy's front is already in counts too: the enemy stops where it is and goes for it (like planting on a zombie).
-   *  Friends on tiles it has passed are behind it, and so is one it is drifting past (see engage). */
+   *  Friends on tiles it has passed are behind it, and so is one it is drifting past (see engage). A trap is in nobody's
+   *  way (owner's call, 2026-11-12): enemies walk onto it, never bite it, and one that is ready goes off under them; only
+   *  ちいかぶ in disguise stops at it, to show its true form there, and then walks on into it (see stepMine). */
   private aheadIn(e: Enemy, lane: number): Ally | null {
     const row = this.grid[lane];
     if (!row) return null;
     for (let col = COLS - 1; col >= 0; col--) {
       const a = row[col];
-      if (a && a.uid !== e.driftedPast && colY(col) + TILE > e.y) return a;
+      if (!a || a.uid === e.driftedPast || colY(col) + TILE <= e.y) continue;
+      if (a.def.mine && !e.disguised) continue;
+      return a;
     }
     return null;
   }
@@ -1733,11 +1755,11 @@ export class Sim implements WaveHost {
     this.events.push({ type: 'hover', enemy: e, ally: target });
   }
 
-  /** The friend nearest the base in a lane (でかい鳥's pick). */
+  /** The friend nearest the base in a lane (でかい鳥's pick): never a trap, which enemies leave alone. */
   private backmostAlly(lane: number): Ally | null {
     for (let col = 0; col < COLS; col++) {
       const a = this.grid[lane][col];
-      if (a) return a;
+      if (a && !a.def.mine) return a;
     }
     return null;
   }
@@ -1984,7 +2006,7 @@ export class Sim implements WaveHost {
    *  Chiikawa-folk in with a song and strikes once they relax). It sings only when a friend is in its lane. */
   private lureSong(e: Enemy, ab: Extract<EnemyAbility, { kind: 'song' }>): void {
     if (e.y < FIELD_ENTRY_Y || e.abilityT < ab.cooldownMs) return;
-    const inLane = this.allies.filter((a) => this.onTile(a) && a.lane === e.lane);
+    const inLane = this.allies.filter((a) => this.onTile(a) && a.lane === e.lane && !a.def.mine);
     if (!inLane.length) return;
     const hit = this.rng.sample(inLane, ab.targets);
     const until = this.t + ab.durationMs;
@@ -2130,7 +2152,8 @@ export class Sim implements WaveHost {
         if (p.y >= allyFeetY(a.col) - TILE * 0.45) {
           p.dead = true;
           this.events.push({ type: 'spitHit', ally: a, projectile: p });
-          this.damageAlly(a, p.damage, p.source);
+          // After a win it still lands, and hurts nobody: the battle's result is already written (see settle).
+          if (this.status === 'playing') this.damageAlly(a, p.damage, p.source);
         }
         continue;
       }

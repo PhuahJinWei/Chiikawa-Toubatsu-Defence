@@ -296,7 +296,7 @@
     },
     "taiyaki": {
       "name": "Taiyaki",
-      "ability": "A trap. Put down, it starts cooking; once it's done, it's ready. The first enemy to reach it sets it off: piping-hot red-bean paste bursts out, a huge hit on everyone close by! Keep it from getting nibbled while it cooks."
+      "ability": "A trap. Put down, it starts cooking; once it's done, it's ready. The first enemy to reach it sets it off: piping-hot red-bean paste bursts out, a huge hit on everyone close by! Enemies leave a trap alone: while it cooks they just walk over it."
     },
     "muchauman": {
       "name": "Muchau-Man",

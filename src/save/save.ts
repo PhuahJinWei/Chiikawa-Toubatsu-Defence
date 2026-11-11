@@ -20,7 +20,6 @@ export interface Settings {
   autoCollect: boolean;
   reducedMotion: boolean;
   guides: boolean;
-  speed: 1 | 2;
 }
 
 export interface SaveData {
@@ -66,7 +65,7 @@ export function defaultSave(lang: 'ja' | 'en' = 'ja'): SaveData {
     upgrades: { slots: 0, ramen: 0 },
     items: { buta: 0 },
     best: { endless: 0 },
-    settings: { lang, bgm: 0.6, sfx: 0.8, autoCollect: false, reducedMotion: false, guides: false, speed: 1 },
+    settings: { lang, bgm: 0.6, sfx: 0.8, autoCollect: false, reducedMotion: false, guides: false },
     stamped: [],
     stats: { wins: 0, losses: 0, weeds: 0, defeated: 0, playMs: 0 },
     lastDeck: [],
@@ -129,7 +128,6 @@ function sanitize(d: SaveData, def: SaveData): SaveData {
   out.attempts = Object.fromEntries(Object.entries(out.attempts).flatMap(([id, n]) => (typeof n === 'number' && Number.isFinite(n) ? [[id, count(n, 0)]] : [])));
   const s = out.settings;
   if (s.lang !== 'ja' && s.lang !== 'en') s.lang = def.settings.lang;
-  if (s.speed !== 1 && s.speed !== 2) s.speed = def.settings.speed;
   s.bgm = Math.min(1, s.bgm);
   s.sfx = Math.min(1, s.sfx);
   out.upgrades.slots = Math.floor(out.upgrades.slots);

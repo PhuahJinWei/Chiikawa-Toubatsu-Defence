@@ -1185,16 +1185,19 @@ describe('giants (でかつよ, あのこ)', () => {
 
 describe('v2 friends', () => {
 
-  it('たい焼き cooks first: an enemy that reaches it before it is ready bites it like anyone, and nothing goes off', () => {
+  it('たい焼き cooks first: an enemy that reaches it before it is ready walks on over it, never biting it (owner’s call, 2026-11-12), and nothing goes off', () => {
     const sim = makeSim(['taiyaki']);
     const t = put(sim, 0, 2, 3);
     expect(t.readyAt).toBe(sim.t + UNITS.taiyaki.mine!.readyMs);
     expect(t.anim).toBe('cook');
     sim.spawnEnemy(ENEMIES['mushi_twolegs'], 2, colY(3), { waveIndex: 0 });
     const bug = sim.enemies[0];
+    const y0 = bug.y;
     const n = tally(sim, 2500);
     expect(n.mine ?? 0).toBe(0);
-    expect(t.hp).toBeLessThan(t.maxHp);
+    expect(n.enemyAttack ?? 0).toBe(0);
+    expect(t.hp).toBe(t.maxHp);
+    expect(bug.y).toBeGreaterThan(y0 + 60);
     expect(bug.hp).toBe(bug.maxHp);
   });
 

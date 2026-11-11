@@ -28,7 +28,8 @@ export function statsOf(id: string): { k: string; v: string; icon?: string }[] {
       stats.push({ k: t('stat.cooldown'), v: t('stat.seconds', { n: (unit.cooldownMs / 1000).toFixed(1) }) });
       return stats;
     }
-    stats.push({ k: t('stat.hp'), v: String(unit.hp), icon: 'heart' });
+    // A trap has no health to show: enemies leave it alone.
+    if (!unit.mine) stats.push({ k: t('stat.hp'), v: String(unit.hp), icon: 'heart' });
     const help = unit.support;
     if (help?.kind === 'aura_attackspeed') stats.push({ k: t('stat.boost'), v: `×${help.mul}`, icon: 'fast' });
     // A trap (たい焼き): how hard it goes off, how long it takes to cook, and that it goes off where it stands.

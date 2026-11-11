@@ -125,8 +125,6 @@ export interface RenderUi {
   placeable: (lane: number, col: number) => boolean;
   guides: boolean;
   reducedMotion: boolean;
-  /** Time (ms) since the battle was won: the sim has stopped, but falls and effects play on. */
-  afterMs?: number;
 }
 
 interface Pt {
@@ -1173,7 +1171,7 @@ export class BattleRenderer {
     if (++this.frames % 240 === 0) this.forgetGone();
     const sim = this.sim;
     const ctx = this.ctx;
-    const now = sim.t + alpha * STEP_MS + (ui.afterMs ?? 0);
+    const now = sim.t + alpha * STEP_MS;
     this.calm = ui.reducedMotion;
     const extra = this.lineup ? this.lookShift : 0;
     const key = `${this.canvas.width}x${this.canvas.height}:${ui.guides}:${Math.round(extra)}`;

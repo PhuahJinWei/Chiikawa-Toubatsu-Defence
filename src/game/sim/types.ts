@@ -47,8 +47,8 @@ interface AllyAttackDef {
   releaseMs?: number;
 }
 
-/** たい焼き (owner's call, 2026-11-08: a trap): it cooks for `readyMs` after it is put down (enemies can bite it then),
- *  and once it is ready the first enemy on the ground to reach it sets it off: every enemy on the ground in its lane,
+/** たい焼き (owner's call, 2026-11-08: a trap): it cooks for `readyMs` after it is put down (enemies leave it alone
+ *  meanwhile, as always since 2026-11-12: they walk over it), and once it is ready the first enemy on the ground to reach it sets it off: every enemy on the ground in its lane,
  *  from half a tile in front of its tile to the back of it, takes `damage`, and the taiyaki is used up. */
 export interface MineDef {
   readyMs: number;
