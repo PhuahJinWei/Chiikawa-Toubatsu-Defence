@@ -183,3 +183,23 @@ describe('content checks', () => {
     expect(validateContent()).toEqual([]);
   });
 });
+
+describe('a friend’s end (owner’s call, 2026-11-11: no fading away)', () => {
+  it('sent home, it is off its tile at once and off the field by the next step', () => {
+    const sim = field(['usagi']);
+    sim.place(0, 2, 3);
+    expect(sim.remove(2, 3)).toBe(true);
+    expect(sim.grid[2][3]).toBeNull();
+    sim.step(STEP_MS);
+    expect(sim.allies).toHaveLength(0);
+  });
+
+  it('beaten, it is gone just as fast', () => {
+    const sim = field(['usagi']);
+    sim.place(0, 2, 3);
+    sim.devDefeatFriends();
+    expect(sim.grid[2][3]).toBeNull();
+    sim.step(STEP_MS);
+    expect(sim.allies).toHaveLength(0);
+  });
+});

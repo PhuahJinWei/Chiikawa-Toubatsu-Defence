@@ -20,6 +20,13 @@ describe('content', () => {
     }
   });
 
+  it('keeps stumps and bushes few while players are still learning: one in 2-1, and never more than three (owner’s call, 2026-11-11)', () => {
+    const count = (id: string) => LEVELS[id].terrain.length;
+    expect(count('2-1')).toBe(1);
+    expect([count('2-2'), count('2-3')]).toEqual([2, 2]);
+    for (const l of LEVEL_LIST) expect(l.terrain.length, l.id).toBeLessThanOrEqual(3);
+  });
+
   it('passes validation', () => {
     expect(validateContent()).toEqual([]);
   });

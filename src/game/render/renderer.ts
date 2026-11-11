@@ -183,9 +183,6 @@ const fadeOut = (since: number, total = COLLAPSE_MS + FADE_MS): number => {
   const k = Math.min(1, Math.max(0, since) / total);
   return 1 - k * k;
 };
-/** How long a beaten friend takes to fade away (ms): it has no defeat frames, and just goes (owner's call, 2026-11-08,
- *  like PvZ's plants). */
-const FRIEND_FADE_MS = 450;
 /** How long a cooked taiyaki shows its sparkling picture (the last of its cook frames) before it settles (ms). */
 const COOKED_SPARKLE_MS = 700;
 /** One of the five song-note pictures, at random. */
@@ -1494,20 +1491,15 @@ export class BattleRenderer {
   }
 
   private drawAlly(ctx: CanvasRenderingContext2D, a: Ally, x: number, y: number, now: number, ui: RenderUi): void {
+    // Beaten or sent home, a friend is simply gone (owner's call, 2026-11-11: no fading away, as PvZ's plants go).
+    if (a.state === 'collapse') return;
     if (a.wishUntil > 0) {
       this.drawWishStar(ctx, a, x, y, now, ui);
       return;
     }
     const id = spriteIdFor('ally', a.def.id, a.member ?? undefined);
     let anim = a.anim;
-    // Beaten or sent home, a friend fades away as it was, its frame held.
-    const end = a.state === 'collapse' ? a.collapseAt : now;
-    let elapsed = end - a.animStart;
-    let alpha = 1;
-    if (a.state === 'collapse') {
-      alpha = fadeOut(now - a.collapseAt, FRIEND_FADE_MS);
-      if (alpha <= 0) return;
-    }
+    let elapsed = now - a.animStart;
     if (a.def.wall) {
       // Damage states split HP evenly: 2 states → 66% / 33%, 3 states → 75% / 50% / 25%.
       const r = a.hp / a.maxHp;
@@ -1523,7 +1515,7 @@ export class BattleRenderer {
       // A wall that hits back throws its punch instead (none now: ポシェットの鎧さん did, until 2026-11-08).
       if (!(a.anim === 'attack' && motions.includes('attack'))) {
         anim = worn ?? 'idle';
-        elapsed = end - a.placedAt;
+        elapsed = now - a.placedAt;
       }
     }
     // たい焼き from its frames: its cook pictures are stages (raw to done). All but the last share out the cooking; the
@@ -1531,7 +1523,7 @@ export class BattleRenderer {
     let at: number | undefined;
     const stages = a.def.mine ? spriteFor(id)?.anims.cook : undefined;
     if (a.def.mine && stages) {
-      const left = a.readyAt - end;
+      const left = a.readyAt - now;
       if (left > 0) {
         anim = 'cook';
         at = ((1 - left / a.def.mine.readyMs) * (stages.frames - 1)) / stages.frames;
@@ -1542,12 +1534,12 @@ export class BattleRenderer {
     }
     const since = now - a.placedAt;
     const scale = since < 260 && !ui.reducedMotion ? 1 + 0.12 * Math.sin((since / 260) * Math.PI) : 1;
-    if (a.state !== 'collapse' || alpha > 0.3) this.underfoot(ctx, a.lane, x, y - 4, a.def.size === 'L' ? 70 : a.def.size === 'M' ? 54 : 44, now, alpha);
+    this.underfoot(ctx, a.lane, x, y - 4, a.def.size === 'L' ? 70 : a.def.size === 'M' ? 54 : 44, now);
     const flash = a.hitFlashUntil > this.sim.t ? 1 : 0;
     const shakeX = flash && !ui.reducedMotion ? Math.sin(now / 18) * 3 : 0;
     // Held by 山姥's spell or caught by 擬態型's song: frozen in the frame it was caught in, in a spell circle, and purple
     // (the status colour: there are no badges).
-    const held = (a.spellUntil > this.sim.t || a.swayUntil > this.sim.t) && a.state !== 'collapse';
+    const held = a.spellUntil > this.sim.t || a.swayUntil > this.sim.t;
     if (held) {
       elapsed -= now - (this.heldAt.get(a.uid) ?? now);
       this.spellCircle(ctx, x, y, now, ui);
@@ -1556,8 +1548,8 @@ export class BattleRenderer {
     // 2026-11-10), so it shows on a phone too, where a tap puts the card down at once.
     const mend = a.def.wall && ui.selectedCard >= 0 && !ui.sendingHome && this.sim.replaces(ui.selectedCard, a.lane, a.col) === a;
     const glow = mend ? (ui.reducedMotion ? 0.35 : 0.22 + 0.24 * (0.5 + 0.5 * Math.sin(now / 180))) : 0;
-    const box = this.drawCharacter(ctx, id, anim, elapsed, x + shakeX, y, { scale, alpha, flash: Math.max(flash * 0.5, glow), tint: held ? SPELL_TINT : null, guides: ui.guides, tempo: tempoOf(a.def), onceMs: anim === 'attack' ? ALLY_ATTACK_MS : undefined, at });
-    if (!box || a.state === 'collapse') return;
+    const box = this.drawCharacter(ctx, id, anim, elapsed, x + shakeX, y, { scale, flash: Math.max(flash * 0.5, glow), tint: held ? SPELL_TINT : null, guides: ui.guides, tempo: tempoOf(a.def), onceMs: anim === 'attack' ? ALLY_ATTACK_MS : undefined, at });
+    if (!box) return;
     // パジャマパーティーズ let a note go now and then while they sing.
     if (a.anim === 'song' && !ui.reducedMotion && now - (this.singAt.get(a.uid) ?? -1e9) > SONG_BEAT_MS) {
       this.singAt.set(a.uid, now);
@@ -1589,23 +1581,17 @@ export class BattleRenderer {
 
   /** 星 before its wish comes true: it stands on its tile as itself, like any friend, then casts, closing its eyes and
    *  going up in a puff, and the friend wished for takes its place behind it (see Sim.grantWish; drawWishPuffs shows the
-   *  puff clearing). Knocked out or taken away first, it fades away as it was. */
+   *  puff clearing). */
   private drawWishStar(ctx: CanvasRenderingContext2D, a: Ally, x: number, y: number, now: number, ui: RenderUi): void {
-    let alpha = 1;
-    if (a.state === 'collapse') {
-      alpha = fadeOut(now - a.collapseAt, FRIEND_FADE_MS);
-      if (alpha <= 0) return;
-    }
-    const end = a.state === 'collapse' ? a.collapseAt : now;
-    const since = end - a.placedAt;
+    const since = now - a.placedAt;
     const scale = since < 260 && !ui.reducedMotion ? 1 + 0.12 * Math.sin((since / 260) * Math.PI) : 1;
-    this.underfoot(ctx, a.lane, x, y - 4, 44, now, alpha);
+    this.underfoot(ctx, a.lane, x, y - 4, 44, now);
     const flash = a.hitFlashUntil > this.sim.t ? 1 : 0;
     const shakeX = flash && !ui.reducedMotion ? Math.sin(now / 18) * 3 : 0;
     // The change comes as its cast's last frame begins, the puff there to hide it.
     const frames = spriteFor(STAR_SPRITE)?.anims.attack?.frames ?? 1;
-    const cast = (ONCE_MS.cast * (frames - 1)) / frames - (a.wishUntil - end);
-    this.drawCharacter(ctx, STAR_SPRITE, cast < 0 ? 'idle' : 'cast', cast < 0 ? since : cast, x + shakeX, y, { scale, alpha, flash: flash * 0.5, guides: ui.guides });
+    const cast = (ONCE_MS.cast * (frames - 1)) / frames - (a.wishUntil - now);
+    this.drawCharacter(ctx, STAR_SPRITE, cast < 0 ? 'idle' : 'cast', cast < 0 ? since : cast, x + shakeX, y, { scale, flash: flash * 0.5, guides: ui.guides });
   }
 
   /** The end of 星's cast, over whoever it has just become: its last frame, the puff clearing. */

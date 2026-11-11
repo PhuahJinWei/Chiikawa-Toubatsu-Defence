@@ -25,7 +25,7 @@ A Plants vs. Zombies style lane defense game set in Nagano's ちいかわ world,
 1. **PvZ clarity.** One new thing per level. One ability per character, one line each. Tap a card, tap a tile.
 2. **Canon-true characters.** Who someone is, what they did and what they say come from the story. Attack methods are allowed to be playful game abstractions (decided), but each one is anchored to something the character actually owns or does where possible.
 3. **Phone-first web.** Portrait, one-handed, no install required, works offline once loaded, saves locally.
-4. **Gentle tone.** Nobody runs away and nobody dies on screen. Defeated enemies collapse and fade; defeated allies just fade away (decided).
+4. **Gentle tone.** Nobody runs away and nobody dies on screen. Defeated enemies collapse and fade; defeated allies are simply gone (decided).
 
 ### 1.2 Targets
 
@@ -59,7 +59,7 @@ A Plants vs. Zombies style lane defense game set in Nagano's ちいかわ world,
 
 ### 2.3 Tone rules
 
-- Defeat: an enemy collapses in place and fades out; a friend has no defeat frames and just fades away as it was, in about 0.5 s (owner's call, 2026-11-08, like PvZ's plants). No fleeing, no flying away, no blood.
+- Defeat: an enemy collapses in place and fades out; a friend has no defeat frames and is simply gone at once, with no fading away, whether beaten or sent home (owner's calls, 2026-11-08 and 2026-11-11, like PvZ's plants). No fleeing, no flying away, no blood.
 - Loss screen says 討伐失敗 and shows the party collapsed, then the retry button. Win screen is the 討伐報告 at the 鎧さん's desk with the payout.
 - Characters say nothing in battle: no speech balloons or text boxes over anyone on the field (owner's call, 2026-11-10). Nor are catchphrases ever recorded voice (no official audio).
 - The gallery's words are relaxed and warm, in a Chiikawa-ish voice (owner's call, 2026-11-06): short lines, simple words, gentle endings (「〜よ」「〜なんだって」). Stories say only what the series shows, but leave out episode and volume numbers, years, the cast's voice actors and the darker details (who was eaten, poison). Hearsay is said as hearsay (「〜なんだって」「〜らしい」). No "this is how it plays" lines: the gallery's 「このゲームでの動き」 (In this game) heading already sets the game's own behaviour apart from the story. Ability lines are friendly too but keep every rule a player needs (reach, numbers that matter, who stays home where).
@@ -155,7 +155,7 @@ Rescues drive in along each active lane just before the battle starts and park i
 | 草 counter | top strip, left, above the cards | The weed on a round yellow badge overlapping the end of a slim bar, and a big number. Pulses when a weed is collected |
 | Wave bar | top strip, over the field, centred between the 草 counter and the buttons (up to 300 px on phones, 380 on tall screens) | Fills over the level; drawn pennants mark 大群 waves, a crown marks a boss wave, and the last wave's mark stands on the end of the bar |
 | Level name | above the wave bar | e.g. 「1-3 野原」 |
-| Pause | top strip, right | Opens pause menu: resume, restart, settings, quit to map, and a full-screen switch where the browser allows it. Top-strip buttons have a 44 px tap area around a 36 px round face, and the areas never overlap |
+| Pause | top strip, right | Opens pause menu: resume, restart, settings, quit to map, and a full-screen switch where the browser allows it. Top-strip buttons have a 58 px tap area around a 50 px round face (68 and 60 on tall screens). They hang from the top of the strip, a little into the scenery, so the field keeps its size, and the areas never overlap |
 | Cards | left column | Up to 8 cards top to bottom, by the thumb. The column is only as tall as its cards, and cards shrink to fit the deck so none ever scroll out of view; on a phone a full deck switches to a short card, its picture moved aside for the cost. Each card: the friend's in-game picture close up on a colour of their own, the 草 cost big in the corner (red when too dear). Until it can be used the whole card is in shade, as PvZ's seed packets go grey; what is left of a recharge is darker still, draining away from the bottom up and never thinner than 3 px until it is done; and the moment it is ready, if it can be paid for, it flashes white. The testing ground has every friend, so its column scrolls |
 | Send home 「帰ってもらう」 | top strip, left of speed and pause | Tap, then tap an ally to remove it (no refund). Turns red while active |
 | Speed toggle | top strip, next to pause | 1× / 2×, unlocked after World 1, remembered |
@@ -494,7 +494,7 @@ The waves are the earlier levels' where they still fit, rewritten where someone'
 ### 10.3 What each world adds
 
 - **World 1 野原**: the ramp from one lane to five, bugs only, ending with the bugs' boss.
-- **World 2 森**: stumps from 2-1, and bushes from 2-3, whose bushes stand well up the field (columns 6 and 7) so the first ones hide enemies away from the friends. The job notes of 2-1 and 2-3 say what stumps and bushes do.
+- **World 2 森**: stumps from 2-1, and bushes from 2-3, whose first bush stands well up the field (column 7) so it hides enemies away from the friends. There are few of them, and more only as the world goes on (owner's call, 2026-11-11, for players still learning): one stump in 2-1, two in 2-2, a stump and a bush in 2-3, three of them in 2-4 and in 2-5. The job notes of 2-1 and 2-3 say what stumps and bushes do.
 - **World 3 街**: fliers and heavy enemies. 3-3's job note says シーサー is at the なかま屋.
 - **World 4 夜** (music still a placeholder): nothing sprouts at night, so ちいかわ makes every 草 and each job starts with 250 草 instead of 50. 黒い流れ星 in every level, ゾウ back at 4-4, and the first giant as the boss. Enemy toughness 0.62.
 - **World 5 島** (music still a placeholder): the bottom lane is the sea (§9.5). 人魚 come down it in threes in every job, and セイレーン is the boss; the land has bugs and フグ, then 魔女 (5-3), キメラ and 虫ツノ (5-4). Rakko comes by boat on the water lane and by car elsewhere. Enemy toughness 0.62.
@@ -1073,6 +1073,9 @@ art/     real art and sound go here
 | 2026-11-10 | The new friend's page is dressed up (owner's call: it was the plainest page of a job's end, and its only picture was the card, a close crop, so for パジャマパーティーズ a dark face). The friend now stands beside their notes on a little stage in front of a turning paper burst, true to size, the hand stamp presses 「なかま入り」 onto it, the card is smaller beside the name, and 次へ is an ordinary button instead of a bar across the page. Details in §15.2, New friend |
 | 2026-11-10 | The new friend's page has 「図鑑で見る」 beside 次へ (owner's call: it just makes sense). The gallery book opens over the battle at the friend's page, where their lore and their moves are, and closing it comes back to the new friend's page, so the report is still to come. Details in §15.2, New friend |
 | 2026-11-10 | A shorter rest on the road before a battle (owner's call: the look at the enemies took a little too long). The camera rests on the waiting enemies for 1.8 s instead of 3 s. The glide there (1.8 s) and back (1.4 s) are as they were; the enemies come into sight before the camera stops and stay in it as it starts back |
+| 2026-11-11 | The battle's send-home, speed and pause buttons are bigger (owner's call: still too small): a 58 px tap area around a 50 px round face on phones (44 and 36 before), 68 around 60 on tall screens (50 and 42 before). They hang from the top of the strip, a little into the scenery, so neither the field nor the cards get any smaller |
+| 2026-11-11 | Few stumps and bushes in World 2 (owner's call: 2-1 was too hard with four stumps while players are still learning): one stump in 2-1, up the field in the middle lane; two stumps in 2-2; a stump and a bush in 2-3; three of them in 2-4 and in 2-5. That is 11 in all instead of 17. Every job keeps the bar |
+| 2026-11-11 | A friend beaten or sent home is simply gone, at once, with no fading away (owner's call, as PvZ's plants go). A worn wall replaced, a たい焼き gone off and a friend carried off already went at once. Enemies still fall and fade |
 
 ### 19.1 Open questions
 

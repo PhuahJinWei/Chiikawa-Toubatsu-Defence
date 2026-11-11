@@ -408,7 +408,7 @@ function HudIcon({ k }: { k: string }) {
 
 /** Thin strip along the top: weeds over the cards, the wave bar over the field, send home, speed and pause. No health is
  *  shown anywhere, like PvZ: not even a boss's.
- *  Buttons look compact but each has a 44 px tap area, and the areas never overlap. */
+ *  Each button has a 58 px tap area (68 on tall screens), and the areas never overlap. */
 function TopHud({ ctl, label, endless, sandbox }: { ctl: BattleController; label: string; endless: boolean; sandbox?: boolean }) {
   const weeds = ctl.weeds.value;
   const prev = useRef(weeds);

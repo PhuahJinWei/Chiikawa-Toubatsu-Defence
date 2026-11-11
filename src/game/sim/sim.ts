@@ -470,7 +470,7 @@ export class Sim implements WaveHost {
     this.events.push({ type: 'oneUse', def, lane, col });
   }
 
-  /** Takes a friend off the field at once, with no fading: a worn wall a fresh one has replaced. Enemies find who
+  /** Takes a friend off the field and out of the list at once: a worn wall a fresh one has replaced. Enemies find who
    *  is in their way from the grid every step, so whoever was up against it goes on against the new one. */
   private retire(a: Ally): void {
     if (this.grid[a.lane][a.col] === a) this.grid[a.lane][a.col] = null;
@@ -483,9 +483,7 @@ export class Sim implements WaveHost {
     if (!a || this.status !== 'playing') return false;
     this.grid[lane][col] = null;
     this.releaseClaims(a);
-    // It fades away as it was, as a beaten friend does.
-    a.state = 'collapse';
-    a.collapseAt = this.t;
+    this.goneAtOnce(a);
     this.events.push({ type: 'remove', ally: a });
     return true;
   }
@@ -940,9 +938,8 @@ export class Sim implements WaveHost {
     const back = colY(a.col) + TILE;
     this.grid[a.lane][a.col] = null;
     this.releaseClaims(a);
-    a.state = 'collapse';
+    this.goneAtOnce(a);
     a.anim = 'idle';
-    a.collapseAt = this.t - COLLAPSE_MS - FADE_MS - 1;
     a.pendingRelease = -1;
     this.events.push({ type: 'mine', ally: a });
     for (const e of this.enemies) {
@@ -1325,14 +1322,19 @@ export class Sim implements WaveHost {
     if (a.hp <= 0) this.collapseAlly(a);
   }
 
-  /** A friend is beaten: it leaves its tile and fades away as it was (owner's call, 2026-11-08: friends have no defeat
-   *  frames, like PvZ's plants). */
+  /** A friend's time on the field is over, whoever ended it: gone at once, with no fading away, as PvZ's plants go (owner's
+   *  call, 2026-11-11). It stays in the list, marked, until this step's cleanup. */
+  private goneAtOnce(a: Ally): void {
+    a.state = 'collapse';
+    a.collapseAt = this.t - COLLAPSE_MS - FADE_MS - 1;
+  }
+
+  /** A friend is beaten: it leaves its tile and is gone (friends have no defeat frames, like PvZ's plants). */
   private collapseAlly(a: Ally): void {
     a.hp = 0;
     this.grid[a.lane][a.col] = null;
     this.releaseClaims(a);
-    a.state = 'collapse';
-    a.collapseAt = this.t;
+    this.goneAtOnce(a);
     a.pendingRelease = -1;
     this.stats.alliesLost++;
     this.events.push({ type: 'allyCollapse', ally: a });
@@ -1809,9 +1811,8 @@ export class Sim implements WaveHost {
   /** A carried friend is gone: off the field with the bird, or with nowhere to land. Not drawn falling. */
   private loseCarried(a: Ally): void {
     a.carriedBy = -1;
-    a.state = 'collapse';
+    this.goneAtOnce(a);
     a.anim = 'idle';
-    a.collapseAt = this.t - COLLAPSE_MS - FADE_MS - 1;
     this.stats.alliesLost++;
   }
 

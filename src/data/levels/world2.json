@@ -8,10 +8,7 @@
     "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
     "deck": {},
     "terrain": [
-      {"lane": 1, "col": 5, "kind": "stump"},
-      {"lane": 3, "col": 2, "kind": "stump"},
-      {"lane": 0, "col": 3, "kind": "stump"},
-      {"lane": 4, "col": 6, "kind": "stump"}
+      {"lane": 2, "col": 6, "kind": "stump"}
     ],
     "rescues": true,
     "waves": [
@@ -59,9 +56,8 @@
     "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
     "deck": {},
     "terrain": [
-      {"lane": 2, "col": 4, "kind": "stump"},
       {"lane": 0, "col": 6, "kind": "stump"},
-      {"lane": 4, "col": 2, "kind": "stump"}
+      {"lane": 4, "col": 4, "kind": "stump"}
     ],
     "rescues": true,
     "waves": [
@@ -109,11 +105,8 @@
     "sprout": {"firstMs": 2500, "minMs": 7000, "maxMs": 10000, "value": 25, "lifeMs": 10000},
     "deck": {},
     "terrain": [
-      {"lane": 1, "col": 6, "kind": "bush"},
-      {"lane": 3, "col": 6, "kind": "bush"},
-      {"lane": 0, "col": 6, "kind": "stump"},
-      {"lane": 4, "col": 1, "kind": "stump"},
-      {"lane": 2, "col": 7, "kind": "bush"}
+      {"lane": 2, "col": 7, "kind": "bush"},
+      {"lane": 0, "col": 6, "kind": "stump"}
     ],
     "rescues": true,
     "waves": [
@@ -163,8 +156,6 @@
     "deck": {},
     "terrain": [
       {"lane": 0, "col": 5, "kind": "bush"},
-      {"lane": 4, "col": 5, "kind": "bush"},
-      {"lane": 2, "col": 1, "kind": "stump"},
       {"lane": 1, "col": 7, "kind": "stump"},
       {"lane": 3, "col": 3, "kind": "stump"}
     ],
