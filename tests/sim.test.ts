@@ -697,6 +697,40 @@ describe('the water lane (World 5)', () => {
     expect(new Set(dry.map((s) => s.lane)).size).toBeGreaterThan(1);
   });
 
+  it('never sends 黒い流れ星 down a lane alone: it comes in a mob of its wave’s walkers (owner’s call, 2026-11-12)', () => {
+    const q = expandSpawns([{ enemy: 'goblin', count: 6 }, { enemy: 'majyo' }, { enemy: 'kuroi_nagareboshi' }], new Rng(4), [0, 1, 2, 3, 4], new LanePicker(), 0, 0);
+    const i = q.findIndex((s) => s.def.id === 'kuroi_nagareboshi');
+    const mob = q.slice(i - 1, i + 2);
+    // Two goblins, who keep its pace (not the witch, who would run off), one just ahead of it and one just behind.
+    expect(mob.map((s) => s.def.id)).toEqual(['goblin', 'kuroi_nagareboshi', 'goblin']);
+    expect(new Set(mob.map((s) => s.lane)).size).toBe(1);
+    expect(mob[2].at - mob[0].at).toBeLessThanOrEqual(900);
+    // They are the wave's own: nobody more or fewer is sent.
+    expect(q).toHaveLength(8);
+    // Short of walkers at its pace, the others make up its mob, and with only one other in the wave the two come together.
+    const fill = expandSpawns([{ enemy: 'chushidesu' }, { enemy: 'majyo' }, { enemy: 'kuroi_nagareboshi' }], new Rng(4), [0, 1, 2, 3, 4], new LanePicker(), 0, 0);
+    expect(fill.map((s) => s.def.id)).toEqual(['chushidesu', 'kuroi_nagareboshi', 'majyo']);
+    const pair = expandSpawns([{ enemy: 'yamanba' }, { enemy: 'kuroi_nagareboshi' }], new Rng(4), [0, 1, 2, 3, 4], new LanePicker(), 0, 0);
+    expect(pair.map((s) => s.def.id)).toEqual(['yamanba', 'kuroi_nagareboshi']);
+    for (const q2 of [fill, pair]) expect(new Set(q2.map((s) => s.lane)).size).toBe(1);
+    // And in every job, every one of them comes in a three: right behind one of its wave's walkers and right ahead of
+    // another, down the same lane (each wave with it has two walkers for each, as tools/levelgen.py says).
+    let mobs = 0;
+    for (const level of LEVEL_LIST) {
+      const lanes = new LanePicker();
+      level.waves.forEach((w, n) => {
+        const sent = expandSpawns(w.spawns, new Rng(n + 1), level.lanes, lanes, 0, n, waterOf(level));
+        sent.forEach((s, k) => {
+          if (s.def.id !== 'kuroi_nagareboshi') return;
+          const [lead, tail] = [sent[k - 1], sent[k + 1]];
+          for (const o of [lead, tail]) expect(!!o && o.def.id !== s.def.id && o.lane === s.lane && Math.abs(o.at - s.at) <= 450, `${level.id} wave ${n + 1}`).toBe(true);
+          mobs++;
+        });
+      });
+    }
+    expect(mobs).toBe(33);
+  });
+
   it('grows nothing and sends Rakko by boat', () => {
     const sim = new Sim({
       lanes: [1, 2, 3],

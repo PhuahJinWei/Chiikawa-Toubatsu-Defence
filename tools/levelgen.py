@@ -130,6 +130,8 @@ def lvl(world, idx, waves, lanes=ALL, start=50, sprout=None, night=False, forced
 # brings only フタバ, ヒトハ, 島二郎 and ちいかわ（人魚の島）, World 6 only ハチワレ（パジャマ） and うさぎ（クール）. うさぎ is
 # everyone's first friend; シーサー and 星 stay at her なかま屋 (src/data/shop.json). tests/content.test.ts pins the plan.
 # The lanes open once, in World 1 (one, then three, then all five), and never close again.
+# A wave with 黒い流れ星 (bs) gives each one two walkers to come with: it comes down a lane in a mob, never alone
+# (owner's call, 2026-11-12; see src/game/sim/waves.ts). tests/sim.test.ts checks every job.
 
 W1 = [
     lvl(1, 1, "24: t2; 48: t2; 70: t2; 90: t2*2; 114 final: t2*3",
@@ -160,7 +162,7 @@ W2 = [
     # The first bushes stand well up the field, so whoever hides in one comes out before reaching anyone.
     lvl(2, 3, "24: gb; 46: gb; 66: gb fg; 86: mj gb; 106 big: gb*4 mj; 130: s6^0.7 fg; 152: cd mj gb*2; 180 final: gb*5 mj s6^0.6 cd",
         terrain=[(2, 7, BU), (0, 6, ST)]),
-    lvl(2, 4, "24: gb; 46: gb bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6^0.55 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*7 bs*2 mj",
+    lvl(2, 4, "24: gb; 46: gb*2 bs; 68: fg gb; 90: gb*2 mj; 112 big: gb*6 s6^0.55 bs; 136: mj fg; 158: cd bs gb; 186 final: gb*7 bs*2 mj",
         terrain=[(0, 5, BU), (1, 7, ST), (3, 3, ST)], unlock='momonga'),
     lvl(2, 5, "24: gb; 46: gb*2; 68: fg gb; 90: cd mj bs; 112 big: gb*5 s6^0.85 mj; 136: fg bs gb; 160 big: gb*5 cd mj bs; 196 final boss: gt!^0.65 gb*5",
         terrain=[(0, 4, ST), (4, 4, ST), (2, 6, BU)], first=600),
@@ -190,10 +192,10 @@ W4 = [
     night(1, "30: t2; 54: t2; 76: t2*2; 98: t2*2 bs; 120 big: t2*5 s6; 146: t2*3; 170: s6 bs t2; 198 final: t2*6 s6 bs"),
     night(2, "28: t2; 50: t2*2; 74: hn^0.7; 98: t2*2; 120 big: t2*5 s6; 146: hn^0.8 t2; 170: t2*2 bs; 198 final: t2*6 s6 hn^0.8 bs",
           unlock='muchauman'),
-    night(3, "28: t2; 50: t2*2; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: ym bs; 170: hn t2; 198 final: t2*6 s6 ym bs"),
-    night(4, "28: t2; 50: t2 bs; 74: hn^0.7; 96: t2*2 bs; 118 big: t2*7 bs; 142: ym bs; 166: zu^0.45 t2; 190 big: t2*6 s6; 222 final: t2*5 hn^0.6 ym bs",
+    night(3, "28: t2; 50: t2*2; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: ym bs t2; 170: hn t2; 198 final: t2*6 s6 ym bs"),
+    night(4, "28: t2; 50: t2*2 bs; 74: hn^0.7; 96: t2*2 bs; 118 big: t2*7 bs; 142: ym bs t2; 166: zu^0.45 t2; 190 big: t2*6 s6; 222 final: t2*5 hn^0.6 ym bs",
           unlock='yoroi_erai'),
-    night(5, "28: t2; 50: t2 bs; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: hn^0.8 bs; 170: ym t2; 194 big: t2*6 bs; 232 final boss: an! t2*5 s6^0.85 bs*2",
+    night(5, "28: t2; 50: t2*2 bs; 74: ym; 98: t2*2 bs; 120 big: t2*6 s6; 146: hn^0.8 bs t2; 170: ym t2; 194 big: t2*6 bs; 232 final boss: an! t2*5 s6^0.85 bs*2",
           first=800),
 ]
 

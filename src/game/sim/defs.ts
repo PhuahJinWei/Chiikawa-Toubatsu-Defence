@@ -120,7 +120,7 @@ export function validateContent(): string[] {
     }
   }
   // Named in endless.ts: the stand-in when its pool is empty, and the healer it sends no more than two of.
-  for (const id of ['mushi_twolegs', 'kuroi_nagareboshi']) if (!ENEMIES[id]) problems.push(`endless mode names ${id}, who is no enemy`);
+  if (!ENEMIES['mushi_twolegs']) problems.push('endless mode names mushi_twolegs, who is no enemy');
   const ids = new Set<string>();
   for (const l of LEVEL_LIST) {
     if (ids.has(l.id)) problems.push(`duplicate level id ${l.id}`);

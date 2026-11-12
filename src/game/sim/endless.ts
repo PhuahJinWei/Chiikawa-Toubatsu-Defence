@@ -1,7 +1,7 @@
 import { BANNER_LEAD_MS, SPAWN_Y } from './constants';
 import { ENEMIES } from './defs';
 import { hashString, Rng } from './rng';
-import { expandSpawns, LanePicker, type WaveHost, type WaveSource } from './waves';
+import { escortRank, expandSpawns, isHealer, LanePicker, MOB_ESCORTS, sendOrder, type WaveHost, type WaveSource } from './waves';
 import type { EnemyDef, SpawnDef } from './types';
 
 /** The most enemies one endless wave picks (reached around wave 90): past it, what a wave's growing budget cannot spend
@@ -67,10 +67,11 @@ export class EndlessWaves implements WaveSource {
     return p;
   }
 
-  /** How many of each enemy a stage sends, in the order they first come (a group, 小さい人魚, for each one in it). */
+  /** How many of each enemy a stage sends, in the order they first come (a group, 小さい人魚, for each one in it, and a
+   *  healer's company where it comes with it). */
   counts(stage: number): { id: string; count: number }[] {
     const n = new Map<string, number>();
-    for (const w of this.plan(stage)) for (const s of w) n.set(s.enemy, (n.get(s.enemy) ?? 0) + (s.count ?? 1) * Math.max(1, ENEMIES[s.enemy]?.pack ?? 1));
+    for (const w of this.plan(stage)) for (const { s, n: k } of sendOrder(w)) n.set(s.enemy, (n.get(s.enemy) ?? 0) + k * Math.max(1, ENEMIES[s.enemy].pack ?? 1));
     return [...n].map(([id, count]) => ({ id, count }));
   }
 
@@ -116,7 +117,13 @@ export class EndlessWaves implements WaveSource {
     let spent = 0;
     for (let tries = 0; budget > 0.5 && picked < MOST_PER_WAVE && tries < MOST_PER_WAVE * 10; tries++) {
       const def = pool[Math.floor(rng.next() * pool.length)];
-      if (def.id === 'kuroi_nagareboshi' && spawns.filter((s) => s.enemy === def.id).length >= 2) continue;
+      // 黒い流れ星: two a wave at most, and each only once the wave has two walkers at its pace to come with it (owner's
+      // call, 2026-11-12: it never comes down a lane alone; see expandSpawns).
+      if (isHealer(def)) {
+        const healers = spawns.filter((s) => isHealer(ENEMIES[s.enemy])).length;
+        const company = spawns.filter((s) => !s.boss && escortRank(ENEMIES[s.enemy], def) === 0).length;
+        if (healers >= 2 || company < (healers + 1) * MOB_ESCORTS) continue;
+      }
       spawns.push({ enemy: def.id, count: 1, hpMul: toughness });
       budget -= def.weight;
       spent += def.weight;

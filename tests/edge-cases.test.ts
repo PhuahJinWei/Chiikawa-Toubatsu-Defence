@@ -263,6 +263,20 @@ describe('endless mode', () => {
       expect(strength(spawns) / toughness, `wave ${n}`).toBeGreaterThan(budget - 1);
     }
   });
+
+  it('sends 黒い流れ星 only with two walkers at its pace for each, and two a wave at most (owner’s call, 2026-11-12)', () => {
+    const w = new EndlessWaves(['mushi_twolegs', 'goblin', 'majyo', 'kuroi_nagareboshi', 'mushi_horned', 'dekai_tori']);
+    let stars = 0;
+    for (let n = 1; n <= 60; n++) {
+      const spawns = compose(w, n);
+      const healers = spawns.filter((s) => s.enemy === 'kuroi_nagareboshi').length;
+      const pace = spawns.filter((s) => s.enemy === 'mushi_twolegs' || s.enemy === 'goblin').length;
+      stars += healers;
+      expect(healers, `wave ${n}`).toBeLessThanOrEqual(2);
+      expect(pace, `wave ${n}`).toBeGreaterThanOrEqual(healers * 2);
+    }
+    expect(stars).toBeGreaterThan(0);
+  });
 });
 
 describe('the battlefield', () => {

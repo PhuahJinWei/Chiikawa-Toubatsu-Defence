@@ -57,6 +57,77 @@ export class LanePicker {
     for (const [k, v] of this.counts) this.counts.set(k, v * 0.9);
     return lane;
   }
+
+  /** Count `n` more enemies down a lane picked for one: a healer's company, which comes down its lane with it. */
+  note(lane: number, n: number): void {
+    if (n > 0) this.counts.set(lane, (this.counts.get(lane) ?? 0) + n);
+  }
+}
+
+/** A healer (黒い流れ星) comes with at most this many of its wave's walkers (owner's call, 2026-11-12). */
+export const MOB_ESCORTS = 2;
+
+/** Whether an enemy heals those round it (黒い流れ星): one never comes down a lane alone (see expandSpawns). */
+export function isHealer(def: EnemyDef): boolean {
+  return def.abilities.some((a) => a.kind === 'heal_aura');
+}
+
+/** How well an enemy keeps a healer company in its mob: 0 at its pace (as fast, and stopping at friends as it does), 1
+ *  if it goes with it but will not stay (faster or slower, or one that jumps friends), null if it never walks in a mob
+ *  (a boss, a giant, a flier, another healer, or a swimmer while there is water about, which keeps to its own lanes). */
+export function escortRank(def: EnemyDef, healer: EnemyDef, water: number[] = []): 0 | 1 | null {
+  if (def.boss || def.giant || isHealer(def) || def.abilities.some((a) => a.kind === 'flier')) return null;
+  if (water.length && !!def.aquatic !== !!healer.aquatic) return null;
+  return def.speed === healer.speed && !def.abilities.some((a) => a.kind === 'jump') ? 0 : 1;
+}
+
+/** Each healer's company in a wave (see expandSpawns), for each enemy its spawn sends: up to MOB_ESCORTS of the wave's
+ *  walkers, those at its pace first (they stay with it), then any others; of each kind the nearest it in the wave, one
+ *  before it first. Walkers sent down a lane of their own, or down every lane, keep to it. Each mob is in walking
+ *  order: one of its company leads, the healer follows, and the rest close up behind. `taken`: how many of each
+ *  spawn's enemies go in a mob instead of coming on their own. */
+function mobsOf(spawns: SpawnDef[], water: number[]): { mobs: Map<number, SpawnDef[][]>; taken: number[] } {
+  const taken = spawns.map(() => 0);
+  const mobs = new Map<number, SpawnDef[][]>();
+  spawns.forEach((h, hi) => {
+    const healer = ENEMIES[h.enemy];
+    if (!healer || !isHealer(healer) || h.lane === 'all') return;
+    const far = (si: number) => Math.abs(si - hi) * 2 + (si > hi ? 1 : 0);
+    const mob: SpawnDef[][] = [];
+    for (let c = 0; c < (h.count ?? 1); c++) {
+      const company: SpawnDef[] = [];
+      for (const rank of [0, 1]) {
+        while (company.length < MOB_ESCORTS) {
+          let best = -1;
+          spawns.forEach((s, si) => {
+            const d = ENEMIES[s.enemy];
+            if (!d || s.boss || (s.lane !== undefined && s.lane !== 'random') || taken[si] >= (s.count ?? 1)) return;
+            if (escortRank(d, healer, water) === rank && (best < 0 || far(si) < far(best))) best = si;
+          });
+          if (best < 0) break;
+          taken[best]++;
+          company.push(spawns[best]);
+        }
+      }
+      mob.push([...company.slice(0, 1), h, ...company.slice(1)]);
+    }
+    mobs.set(hi, mob);
+  });
+  return { mobs, taken };
+}
+
+/** A wave's spawns in the order expandSpawns sends them, each with how many of it come there: a healer's company comes
+ *  with it, out of the spawns it is taken from. For counting what a wave sends without sending it. */
+export function sendOrder(spawns: SpawnDef[], water: number[] = []): { s: SpawnDef; n: number }[] {
+  const { mobs, taken } = mobsOf(spawns, water);
+  const out: { s: SpawnDef; n: number }[] = [];
+  spawns.forEach((s, si) => {
+    if (!ENEMIES[s.enemy]) return;
+    const mob = mobs.get(si);
+    if (mob) for (const members of mob) for (const m of members) out.push({ s: m, n: 1 });
+    else if ((s.count ?? 1) > taken[si]) out.push({ s, n: (s.count ?? 1) - taken[si] });
+  });
+  return out;
 }
 
 /** The lanes an enemy can come down: with water about, a swimmer (人魚, セイレーン) only the water lanes and everyone
@@ -84,17 +155,16 @@ export function giantLane(lanes: number[]): number | null {
 
 /** How many of each enemy a job sends over all its waves, in the order they first come, counted as `expandSpawns`
  *  sends them: a spawn on 'all' lanes once for each lane it can use, a group (小さい人魚) for each one in it, a giant
- *  once a count however its lane is given. */
+ *  once a count however its lane is given, and a healer's company where it comes with it. */
 export function enemyCounts(level: LevelDef): { id: string; count: number }[] {
   const water = waterOf(level);
   const counts = new Map<string, number>();
   for (const w of level.waves) {
-    for (const s of w.spawns) {
+    for (const { s, n } of sendOrder(w.spawns, water)) {
       const def = ENEMIES[s.enemy];
-      if (!def) continue;
       const pool = lanesFor(def, level.lanes, water);
       const across = s.lane === 'all' && !(def.giant && giantLane(pool) !== null) ? pool.length : 1;
-      counts.set(s.enemy, (counts.get(s.enemy) ?? 0) + (s.count ?? 1) * across * Math.max(1, def.pack ?? 1));
+      counts.set(s.enemy, (counts.get(s.enemy) ?? 0) + n * across * Math.max(1, def.pack ?? 1));
     }
   }
   return [...counts].map(([id, count]) => ({ id, count }));
@@ -110,12 +180,32 @@ export function expandSpawns(
   water: number[] = [],
 ): QueuedSpawn[] {
   const out: QueuedSpawn[] = [];
+  const { mobs, taken } = mobsOf(spawns, water);
   let t = t0;
-  for (const s of spawns) {
+  for (const [si, s] of spawns.entries()) {
     const def = ENEMIES[s.enemy];
     if (!def) continue;
-    const count = s.count ?? 1;
     const pool = lanesFor(def, lanes, water);
+    const mob = mobs.get(si);
+    if (mob) {
+      // A healer (黒い流れ星) comes in its mob, all down one lane, close behind one another: one of its company leads, it
+      // follows, and the rest close up behind (owner's call, 2026-11-12: spread like anyone, it came down a lane alone).
+      for (const members of mob) {
+        const lane = typeof s.lane === 'number' && pool.includes(s.lane) ? s.lane : picker.pick(rng, pool);
+        picker.note(lane, members.length - 1);
+        members.forEach((m, n) => {
+          const md = ENEMIES[m.enemy];
+          const pack = Math.max(1, md.pack ?? 1);
+          for (let k = 0; k < pack; k++) {
+            out.push({ at: t, def: md, lane, hpMul: m.hpMul, boss: m.boss, waveIndex });
+            t += n < members.length - 1 || k < pack - 1 ? rng.range(300, 450) : rng.range(250, 900);
+          }
+        });
+      }
+      continue;
+    }
+    // Those of its enemies in a healer's mob come with it instead.
+    const count = (s.count ?? 1) - taken[si];
     const laneList: number[] = [];
     const middle = def.giant ? giantLane(pool) : null;
     if (middle !== null) {

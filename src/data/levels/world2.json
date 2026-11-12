@@ -165,7 +165,7 @@
         {"enemy": "goblin"}
       ] },
       { "at": 71, "spawns": [
-        {"enemy": "goblin"},
+        {"enemy": "goblin", "count": 2},
         {"enemy": "kuroi_nagareboshi"}
       ] },
       { "at": 105, "spawns": [
