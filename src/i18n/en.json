@@ -272,7 +272,7 @@
     "pajama_parties": {
       "name": "Pajama Parties",
       "short": "Pajama Parties",
-      "ability": "One of the four comes each time, at random. While singing, friends in the lane attack 1.5× as fast. Doesn't attack."
+      "ability": "One of the four comes each time, at random. While singing, friends on the 3×3 tiles around attack 1.5× as fast. Doesn't attack."
     },
     "rakko": {
       "name": "Rakko",
@@ -551,6 +551,7 @@
     "rangeTiles": "{n} tiles",
     "rangeLane": "Whole lane",
     "rangeTouch": "Up close",
+    "rangeAround": "3×3 around",
     "seconds": "{n}s",
     "boost": "Attack speed",
     "sameAsWish": "Same as the wish",

@@ -102,8 +102,8 @@ export const ALLY_CHARACTERS: CharacterSpec[] = [
     'pajama_parties',
     'S',
     {
-      ja: 'アイドルグループ。カードを使うと4人のうちのだれか1人がランダムで来る（オーナーの絵は1人ずつ：ally_pajama_parties_green・pink・purple・white）。攻撃しない。おどって歌うと（ability）、同じレーンのなかまの攻撃が速くなる。',
-      en: 'The idol group. Each time the card is used one of the four comes, at random (the owner’s frames are one member each: ally_pajama_parties_green, pink, purple and white). Never attacks: while dancing and singing (ability), friends in their lane attack faster.',
+      ja: 'アイドルグループ。カードを使うと4人のうちのだれか1人がランダムで来る（オーナーの絵は1人ずつ：ally_pajama_parties_green・pink・purple・white）。攻撃しない。おどって歌うと（ability）、まわり3×3マスのなかまの攻撃が速くなる。',
+      en: 'The idol group. Each time the card is used one of the four comes, at random (the owner’s frames are one member each: ally_pajama_parties_green, pink, purple and white). Never attacks: while dancing and singing (ability), friends on the 3×3 tiles round them attack faster.',
     },
     { motions: ['idle', 'song'] },
   ),

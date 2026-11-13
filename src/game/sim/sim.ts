@@ -20,6 +20,7 @@ import {
   colOfY,
   colY,
   LANE_LEN,
+  LANES,
   ODE_SPEED,
   SPAWN_Y,
   SPEED_PX_PER_S,
@@ -766,7 +767,7 @@ export class Sim implements WaveHost {
   private stepAllies(dt: number): void {
     // Stars whose wish comes true now turn into their friends; until then a star does nothing.
     for (const a of this.allies) if (a.wishUntil > 0 && this.t >= a.wishUntil && this.onTile(a)) this.grantWish(a);
-    const pace = this.lanePace();
+    const pace = this.tilePace();
     for (const a of this.allies) {
       if (!this.onTile(a) || a.wishUntil) continue;
       // A taiyaki is a trap, not a fighter: it cooks, then waits for an enemy to reach it.
@@ -795,9 +796,9 @@ export class Sim implements WaveHost {
       if (a.state === 'attack' && this.t - a.animStart >= ALLY_ATTACK_MS) this.setAllyAnim(a, 'idle');
       if (silenced) continue;
       const interval = a.def.attack.intervalMs ?? DEFAULT_INTERVAL_MS;
-      // A faster lane (パジャマパーティーズ) and a partner beside it (フタバ and ヒトハ, each with the other) quicken the
+      // A song round it (パジャマパーティーズ) and a partner beside it (フタバ and ヒトハ, each with the other) quicken the
       // whole attack, the wind-up too.
-      const speed = pace[a.lane] * (a.def.bond?.attackMul && this.bonded(a) ? a.def.bond.attackMul : 1);
+      const speed = pace[a.lane][a.col] * (a.def.bond?.attackMul && this.bonded(a) ? a.def.bond.attackMul : 1);
       a.attackT = Math.min(interval, a.attackT + dt * speed);
       if (a.state === 'attack') continue;
       // うさぎ（クール） never moves: her missiles just come, once there is something on the field to drop them on.
@@ -837,13 +838,17 @@ export class Sim implements WaveHost {
 
   /** Whether a friend's partner (BondDef) stands right beside it in its lane, in front or behind, and is itself (a
    *  star still turning into the partner does not count yet). */
-  /** How much faster friends in each lane attack: パジャマパーティーズ singing there (not silenced) speed up the whole lane,
-   *  several in one lane no more than one. */
-  lanePace(): number[] {
-    const pace = [1, 1, 1, 1, 1];
+  /** How much faster friends on each tile attack, lane by lane and column by column: パジャマパーティーズ singing (not
+   *  silenced) speed up the 3×3 tiles round them, a tile in front and behind in their own lane and the same three tiles
+   *  in the lanes either side (owner's call, 2026-11-13: it was their whole lane); several over one tile no more than one. */
+  tilePace(): number[][] {
+    const pace = Array.from({ length: LANES }, () => new Array<number>(COLS).fill(1));
     for (const a of this.allies) {
       const s = a.def.support;
-      if (s?.kind === 'aura_attackspeed' && this.onTile(a) && !a.wishUntil && a.songUntil <= this.t) pace[a.lane] = Math.max(pace[a.lane], s.mul);
+      if (s?.kind !== 'aura_attackspeed' || !this.onTile(a) || a.wishUntil || a.songUntil > this.t) continue;
+      for (let lane = Math.max(0, a.lane - 1); lane <= Math.min(LANES - 1, a.lane + 1); lane++) {
+        for (let col = Math.max(0, a.col - 1); col <= Math.min(COLS - 1, a.col + 1); col++) pace[lane][col] = Math.max(pace[lane][col], s.mul);
+      }
     }
     return pace;
   }
@@ -854,20 +859,23 @@ export class Sim implements WaveHost {
     return this.onTile(a) && !a.wishUntil && attacks(a.def);
   }
 
-  /** Whether a friend attacks faster just now, for showing it: パジャマパーティーズ are singing in its lane, or its partner
-   *  stands beside it (フタバ and ヒトハ). A silenced or held friend doesn't attack at all. */
-  spedUp(a: Ally, pace = this.lanePace()): boolean {
-    return this.attacker(a) && a.songUntil <= this.t && (pace[a.lane] > 1 || (!!a.def.bond?.attackMul && this.bonded(a)));
+  /** Whether a friend attacks faster just now, for showing it: パジャマパーティーズ are singing next to it (its tile is in
+   *  their 3×3), or its partner stands beside it (フタバ and ヒトハ). A silenced or held friend doesn't attack at all. */
+  spedUp(a: Ally, pace = this.tilePace()): boolean {
+    return this.attacker(a) && a.songUntil <= this.t && (pace[a.lane][a.col] > 1 || (!!a.def.bond?.attackMul && this.bonded(a)));
   }
 
   /** What a friend put down at (lane, col) would reach, for showing it while it is being placed: stretches of lanes
    *  (columns `from` to `to`) of a reach shorter than the whole lane ahead (a melee blow's, ラッコ's sweep, モモンガ's
-   *  three lanes), the whole lane its song speeds up, or the tiles beside it where its partner would stand. Nothing for
+   *  three lanes), the 3×3 tiles its song speeds up, or the tiles beside it where its partner would stand. Nothing for
    *  a friend that reaches the whole lane ahead, as every shooter does. */
   reachFrom(def: UnitDef, lane: number, col: number): { lane: number; from: number; to: number; kind: 'reach' | 'song' | 'partner' }[] {
     const atk = def.attack;
-    if (def.support?.kind === 'aura_attackspeed') return [{ lane, from: 0, to: COLS - 1, kind: 'song' }];
     const out: { lane: number; from: number; to: number; kind: 'reach' | 'song' | 'partner' }[] = [];
+    if (def.support?.kind === 'aura_attackspeed') {
+      for (let l = lane - 1; l <= lane + 1; l++) if (this.laneActive[l]) out.push({ lane: l, from: Math.max(0, col - 1), to: Math.min(COLS - 1, col + 1), kind: 'song' });
+      return out;
+    }
     const melee = atk.kind === 'hitscan' && atk.rangeTiles !== undefined;
     if (melee || atk.kind === 'spread3') {
       const spread = melee ? (atk.sweepLanes ?? 0) : 1;
@@ -879,11 +887,13 @@ export class Sim implements WaveHost {
   }
 
   /** Who would attack faster if a friend were put down at (lane, col), for showing it while it is being placed: those
-   *  in the lane its song would speed up, or its partner beside it; and whether it would itself (a song already in
-   *  the lane, or its partner beside it). */
+   *  on the 3×3 tiles round it that its song would speed up, or its partner beside it; and whether it would itself (a
+   *  song already reaching that tile, or its partner beside it). */
   boostsFrom(def: UnitDef, lane: number, col: number): { allies: Ally[]; self: boolean } {
     const allies: Ally[] = [];
-    if (def.support?.kind === 'aura_attackspeed') for (const a of this.allies) if (a.lane === lane && this.attacker(a)) allies.push(a);
+    if (def.support?.kind === 'aura_attackspeed') {
+      for (const a of this.allies) if (Math.abs(a.lane - lane) <= 1 && Math.abs(a.col - col) <= 1 && this.attacker(a)) allies.push(a);
+    }
     let partner = false;
     if (def.bond) {
       for (const c of [col - 1, col + 1]) {
@@ -894,7 +904,7 @@ export class Sim implements WaveHost {
         }
       }
     }
-    return { allies, self: attacks(def) && (this.lanePace()[lane] > 1 || (partner && !!def.bond?.attackMul)) };
+    return { allies, self: attacks(def) && (this.tilePace()[lane][col] > 1 || (partner && !!def.bond?.attackMul)) };
   }
 
   bonded(a: Ally): boolean {

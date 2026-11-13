@@ -31,7 +31,10 @@ export function statsOf(id: string): { k: string; v: string; icon?: string }[] {
     // A trap has no health to show: enemies leave it alone.
     if (!unit.mine) stats.push({ k: t('stat.hp'), v: String(unit.hp), icon: 'heart' });
     const help = unit.support;
-    if (help?.kind === 'aura_attackspeed') stats.push({ k: t('stat.boost'), v: `×${help.mul}`, icon: 'fast' });
+    if (help?.kind === 'aura_attackspeed') {
+      stats.push({ k: t('stat.boost'), v: `×${help.mul}`, icon: 'fast' });
+      stats.push({ k: t('stat.range'), v: t('stat.rangeAround') });
+    }
     // A trap (たい焼き): how hard it goes off, how long it takes to cook, and that it goes off where it stands.
     if (unit.mine) {
       stats.push({ k: t('stat.damage'), v: String(unit.mine.damage), icon: 'star' });

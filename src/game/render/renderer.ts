@@ -1365,13 +1365,13 @@ export class BattleRenderer {
     ctx.restore();
   }
 
-  /** A gold ring round the feet of every friend attacking faster (パジャマパーティーズ' song in its lane, or its partner
+  /** A gold ring round the feet of every friend attacking faster (パジャマパーティーズ' song next to it, or its partner
    *  beside it), on the ground under everyone, so it never hides an enemy (owner's call, 2026-11-10: the song's reach
    *  showed nowhere). While a card is in hand, faintly, the rings putting it down would add, and one under its ghost if
    *  it would attack faster there itself. */
   private drawBoosts(ctx: CanvasRenderingContext2D, ui: RenderUi, now: number): void {
     const sim = this.sim;
-    const pace = sim.lanePace();
+    const pace = sim.tilePace();
     const live = new Set<number>();
     for (const a of sim.allies) {
       if (!sim.spedUp(a, pace)) continue;

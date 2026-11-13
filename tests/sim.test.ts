@@ -1460,10 +1460,10 @@ describe('v2 friends', () => {
     expect(front.hp).toBe(hp);
   });
 
-  it('パジャマパーティーズ make friends in their lane attack 1.5× as often while they sing', () => {
+  it('パジャマパーティーズ make friends round them attack 1.5× as often while they sing', () => {
     const count = (silenced: boolean) => {
       const sim = makeSim(['pajama_parties', 'hachiware']);
-      const p = put(sim, 0, 1, 0);
+      const p = put(sim, 0, 1, 2);
       put(sim, 1, 1, 3);
       put(sim, 1, 3, 3);
       // Targets that never bite back, in reach of both.
@@ -1486,19 +1486,24 @@ describe('v2 friends', () => {
 
   it('tells the drawing who the song and a partner speed up, as the battle does', () => {
     const sim = makeSim(['pajama_parties', 'hachiware', 'yoroi']);
-    const p = put(sim, 0, 1, 0);
+    const p = put(sim, 0, 1, 2);
     const near = put(sim, 1, 1, 3);
-    const wall = put(sim, 2, 1, 5);
+    const corner = put(sim, 1, 0, 1);
+    const wall = put(sim, 2, 1, 1);
+    const far = put(sim, 1, 1, 5);
     const away = put(sim, 1, 3, 3);
-    expect(sim.lanePace()).toEqual([1, 1.5, 1, 1, 1]);
-    // Only a friend that attacks is sped up: not a wall, nor the singers themselves.
-    expect([p, near, wall, away].map((a) => sim.spedUp(a))).toEqual([false, true, false, false]);
+    // The 3×3 tiles round the singers (owner's call, 2026-11-13: it was their whole lane).
+    const lit = () => sim.tilePace().map((row) => row.map((k) => (k > 1 ? '#' : '.')).join(''));
+    expect(lit()).toEqual(['.###.....', '.###.....', '.###.....', '.........', '.........']);
+    // Only a friend that attacks is sped up: not a wall, nor the singers themselves; nor one further along the lane or
+    // two lanes away.
+    expect([p, near, corner, wall, far, away].map((a) => sim.spedUp(a))).toEqual([false, true, true, false, false, false]);
     // A silenced friend doesn't attack at all; silenced singers don't sing.
     near.songUntil = sim.t + 1000;
     expect(sim.spedUp(near)).toBe(false);
     near.songUntil = 0;
     p.songUntil = sim.t + 1000;
-    expect(sim.lanePace()[1]).toBe(1);
+    expect(lit()).toEqual(Array(5).fill('.........'));
     expect(sim.spedUp(near)).toBe(false);
     // フタバ and ヒトハ side by side, each sped up by the other.
     const isle = makeSim(['futaba', 'hitoha'], { water: [2] });
@@ -1510,8 +1515,10 @@ describe('v2 friends', () => {
   it('says what a friend would reach from a tile, and who putting it there would speed up', () => {
     const sim = makeSim(['pajama_parties', 'hachiware', 'yoroi', 'usagi']);
     const reach = (id: string, lane: number, col: number) => sim.reachFrom(UNITS[id], lane, col);
-    // The song: the whole lane. A melee blow: its tile and the tiles ahead it reaches, no further than the field.
-    expect(reach('pajama_parties', 2, 4)).toEqual([{ lane: 2, from: 0, to: 8, kind: 'song' }]);
+    // The song: the 3×3 tiles round it, on the field. A melee blow: its tile and the tiles ahead it reaches, no further
+    // than the field.
+    expect(reach('pajama_parties', 2, 4).map((s) => [s.lane, s.from, s.to, s.kind])).toEqual([[1, 3, 5, 'song'], [2, 3, 5, 'song'], [3, 3, 5, 'song']]);
+    expect(reach('pajama_parties', 0, 0).map((s) => [s.lane, s.from, s.to])).toEqual([[0, 0, 1], [1, 0, 1]]);
     expect(reach('hachiware', 2, 4)).toEqual([{ lane: 2, from: 4, to: 7, kind: 'reach' }]);
     expect(reach('hachiware', 2, 7)).toEqual([{ lane: 2, from: 7, to: 8, kind: 'reach' }]);
     // ラッコ's sweep takes in the open lanes either side; モモンガ's acorns three lanes to the end of the field.
@@ -1523,14 +1530,14 @@ describe('v2 friends', () => {
     // A shooter reaches the whole lane ahead, as in PvZ: nothing to show. フタバ: the tiles beside it for ヒトハ.
     expect(reach('usagi', 2, 4)).toEqual([]);
     expect(reach('futaba', 2, 4).map((s) => [s.from, s.kind])).toEqual([[3, 'partner'], [5, 'partner']]);
-    // Who would be sped up: those in the lane the song would reach (attackers only), and a friend put where a song
-    // already is.
+    // Who would be sped up: those on the 3×3 tiles the song would reach (attackers only), and a friend put where a song
+    // already reaches.
     const fighter = put(sim, 1, 1, 3);
     put(sim, 2, 1, 5);
-    expect(sim.boostsFrom(UNITS.pajama_parties, 1, 1)).toEqual({ allies: [fighter], self: false });
+    expect(sim.boostsFrom(UNITS.pajama_parties, 2, 4)).toEqual({ allies: [fighter], self: false });
+    expect(sim.boostsFrom(UNITS.pajama_parties, 1, 1).allies).toEqual([]);
     put(sim, 0, 1, 0);
-    expect(sim.boostsFrom(UNITS.usagi, 1, 6).self).toBe(true);
-    expect(sim.boostsFrom(UNITS.usagi, 2, 6).self).toBe(false);
+    expect([[1, 1], [2, 1], [1, 6], [3, 1]].map(([l, c]) => sim.boostsFrom(UNITS.usagi, l, c).self)).toEqual([true, true, false, false]);
     // A partner beside: both.
     const isle = makeSim(['futaba', 'hitoha'], { water: [2] });
     const h = put(isle, 1, 2, 4);
